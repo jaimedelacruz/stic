@@ -1,10 +1,25 @@
 #include <mpi.h>
 #include <iostream>
+#include <cstdio>
+
 #include "master_sparse.h"
 #include "slave.h"
 using namespace std;
 //
 int main(int narg, char* argv[]){
+  
+  const char title[6][100] = {"                         ______  _   _  _                                        ",                                 
+			     "                         | ___ \\| | | |(_)                                       ",
+			     " ______  ______  ______  | |_/ /| |_| | _  _ __  __   __  ______  ______  ______ ",
+			     "|______||______||______| |    / |  _  || || '_ \\ \\ \\ / / |______||______||______|",
+			     "                         | |\\ \\ | | | || || | | | \\ V /                          ",
+  			     "                         \\_| \\_|\\_| |_/|_||_| |_|  \\_/                           "};
+  
+  
+  
+  for(int ii = 0; ii<6; ii++) fprintf(stderr,"%s\n", title[ii]);
+  cerr<<endl;
+                                                                             
 
 
   //
