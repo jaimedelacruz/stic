@@ -1,0 +1,29 @@
+      INTEGER IONSIZ
+      PARAMETER (IONSIZ=6)
+C
+C Parameters used by the Equation of State (EOS) code.
+C
+      INTEGER ELEDIM,SPCHAR,SPLSIZ
+      PARAMETER (ELEDIM=120,SPCHAR=8,SPLSIZ=650)
+C
+C ELEDIM - Used to dimension arrays (IATOM, INDSP, P) containing data
+C  for each element that appears in the full species list (SPLIST).
+C  Also used to dimension arrays (A, B, and AL) used in solving the
+C  linearized equilibrium equations. ELEDIM must be less than or equal
+C  to the total number of unique elements that appear in the species
+C  list.
+C
+C ELESIZ - Used to dimension the arrays ELEMEN and AMASS, which contain
+C  the name and atomic mass (in AMU) of each element (no molecules!).
+C
+C SPCHAR - Maximum number of characters required to store species names.
+C  Note that SPCHAR must be large enough to allow two spaces after each
+C  neutral molecular species (see MPARSE in eos.f).
+C
+C SPLSIZ - Used to dimension the local arrays XNPF, PFUNC, and POTION,
+C  which contain "zeta", partition functions, and ionization potentials.
+C  Should also be used (if possible) by the calling routine to dimension
+C  the SPNAME and ION arrays. SPLSIZ must be large enough to handle the
+C  base set of species used when computing the molecular equilibrium and
+C  also any additional species that appear only in the line list.
+C

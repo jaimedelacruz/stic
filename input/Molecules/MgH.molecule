@@ -1,0 +1,28 @@
+# <<One-line molecular model description>>
+  MGH
+
+# Charge
+  0
+
+# List of constituent atoms of the form nA, mB, pC for molecule AmBnCp
+  Mg, H
+
+# Ediss [eV]
+  1.3400
+
+# Fit type for partion function and equilibrium constant
+  SAUVAL_TATUM_84
+
+# Tmin  and Tmax [K]
+  1.0E+3  9.0E+3
+
+# pf_coef
+  4   3.6704  -2.2682   0.9354  -0.2597
+
+# eqc_coef
+  5   9.2846  -0.3587  -0.1220  -1.5627   1.3047
+
+# Filenames with line data
+
+ /home/uitenbr/src/rh/Molecules/MgH/MgH_X-A.asc
+## end

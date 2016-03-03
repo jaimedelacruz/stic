@@ -1,0 +1,28 @@
+#
+# Compilers
+#
+CC  = gcc-4.8
+CXX = g++-4.8
+FC  = gfortran-4.8
+
+
+#
+# MPI assignments
+#
+OMPI_FC = $(FC)
+OMPI_CXX = $(CXX)
+OMPI_CC = $(CC)
+MPCXX = mpicxx
+MPFC = mpif90
+
+
+#
+# OPTIMIZATION
+#
+OPTS = -O3 -g -march=native -lm -lpthread
+CXXFLAGS = $(OPTS) -std=c++11 -Wno-literal-suffix
+CFLAGS = $(OPTS)
+FFLAGS = $(OPTS)
+AR = gcc-ar-4.8
+OPENMP = -fopenmp
+

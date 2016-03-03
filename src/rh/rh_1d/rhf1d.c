@@ -1,0 +1,498 @@
+/* ------- file: -------------------------- rhf1d.c -----------------
+
+       Version:       rh2.0, 1-D plane-parallel
+       Author:        Han Uitenbroek (huitenbroek@nso.edu)
+       Last modified: Thu Feb 24 16:40:14 2011 --
+
+       --------------------------                      ----------RH-- */
+
+/* --- Main routine of 1D plane-parallel radiative transfer program.
+       MALI scheme formulated according to Rybicki & Hummer
+
+  See: G. B. Rybicki and D. G. Hummer 1991, A&A 245, p. 171-181
+       G. B. Rybicki and D. G. Hummer 1992, A&A 263, p. 209-215
+
+       Formal solution is performed with Feautrier difference scheme
+       in static atmospheres, and with piecewise quadratic integration
+       in moving atmospheres.
+
+       --                                              -------------- */
+
+#include <string.h>
+#include <stdbool.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include "rh.h"
+#include "atom.h"
+#include "atmos.h"
+#include "geometry.h"
+#include "spectrum.h"
+#include "background.h"
+#include "math.h"
+#include "statistics.h"
+#include "error.h"
+#include "inputs.h"
+#include "xdr.h"
+#include "rhf1d.h"
+#include "dummyatmos.h"
+#include "sortlambda_j.h"
+#include "initial_j.h"
+#include "scatter_j.h"
+#include "iterate_j.h"
+/* --- Function prototypes --                          -------------- */
+
+
+/* --- Global variables --                             -------------- */
+
+enum Topology topology = ONE_D_PLANE;
+
+Atmosphere atmos;
+Geometry geometry;
+Spectrum spectrum;
+ProgramStats stats;
+InputData input;
+CommandLine commandline;
+char messageStr[MAX_MESSAGE_LENGTH];
+rhinfo io;
+BackgroundData bgdat;
+rhbgmem *bmem; // To store background opac in mem
+crhpop *save_popp;
+MPI_t mpi;
+
+/* ------- begin -------------------------- rhf1d.c ----------------- */
+
+bool_t rhf1d(float muz, int rhs_ndep, double *rhs_T, double *rhs_rho, 
+	     double *rhs_nne, double *rhs_vturb, double *rhs_v, 
+	     double *rhs_B, double *rhs_inc, double *rhs_azi,
+	     double *rhs_z, double *rhs_nhtot, double *rhs_tau ,
+	     double *rhs_cmass, double gravity, bool_t stokes, ospec *sp,
+	     crhpop *save_pop, int mynw, double *mylambda, int myrank, int savpop)
+{
+  
+  bool_t write_analyze_output, equilibria_only;
+  int    niter, nact;
+  static int save_Nrays;
+  static double save_muz, save_mux, save_muy, save_wmu;
+  static enum StokesMode oldMode;
+
+  double dpopmax;
+  static Atom *atom;
+  static Molecule *molecule;
+ 
+  static bool_t firsttime = TRUE;
+ 
+  int argc = 1;
+  char *argv[] = {"rhf1d",NULL};
+
+  if(firsttime) memset(&atmos, 0, sizeof(atmos));
+  
+  atmos.moving = TRUE;
+  atmos.Stokes = FALSE;
+  atmos.Nspace = rhs_ndep;
+
+  
+  
+  /* --- Read input data and initialize --             -------------- */
+  
+  setOptions(argc, argv);
+  
+  if(firsttime){
+    getCPU(0, TIME_START, NULL);
+    SetFPEtraps();
+    geometry.Ndep = rhs_ndep;
+    atmos.gravity = gravity;
+    atmos.nH = matrix_double(6, rhs_ndep);
+    readInput();
+    readAbundance(&atmos);
+    DUMMYatmos(&atmos, &geometry, firsttime);
+    oldMode = input.StokesMode;
+    mpi.rank = myrank;
+
+  }
+  mpi.stop = false;
+
+
+  
+  /* --- Allocate space for arrays that define structure -- --------- */
+  
+  geometry.tau_ref = rhs_tau;//(double *) malloc(Ndep * sizeof(double));
+  geometry.cmass   = rhs_cmass;//(double *) malloc(Ndep * sizeof(double));
+  geometry.height  = rhs_z;//(double *) malloc(Ndep * sizeof(double));
+  atmos.T      = rhs_T;//(double *) malloc(Ndep * sizeof(double));
+  atmos.ne     = rhs_nne;//(double *) malloc(Ndep * sizeof(double));
+  atmos.vturb  = rhs_vturb;//(double *) malloc(Ndep * sizeof(double));
+  geometry.vel = rhs_v;//(double *) malloc(Ndep * sizeof(double));
+  atmos.B = rhs_B;
+  atmos.gamma_B = rhs_inc;
+  atmos.chi_B = rhs_azi;
+  atmos.H_LTE = TRUE;
+  atmos.nHtot = rhs_nhtot;
+  save_popp = save_pop;
+  input.StokesMode = oldMode;
+  spectrum.updateJ = TRUE;  
+  getCPU(1, TIME_START, NULL);
+  if (input.StokesMode > NO_STOKES)
+    atmos.Stokes = TRUE;
+ 
+
+  /* --- Init atomic/molecular models, extra lambda 
+     positions and background opac. Allocated only in the first call --- */
+  
+  if(firsttime){
+    readAtomicModels();
+    readMolecularModels();
+    SortLambda_j(mynw, mylambda);
+
+    init_Background_j();
+    Initvarious();
+    
+    /* --- Save geometry values to change back after --    ------------ */
+    
+    save_Nrays = atmos.Nrays;   save_wmu = geometry.wmu[0];
+    save_muz = geometry.muz[0]; save_mux = geometry.mux[0]; save_muy = geometry.muy[0];
+  }
+  
+  firsttime = FALSE;
+
+  
+  /* --- Reallocate stuff and compute background opac --- */
+  
+  UpdateAtmosDep();
+  //getBoundary(&geometry);
+  Background_j(write_analyze_output=FALSE, equilibria_only=FALSE);
+
+
+  
+  /* --- Init profiles, populations and scattering --- */
+
+  getProfiles();
+  initSolution_j( myrank );
+  read_populations(save_pop);
+  initScatter();
+
+  getCPU(1, TIME_POLL, "Total Initialize");
+
+  
+  /* --- Solve radiative transfer for active ingredients -- --------- */
+  
+  Iterate_j(input.NmaxIter, input.iterLimit, &dpopmax);
+
+  
+  /* --- Adjust stokes mode in case we are running POLARIZATION_FREE --- */
+  
+  adjustStokesMode();
+  niter = 0;
+  
+  while (niter < input.NmaxScatter) {
+    if (solveSpectrum(FALSE, FALSE) <= input.iterLimit) break;
+    niter++;
+  }
+ 
+  bool_t converged = dpopmax < input.iterLimit;
+
+
+  /* --- Store populations if needed --- */
+      
+  if(savpop > 0 && converged)
+    save_populations(save_pop);
+  
+
+  /* --- Compute output ray --- */
+  
+  atmos.Nrays     = 1;
+  geometry.Nrays  = 1;
+  geometry.muz[0] = muz;
+  geometry.mux[0] = sqrt(1.0 - SQ(geometry.muz[0]));
+  geometry.muy[0] = 0.0;
+  geometry.wmu[0] = 1.0;
+  spectrum.updateJ = FALSE;
+  
+  calculateRay();
+    
+  
+
+  /* --- Put back previous values for geometry  --- */
+  
+  atmos.Nrays     = save_Nrays;
+  geometry.Nrays = save_Nrays;
+  geometry.muz[0] = save_muz;
+  geometry.mux[0] = save_mux;
+  geometry.muy[0] = save_muy;
+  geometry.wmu[0] = save_wmu;
+  spectrum.updateJ = TRUE;
+
+  
+  /* --- Copy desired ray to output arrays---*/
+  
+  sp->nrays = atmos.Nrays;
+  sp->nlambda = spectrum.Nspect;
+  if(sp->I != NULL) free(sp->I);
+  if(sp->Q != NULL) free(sp->Q);
+  if(sp->U != NULL) free(sp->U);
+  if(sp->V != NULL) free(sp->V);
+  if(sp->lambda != NULL) free(sp->V);
+  sp->I = calloc(spectrum.Nspect, sizeof(double));
+  sp->Q = calloc(spectrum.Nspect, sizeof(double));
+  sp->U = calloc(spectrum.Nspect, sizeof(double));
+  sp->V = calloc(spectrum.Nspect, sizeof(double));
+  sp->lambda = calloc(spectrum.Nspect, sizeof(double));
+
+  memcpy(sp->I, spectrum.I[0], spectrum.Nspect * sizeof(double));
+  memcpy(sp->lambda, spectrum.lambda, spectrum.Nspect * sizeof(double));
+  if(atmos.Stokes && stokes){
+      memcpy(sp->Q, spectrum.Stokes_Q[0], spectrum.Nspect * sizeof(double));
+      memcpy(sp->U, spectrum.Stokes_U[0], spectrum.Nspect * sizeof(double));
+      memcpy(sp->V, spectrum.Stokes_V[0], spectrum.Nspect * sizeof(double));	
+  }
+  
+  input.StokesMode = oldMode;
+
+
+  /* --- Deallocate n & nstar --- */
+  
+  for (nact = 0; nact < atmos.Natom; nact++) {
+    atom = &atmos.atoms[nact];
+    if(atom->n == atom->nstar){
+      freeMatrix((void **) atom->nstar);
+      atom->nstar = NULL;
+      atom->n = NULL;
+    }else{
+      if (atom->nstar != NULL) freeMatrix((void **) atom->nstar);
+      if (atom->n != NULL) freeMatrix((void **) atom->n);
+      atom->nstar = NULL;
+      atom->n = NULL;
+    }
+  }
+
+  return converged;
+}
+
+
+void clean_saved_populations(crhpop *save_pop){
+
+  int ii, kr;
+  
+  if(save_pop->nactive > 0){
+    fprintf(stderr,"clean_saved_populations: cleaning pops\n");
+    for(ii = 0;ii < save_pop->nactive;ii++){
+      
+      free(save_pop->pop[ii].n);
+      free( save_pop->pop[ii].ntotal);
+      
+      save_pop->pop[ii].ntotal = NULL;
+      save_pop->pop[ii].n = NULL;
+      
+      if(save_pop->pop[ii].nprd > 0){
+	
+	for(kr=0;kr<save_pop->pop[ii].nprd; kr++){
+	  // fprintf(stderr,"cleaning rho [%d] -> %p \n", kr, save_pop->pop[ii].line[kr]);
+	  
+	  free(save_pop->pop[ii].line[kr].rho);
+	}
+
+	free(save_pop->pop[ii].line);
+	
+      } // nprd > 0
+
+      save_pop->pop[ii].nprd = 0;
+      
+    } // nactive
+    
+    
+    free(save_pop->pop);
+    free(save_pop->lambda);
+    free(save_pop->J);
+    if(input.backgr_pol) free(save_pop->J20);
+
+    save_pop->pop = NULL;
+    save_pop->lambda = NULL;
+    save_pop->J = NULL;
+    save_pop->J20 = NULL;
+
+  }
+
+  save_pop->nactive = 0;
+}
+
+
+void save_populations(crhpop *save_pop){
+
+  Atom *atom;
+  int    niter, nact, save_Nrays, nactotal, ii, kr, nprd;
+  AtomicLine *line;
+
+  // fprintf(stderr,"save_pop: nactive=%d\n", save_pop->nactive);
+  
+  if(save_pop->nactive > 0) clean_saved_populations(save_pop);
+
+  save_pop->nactive = atmos.Nactiveatom;
+  save_pop->ndep = atmos.Nspace;
+  save_pop->nw = spectrum.Nspect;
+  //
+  save_pop->pop =     (crhatom*) malloc(atmos.Nactiveatom * sizeof(crhatom));
+  save_pop->lambda =  (double*) malloc(spectrum.Nspect*sizeof(double));
+  //
+  save_pop->J =   (double*) malloc(spectrum.Nspect* atmos.Nspace*sizeof(double));
+
+  if(input.backgr_pol)
+    save_pop->J20 = (double*) malloc(spectrum.Nspect* atmos.Nspace*sizeof(double));
+  else
+    save_pop->J20 = NULL;
+
+  
+  /* --- copy J, J20 and lambda ---*/
+  
+  memcpy(&save_pop->J[0], &spectrum.J[0][0],
+	 spectrum.Nspect*atmos.Nspace*sizeof(double));
+  
+  if(input.backgr_pol){
+    memcpy(&save_pop->J20[0], &spectrum.J20[0][0],
+	   spectrum.Nspect*atmos.Nspace*sizeof(double));
+  } else  fprintf(stderr, "NOT STORING J20!\n");
+    
+  memcpy(&save_pop->lambda[0], spectrum.lambda, spectrum.Nspect * sizeof(double));
+
+  /* --- Copy populations for each active atom --- */
+  
+  for (nact = 0;  nact < atmos.Nactiveatom;  nact++) {
+    
+    atom = atmos.activeatoms[nact];
+    save_pop->pop[nact].nlevel = atom->Nlevel;
+    save_pop->pop[nact].converged  = true;
+
+    /* --- Allocate arrays ---*/
+    save_pop->pop[nact].n = (double*) malloc( atom->Nlevel * atmos.Nspace*sizeof(double));
+    save_pop->pop[nact].ntotal = (double*) malloc(atmos.Nspace*sizeof(double));
+
+
+    /* --- copy populations and ntotal---*/
+    memcpy(&save_pop->pop[nact].n[0], &atom->n[0][0],
+	   atom->Nlevel*atmos.Nspace*sizeof(double));
+    memcpy(&save_pop->pop[nact].ntotal[0], &atom->ntotal[0], atmos.Nspace*sizeof(double));
+
+
+    /* --- Check number of PRD lines in atom --- */
+    
+    nprd = 0;
+    for (kr = 0;  kr < atom->Nline;  kr++)
+      if (atom->line[kr].PRD) nprd++;
+    
+
+    /* --- Allocate arrays to store rho for each PRD line --- */
+    
+    save_pop->pop[nact].nprd = nprd;
+    
+    if(nprd >0){
+      
+      save_pop->pop[nact].line = (crhprd*) malloc(nprd * sizeof(crhprd));
+      ii = 0;
+      
+      for (kr = 0;  kr < atom->Nline;  kr++){
+	
+	line = &atom->line[kr];
+	
+	if (line->PRD){
+	  save_pop->pop[nact].line[ii].idx = kr;
+	  save_pop->pop[nact].line[ii].nlambda = line->Nlambda;
+	  save_pop->pop[nact].line[ii].rho = (double*)
+	    malloc(line->Nlambda * atmos.Nspace * sizeof(double));
+	  //
+	  //  fprintf(stderr,"ii=%d, srho=%p, lrho=%p\n",
+	  //	  ii, &save_pop->pop[nact].line[ii].rho[0], &line->rho_prd[0][0]);
+	  //
+	  memcpy(save_pop->pop[nact].line[ii].rho, &line->rho_prd[0][0],
+		 line->Nlambda*atmos.Nspace*sizeof(double));
+	  ii++;
+	} // PRD line
+      } // kr
+    }// nprd > 0
+    
+  } // nact
+
+}
+
+void read_populations(crhpop *save_pop){
+  Atom *atom;
+  int    niter, nact, save_Nrays, nactotal, ii, nprd, kr, kkr;
+  AtomicLine *line;
+
+
+  if(save_pop->pop == NULL || save_pop->nactive != atmos.Nactiveatom){
+    // fprintf(stderr,"read_population: atmos->Nactiveatom[%d] != save_pop->nactive[%d]\n",
+    //atmos.Nactiveatom, save_pop->nactive);
+    return;
+  }
+  
+  for(nact=0;nact < save_pop->nactive;nact++){
+    atom = atmos.activeatoms[nact];
+    
+    /* --- Check dimensions --- */
+    if(atom->Nlevel != save_pop->pop[nact].nlevel || atmos.Nspace != save_pop->ndep){
+      continue;
+    }
+      
+    /* --- Copy populations and ntotal --- */
+    memcpy(&atom->n[0][0], &save_pop->pop[nact].n[0],
+	   atom->Nlevel * atmos.Nspace * sizeof(double));
+    
+    memcpy(&atom->ntotal[0], &save_pop->pop[nact].ntotal[0], atmos.Nspace*sizeof(double));
+
+
+    /* --- Copy rho for PRD lines? --- */
+    
+    if(save_pop->pop[nact].nprd > 0){
+
+      /* --- Number of PRD lines in atom --- */
+      nprd = 0;
+      for (kr = 0;  kr < atom->Nline;  kr++){
+	line = &atom->line[kr];
+	if (line->PRD) nprd++;
+      }
+
+      if(nprd == save_pop->pop[nact].nprd){
+	for(kr = 0; kr<save_pop->pop[nact].nprd; kr++){
+	  
+	  line = &atom->line[save_pop->pop[nact].line[kr].idx];
+	  
+	  if(line->PRD && (save_pop->pop[nact].line[kr].nlambda == line->Nlambda)){
+	    fprintf(stderr, "Copying rho array for nact=%d, line=%d\n", nact, kr);
+	    memcpy(&line->rho_prd[0][0], save_pop->pop[nact].line[kr].rho,
+		   line->Nlambda*atmos.Nspace*sizeof(double));
+       
+	  }else{
+	    fprintf(stderr,"read_populations: BAD BOOK-KEEPING, not a PRD line, not copying rho, idx=%d, kkr=%d \n", kr, kkr );
+
+	  }
+	  
+	}
+	
+      }else{
+	fprintf(stderr,"read_populations: nprd[%d] != save_pop.pop.nprd[%d], not copying PRD rho!\n", nprd,save_pop->pop[nact].nprd );
+      }
+      
+    }else{
+      fprintf(stderr,"read_populations, no PRD lines for ATOM=%d\n",nact);
+    }
+  } // nact
+
+
+  /* --- Copy radiation field --- */
+  if(spectrum.Nspect == save_pop->nw || atmos.Nspace == save_pop->ndep){
+    memcpy(&spectrum.J[0][0], &save_pop->J[0],
+	   spectrum.Nspect*atmos.Nspace*sizeof(double));
+    if(input.backgr_pol){
+      memcpy(&spectrum.J20[0][0], &save_pop->J20[0],
+	     spectrum.Nspect*atmos.Nspace*sizeof(double));
+      
+    }else fprintf(stderr, "NOT READING J20!\n");
+  }
+
+  
+  
+}
+
+
+
+
+/* ------- end ---------------------------- rhf1d.c ----------------- */
