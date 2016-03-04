@@ -5,8 +5,8 @@ include makefiles/makefile.$(CPU).$(OS)
 
 RHFOLD = rh/
 
-INCLUDE = $(shell ncxx4-config --cflags) -I/usr/include -I./ -I$(RHFOLD) -I$(RHFOLD)/rhf1df
-LIBS_FDENS = $(shell ncxx4-config --libs) -lstdc++ -L/usr/lib/ -lgsl -lgslcblas -lfftw3 -lm  
+INCLUDE = $(shell ncxx4-config --cflags) -I$(GSLPATH)/include -I./ -I$(RHFOLD) -I$(RHFOLD)/rhf1df
+LIBS_FDENS = $(shell ncxx4-config --libs) -lstdc++ -L$(GSLPATH)/lib/ -lgsl -lgslcblas -lfftw3 -lm  
 LIBS = $(LIBS_FDENS) -L./ -lgfortran -L$(RHFOLD)/rh_1d/ -lrhf1d #-fuse-linker-plugin 
 
 

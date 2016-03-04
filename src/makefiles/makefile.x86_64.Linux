@@ -26,3 +26,9 @@ FFLAGS = $(OPTS)
 AR = gcc-ar-4.8
 OPENMP = -fopenmp
 
+
+#
+# GSL, FFTW3 libs.
+# Any unix system should have this installed in /usr.
+#
+GSLPATH = /usr

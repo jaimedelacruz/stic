@@ -23,6 +23,21 @@ OPTS = -O3 -g -march=native -lm -lpthread -Wa,-q
 CXXFLAGS = $(OPTS) -std=c++11 -Wno-literal-suffix
 CFLAGS = $(OPTS)
 FFLAGS = $(OPTS)
-AR = gcc-ar-4.8
+AR = ar
 OPENMP = -fopenmp
 
+
+#
+# GSL, FFTW3 libs.
+# In macports, the defaul is /opt/local.
+#
+GSLPATH = /opt/local
+
+
+#
+# Mac related non-sense 
+#
+ifneq (,$(findstring Darwin,$(OS))) #
+  MACOSX_DEPLOYMENT_TARGET=10.6
+  export MACOSX_DEPLOYMENT_TARGET
+endif
