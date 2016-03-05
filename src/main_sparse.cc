@@ -8,18 +8,7 @@ using namespace std;
 //
 int main(int narg, char* argv[]){
   
-  const char title[6][100] = {"                         ______  _   _  _                                        ",                                 
-			     "                         | ___ \\| | | |(_)                                       ",
-			     " ______  ______  ______  | |_/ /| |_| | _  _ __  __   __  ______  ______  ______ ",
-			     "|______||______||______| |    / |  _  || || '_ \\ \\ \\ / / |______||______||______|",
-			     "                         | |\\ \\ | | | || || | | | \\ V /                          ",
-  			     "                         \\_| \\_|\\_| |_/|_||_| |_|  \\_/                           "};
-  
-  
-  
-  for(int ii = 0; ii<6; ii++) fprintf(stderr,"%s\n", title[ii]);
-  cerr<<endl;
-                                                                             
+                                                      
 
 
   //
@@ -37,6 +26,25 @@ int main(int narg, char* argv[]){
   MPI_Comm_rank(MPI_COMM_WORLD, &myrank);// Job number
   MPI_Comm_size(MPI_COMM_WORLD, &nprocs);// number of processors
   MPI_Get_processor_name(&hostname[0], &hlen);// Hostname
+
+
+  /* --- Printout logo :-) --- */
+  
+  if(myrank == 0){
+    const char title[6][100] = {"                         ______  _   _  _                                        ",                                 
+				"                         | ___ \\| | | |(_)                                       ",
+				" ______  ______  ______  | |_/ /| |_| | _  _ __  __   __  ______  ______  ______ ",
+				"|______||______||______| |    / |  _  || || '_ \\ \\ \\ / / |______||______||______|",
+				"                         | |\\ \\ | | | || || | | | \\ V /                          ",
+				"                         \\_| \\_|\\_| |_/|_||_| |_|  \\_/                           "};
+    
+    
+    
+    for(int ii = 0; ii<6; ii++) fprintf(stderr,"%s\n", title[ii]);
+    cerr<<endl;
+  }               
+  
+
   
   //
   // Split master/slave work
