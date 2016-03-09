@@ -28,9 +28,9 @@ void mdepth::setsize(int n){
   nne  =  &cub(8,0);
   ltau =  &cub(9,0);
   z =     &cub(10,0);
-  tau  =  &cub(11,0);
+  cmass = &cub(11,0);
   pel =   &cub(12,0);
-  cmass = &cub(13,0);
+  tau  =  &cub(13,0);
 }
 
 void mdepth::zero(){
@@ -152,7 +152,7 @@ void mdepthall::setsize(int ny, int nx, int ndep, bool verbose){
   if(verbose) std::cout << inam << "["<<dims[0]<<" "<<dims[1]<<" "<<dims[2]<<"]"<<std::endl;
 		 
 
-  cub.set({ny, nx, 11, ndep});
+  cub.set({ny, nx, 13, ndep});
 }
 
 
@@ -418,7 +418,7 @@ int mdepthall::read_model2(std::string &filename, int tstep, bool require_tau){
   }     
 
   /* --- Allocate cube --- */
-  cub.set({dims[0], dims[1], 11, dims[2]});
+  cub.set({dims[0], dims[1], 13, dims[2]});
   ndep = dims[2];
 
   
@@ -494,7 +494,6 @@ int mdepthall::read_model2(std::string &filename, int tstep, bool require_tau){
    /* --- Read Pgas --- */
    if(ifile.is_var_defined("pgas")){
      ifile.read_Tstep<double>("pgas", tmp, tstep);
-     bound = 1;
      for(int yy=0; yy<dims[0]; yy++) for(int xx = 0;xx<dims[1]; xx++){
 	 boundary(yy,xx) = tmp(yy,xx,0);
 	 memcpy(&cub(yy,xx,6,0), &tmp(yy,xx,0), dims[2]*sizeof(double));
@@ -508,7 +507,6 @@ int mdepthall::read_model2(std::string &filename, int tstep, bool require_tau){
    if(ifile.is_var_defined("rho")){
      ifile.read_Tstep<double>("rho", tmp, tstep);
      if(bound == 0) {
-       bound = 2;
        for(int yy=0; yy<dims[0]; yy++)
 	 for(int xx = 0;xx<dims[1]; xx++){
 	   boundary(yy,xx) = tmp(yy,xx,0);
@@ -527,7 +525,6 @@ int mdepthall::read_model2(std::string &filename, int tstep, bool require_tau){
    if(ifile.is_var_defined("nne")){
      ifile.read_Tstep<double>("nne", tmp, tstep);
      if(bound == 0) {
-       bound = 3;
        for(int yy=0; yy<dims[0]; yy++)
 	 for(int xx = 0;xx<dims[1]; xx++){
 	   boundary(yy,xx) = tmp(yy,xx,0);
@@ -540,6 +537,17 @@ int mdepthall::read_model2(std::string &filename, int tstep, bool require_tau){
    }
 
 
+   /* --- Init boundary --- */
+   if(fabs(cub(0,0,6,0)) > 0.0) bound = 1;
+   else if(fabs(cub(0,0,7,0)) > 0.0) bound = 2;
+   else if(fabs(cub(0,0,8,0)) > 0.0) bound = 3;
+
+   if(bound > 0)
+     for(int yy=0; yy<dims[0]; yy++)
+       for(int xx = 0;xx<dims[1]; xx++)
+	 boundary(yy,xx) = cub(yy,xx,5+bound, 0);
+   cerr<<"mdepthall::read_model2: Bound -> "<<bound<<endl;
+   
 
 
    /* --- Read LTAU500 --- */
@@ -551,7 +559,6 @@ int mdepthall::read_model2(std::string &filename, int tstep, bool require_tau){
       for(int xx = 0;xx<dims[1]; xx++)
 	memcpy(&cub(yy,xx,9,0), &tmp(yy,xx,0), dims[2]*sizeof(double));
    }
-
 
 
 
@@ -575,6 +582,14 @@ int mdepthall::read_model2(std::string &filename, int tstep, bool require_tau){
      
    }
    
+   /* -- Read cmass? --- */
+   
+   if(ifile.is_var_defined("cmass")){
+     ifile.read_Tstep<double>("cmass", tmp, tstep);
+     for(int yy=0; yy<dims[0]; yy++)
+       for(int xx = 0;xx<dims[1]; xx++)
+	 memcpy(&cub(yy,xx,11,0), &tmp(yy,xx,0), dims[2]*sizeof(double));
+   }
 
    
    if(set_ltau == false){
@@ -769,7 +784,8 @@ void mdepthall::write_model2(string &filename, int tstep){
     ofile.initVar<float>(string("pgas"),    {"time","y", "x", "ndep"});
     ofile.initVar<float>(string("rho"),     {"time","y", "x", "ndep"});
     ofile.initVar<float>(string("nne"),     {"time","y", "x", "ndep"});
-    
+    ofile.initVar<float>(string("cmass"),     {"time","y", "x", "ndep"});
+
     firsttime = false;
     
   }
@@ -836,6 +852,11 @@ void mdepthall::write_model2(string &filename, int tstep){
     for(int xx = 0;xx<dims[2];xx++)
       memcpy(&tmp(yy,xx,0), &cub(yy,xx,8,0), dims[3]*sizeof(double));
   ofile.write_Tstep<double>(string("nne"),    tmp,  tstep);
+
+  for(int yy=0; yy<dims[1]; yy++)
+    for(int xx = 0;xx<dims[2];xx++)
+      memcpy(&tmp(yy,xx,0), &cub(yy,xx,11,0), dims[3]*sizeof(double));
+  ofile.write_Tstep<double>(string("cmass"),    tmp,  tstep);
 
 
   

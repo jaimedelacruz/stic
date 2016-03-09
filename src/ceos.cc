@@ -90,7 +90,9 @@ ceos::ceos(double grav){
     sum += ABUND[ii];
   }
   for(int ii = 0; ii<MAX_ELEM; ii++) ABUND[ii] /= sum;
+  totalAbund = sum/ABUND[0];
 
+  // fprintf(stderr,"ABUND=%e %e\n", sum, ABUND[0]);
 
 
   
@@ -218,6 +220,7 @@ ceos::ceos(vector<line_t> &lines, double grav){
     sum += ABUND[ii];
   }
   for(int ii = 0; ii<MAX_ELEM; ii++) ABUND[ii] /= sum;
+  totalAbund = sum/ABUND[0];
 
 
 

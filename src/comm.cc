@@ -22,7 +22,7 @@ void comm_get_buffer_size(iput_t &input){
       input.buffer_size =
 	(input.nw_tot*4*sizeof(double) +  // Profiles
 	 input.npar*sizeof(double) + // Model
-	 11 * input.ndep * sizeof(double) + //non-inverted quantities
+	 13 * input.ndep * sizeof(double) + //non-inverted quantities
 	 2*sizeof(double)) * input.npack + // Chi2, boundary value
 	6*sizeof(int);            // xx, yy, iproc, pix, action, npacked
       
@@ -31,7 +31,7 @@ void comm_get_buffer_size(iput_t &input){
       //
     case 2: // Synthesis
       input.buffer_size =
-	(11 * input.ndep * sizeof(double)) * input.npack + // depth-stratified quantities
+	(13 * input.ndep * sizeof(double)) * input.npack + // depth-stratified quantities
 	6*sizeof(int); // xx, yy, iproc, pix, action, npacked
       input.buffer_size1 =
 	(input.nw_tot*4*sizeof(double)) * input.npack + 6*sizeof(int);
@@ -42,7 +42,7 @@ void comm_get_buffer_size(iput_t &input){
 	8*sizeof(int) + // xx, yy, iproc, pix, action, npacked, ndep, cgrad
 	input.npar*sizeof(double) * input.npack + // Values of the nodes * npacked
 	1*sizeof(double) + // perturbation to the parameter
-	11*input.ndep*sizeof(double)*input.npack; // atmospheric model
+	13*input.ndep*sizeof(double)*input.npack; // atmospheric model
       
       input.buffer_size1 = (input.nw_tot*4*sizeof(double) +                    
 			    input.nw_tot*4*input.npar*sizeof(double) + // Derivatives
@@ -317,7 +317,7 @@ void comm_master_pack_data(iput_t &input, mat<double> &obs, mat<double> &model,
 	
 
 	/* --- Pack full stratified atmos ---*/
-	len = m.ndep * nPacked * 11;
+	len = m.ndep * nPacked * 13;
 	status = MPI_Pack(&m.cub(yy,xx,0,0), len, MPI_DOUBLE, &buffer[0],
 			  input.buffer_size, &pos, MPI_COMM_WORLD);
 	
@@ -341,7 +341,7 @@ void comm_master_pack_data(iput_t &input, mat<double> &obs, mat<double> &model,
 
 	
 	/* --- Pack full stratified atmos ---*/
-	len = m.ndep * nPacked * 11;
+	len = m.ndep * nPacked * 13;
 	status = MPI_Pack(&m.cub(yy,xx,0,0), len, MPI_DOUBLE, &buffer[0],
 			  input.buffer_size, &pos, MPI_COMM_WORLD);
 
@@ -369,7 +369,7 @@ void comm_master_pack_data(iput_t &input, mat<double> &obs, mat<double> &model,
 			  input.buffer_size, &pos, MPI_COMM_WORLD);
 
 	/* --- Pack full stratified atmos ---*/
-	len = m.ndep * nPacked * 11;
+	len = m.ndep * nPacked * 13;
 	status = MPI_Pack(&m.cub(yy,xx,0,0), len, MPI_DOUBLE, &buffer[0],
 			  input.buffer_size, &pos, MPI_COMM_WORLD);
 
@@ -453,7 +453,7 @@ void comm_slave_unpack_data(iput_t &input, int &action, mat<double> &obs, mat<do
 	  
 	  
 	   /* --- Unpack model atmosphere --- */
-	  len = 11 * input.ndep;
+	  len = 13 * input.ndep;
 	  for(auto &it: m){
 	    it.setsize(input.ndep);
 	    status = MPI_Unpack(buffer, input.buffer_size, &pos, &it.cub.d[0], len,
@@ -483,7 +483,7 @@ void comm_slave_unpack_data(iput_t &input, int &action, mat<double> &obs, mat<do
 	  
 	  /* --- Unpack model atmosphere --- */
 	  
-	  len = 11 * input.ndep;
+	  len = 13 * input.ndep;
 	  m.resize(nPacked);
 	  obs.set({nPacked, input.nw_tot, input.ns});
 	  
@@ -527,7 +527,7 @@ void comm_slave_unpack_data(iput_t &input, int &action, mat<double> &obs, mat<do
 
 	  
 	  /* --- Unpack model atmosphere --- */
-	  len = 11 * input.ndep;
+	  len = 13 * input.ndep;
 	  for(auto &it: m){
 	    it.setsize(input.ndep);
 	    status = MPI_Unpack(buffer, input.buffer_size, &pos, &it.cub.d[0], len,

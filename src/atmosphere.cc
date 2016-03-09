@@ -12,7 +12,7 @@
 //
 using namespace std;
 //
-const double atmos::maxchange[6] = {1250., 2.0e5, 1.5e5, 300., phyc::PI/5, phyc::PI/5};
+const double atmos::maxchange[6] = {1500., 2.0e5, 1.5e5, 600., phyc::PI/5, phyc::PI/5};
 
 
 
@@ -224,24 +224,24 @@ int getChi2(int nd, int npar1, double *pars1, double *dev, double **derivs, void
   
   /* --- Cast tmp1 into a double --- */
   
-  atmos *atm = (atmos*)tmp1; 
+  atmos &atm = *((atmos*)tmp1); 
   double *ipars = new double [npar1]();
-  mdepth &m = *atm->imodel;
+  mdepth &m = *atm.imodel;
 
   
   /* --- Expand atmosphere ---*/
   
   for(int pp = 0; pp<npar1; pp++)
-    ipars[pp] = pars1[pp] * atm->scal[pp]; 
+    ipars[pp] = pars1[pp] * atm.scal[pp]; 
   
-  atm->imodel->expand(atm->input.nodes, &ipars[0], atm->input.dint);
-  atm->imodel->getPressureScale(atm->input.boundary, atm->eos);
+  m.expand(atm.input.nodes, &ipars[0], atm.input.dint);
+  m.getPressureScale(atm.input.boundary, atm.eos);
 
   
   /* --- Compute synthetic spetra --- */
   
-  memset(&atm->isyn[0], 0, nd*sizeof(double));
-  atm->synth( m , &atm->isyn[0], (cprof_solver)atm->input.solver, true);
+  memset(&atm.isyn[0], 0, nd*sizeof(double));
+  atm.synth( m , &atm.isyn[0], (cprof_solver)atm.input.solver, true);
 
 
   
@@ -254,16 +254,16 @@ int getChi2(int nd, int npar1, double *pars1, double *dev, double **derivs, void
 	
 	/* --- Compute response function ---*/
 	memset(&derivs[pp][0], 0, nd*sizeof(double));
-	atm->responseFunction(npar1, m, &ipars[0], nd,
-			      &derivs[pp][0], pp, &atm->isyn[0]);
+	atm.responseFunction(npar1, m, &ipars[0], nd,
+			      &derivs[pp][0], pp, &atm.isyn[0]);
 	
-	atm->spectralDegrade(atm->input.ns, (int)1, nd, &derivs[pp][0]);
+	atm.spectralDegrade(atm.input.ns, (int)1, nd, &derivs[pp][0]);
 
 	/* --- renormalize the response function by the 
 	   scaling factor and divide by the noise --- */
 	
 	for(int ii = 0; ii<nd; ii++)
-	  derivs[pp][ii] *= (atm->scal[pp] / atm->w[ii]);
+	  derivs[pp][ii] *= (atm.scal[pp] / atm.w[ii]);
 	
       }
     
@@ -272,7 +272,7 @@ int getChi2(int nd, int npar1, double *pars1, double *dev, double **derivs, void
 
   /* --- Degrade synthetic spectra --- */
   
-  atm->spectralDegrade(atm->input.ns, (int)1, nd, &atm->isyn[0]);
+  atm.spectralDegrade(atm.input.ns, (int)1, nd, &atm.isyn[0]);
 
 
    
@@ -280,7 +280,7 @@ int getChi2(int nd, int npar1, double *pars1, double *dev, double **derivs, void
   
   double ichi = 0.0;
   for(unsigned ii=0; ii<nd; ii++) {
-    dev[ii] = (atm->isyn[ii] - atm->obs[ii]) / atm->w[ii]; 
+    dev[ii] = (atm.isyn[ii] - atm.obs[ii]) / atm.w[ii]; 
     ichi += dev[ii] * dev[ii];
   }
   ichi /= (double)nd;
@@ -292,15 +292,15 @@ int getChi2(int nd, int npar1, double *pars1, double *dev, double **derivs, void
   static bool firsttime = true;
   if(!derivs){
     if(firsttime){
-      string dnam = string("chi2_")+to_string(atm->input.myrank)+string(".txt");
+      string dnam = string("chi2_")+to_string(atm.input.myrank)+string(".txt");
       chif = fopen(dnam.c_str(), "w");
       firsttime = false;
     }
     fprintf(chif,"CHI2=%f\n", ichi);
     fflush(chif);
     
-    mdepth &m = *atm->imodel;
-    string dnam = string("imodel_")+to_string(atm->input.myrank)+string(".txt");
+    //    mdepth &m = *atm->imodel;
+    string dnam = string("imodel_")+to_string(atm.input.myrank)+string(".txt");
     FILE *mid = fopen(dnam.c_str(),"w");
 
     for(int kk=0; kk<m.ndep;kk++){
@@ -312,8 +312,8 @@ int getChi2(int nd, int npar1, double *pars1, double *dev, double **derivs, void
     fclose(mid);
     
   }else{
-    mdepth &m = *atm->imodel;
-    string dnam1 = string("rf_")+to_string(atm->input.myrank)+string(".txt");
+    //  mdepth &m = *atm->imodel;
+    string dnam1 = string("rf_")+to_string(atm.input.myrank)+string(".txt");
 
     FILE *mid1 = fopen(dnam1.c_str(),"w");
 
@@ -334,7 +334,7 @@ int getChi2(int nd, int npar1, double *pars1, double *dev, double **derivs, void
   /* --- clean up --- */
   
   delete [] ipars;
-  if(derivs)  atm->cleanup();
+  if(derivs)  atm.cleanup();
 
   
   return 0;
@@ -357,18 +357,19 @@ double atmos::fitModel(mdepth_t &m, int npar, double *pars, int nobs, double *o,
     fitpars[pp].limited[1] = 1;
     fitpars[pp].limits[0] = mmin[pp]/scal[pp];
     fitpars[pp].limits[1] = mmax[pp]/scal[pp];
-
     fitpars[pp].side = 3;
-    
+
+    // if(pp == 0){
     fitpars[pp].do_maxchange = 1;
     fitpars[pp].maxchange = maxc[pp]/scal[pp];
-
+      //}else fitpars[pp].do_maxchange = 0;
+    
     pars[pp] = checkParameter(pars[pp], pp);
   }
   
   fitconf.maxiter = input.max_inv_iter;
   fitconf.douserscale = 0;
-  fitconf.ftol = 1.0e-3; // Minimum relative change in Chi2 between iters.
+  fitconf.ftol = 3.0e-3; // Minimum relative change in Chi2 between iters.
   //  fitconf.stepfactor = 1.0E3; // Initial step bound. 
     
   
