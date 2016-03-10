@@ -95,7 +95,7 @@ bool_t rhf1d(float muz, int rhs_ndep, double *rhs_T, double *rhs_rho,
   
   /* --- Read input data and initialize --             -------------- */
   
-  setOptions(argc, argv);
+  setOptions(argc, argv, myrank);
   
   if(firsttime){
     getCPU(0, TIME_START, NULL);
@@ -265,6 +265,8 @@ bool_t rhf1d(float muz, int rhs_ndep, double *rhs_T, double *rhs_rho,
     }
   }
 
+  fclose(commandline.logfile);
+  
   return converged;
 }
 
@@ -274,7 +276,7 @@ void clean_saved_populations(crhpop *save_pop){
   int ii, kr;
   
   if(save_pop->nactive > 0){
-    fprintf(stderr,"clean_saved_populations: cleaning pops\n");
+    // fprintf(stderr,"clean_saved_populations: cleaning pops\n");
     for(ii = 0;ii < save_pop->nactive;ii++){
       
       free(save_pop->pop[ii].n);
@@ -349,7 +351,7 @@ void save_populations(crhpop *save_pop){
   if(input.backgr_pol){
     memcpy(&save_pop->J20[0], &spectrum.J20[0][0],
 	   spectrum.Nspect*atmos.Nspace*sizeof(double));
-  } else  fprintf(stderr, "NOT STORING J20!\n");
+  }// else  fprintf(stderr, "NOT STORING J20!\n");
     
   memcpy(&save_pop->lambda[0], spectrum.lambda, spectrum.Nspect * sizeof(double));
 
@@ -456,7 +458,7 @@ void read_populations(crhpop *save_pop){
 	  line = &atom->line[save_pop->pop[nact].line[kr].idx];
 	  
 	  if(line->PRD && (save_pop->pop[nact].line[kr].nlambda == line->Nlambda)){
-	    fprintf(stderr, "Copying rho array for nact=%d, line=%d\n", nact, kr);
+	    //   fprintf(stderr, "Copying rho array for nact=%d, line=%d\n", nact, kr);
 	    memcpy(&line->rho_prd[0][0], save_pop->pop[nact].line[kr].rho,
 		   line->Nlambda*atmos.Nspace*sizeof(double));
        
@@ -468,12 +470,12 @@ void read_populations(crhpop *save_pop){
 	}
 	
       }else{
-	fprintf(stderr,"read_populations: nprd[%d] != save_pop.pop.nprd[%d], not copying PRD rho!\n", nprd,save_pop->pop[nact].nprd );
+	fprintf(commandline.logfile,"read_populations: nprd[%d] != save_pop.pop.nprd[%d], not copying PRD rho!\n", nprd,save_pop->pop[nact].nprd );
       }
       
-    }else{
-      fprintf(stderr,"read_populations, no PRD lines for ATOM=%d\n",nact);
-    }
+    }//else{
+     // fprintf(stderr,"read_populations, no PRD lines for ATOM=%d\n",nact);
+    //}
   } // nact
 
 
@@ -485,7 +487,7 @@ void read_populations(crhpop *save_pop){
       memcpy(&spectrum.J20[0][0], &save_pop->J20[0],
 	     spectrum.Nspect*atmos.Nspace*sizeof(double));
       
-    }else fprintf(stderr, "NOT READING J20!\n");
+    }//else fprintf(stderr, "NOT READING J20!\n");
   }
 
   

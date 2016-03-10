@@ -13,7 +13,7 @@ class instrument{
   instrument(){};
   virtual ~instrument(void){};
   virtual void degrade(mat<double> &syn, bool spectral = true, bool spatial = true, int ntt = -1){};
-  virtual void degrade(double *syn, int ns){std::cerr<<"instrument::degrade: Dummy method!"<<std::endl;};
+  virtual void degrade(double *syn, int ns){};
 
 };
 

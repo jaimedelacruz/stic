@@ -828,7 +828,7 @@ void ceos::hydrostatic(int ndep, double *tau, double *t, double *Pg, double *rho
 
   }
 
-  cerr<<"ceos::hydrostatic: ITMAX="<<imax<<endl;
+  // cerr<<"ceos::hydrostatic: ITMAX="<<imax<<endl;
 }
 
 

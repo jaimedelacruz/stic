@@ -195,7 +195,7 @@ void atmos::randomizeParameters(nodes_t &n, int npar, double *pars){
     else if(n.ntype[pp] == v_node)
       pertu =  2.0 * (rnum - 0.5) * scal[pp];
     else if(n.ntype[pp] == vturb_node)
-      pertu =  rnum * scal[pp];
+      pertu =  2.0 * (rnum - 0.5) * scal[pp];
     else if(n.ntype[pp] == b_node)
       pertu =  rnum * scal[pp];
     else if(n.ntype[pp] == inc_node)
@@ -250,7 +250,7 @@ int getChi2(int nd, int npar1, double *pars1, double *dev, double **derivs, void
     
     for(int pp = npar1-1; pp >= 0; pp--)
       if(derivs[pp]){
-	cerr<<"COMPUTING RF for PAR="<<pp<<" / "<<npar1-1<<endl;
+	//	cerr<<"COMPUTING RF for PAR="<<pp<<" / "<<npar1-1<<endl;
 	
 	/* --- Compute response function ---*/
 	memset(&derivs[pp][0], 0, nd*sizeof(double));
@@ -298,7 +298,7 @@ int getChi2(int nd, int npar1, double *pars1, double *dev, double **derivs, void
     }
     fprintf(chif,"CHI2=%f\n", ichi);
     fflush(chif);
-    
+    /*
     //    mdepth &m = *atm->imodel;
     string dnam = string("imodel_")+to_string(atm.input.myrank)+string(".txt");
     FILE *mid = fopen(dnam.c_str(),"w");
@@ -310,8 +310,9 @@ int getChi2(int nd, int npar1, double *pars1, double *dev, double **derivs, void
       fprintf(mid,"\n");
     }
     fclose(mid);
-    
-  }else{
+    */
+  }
+  /*else{
     //  mdepth &m = *atm->imodel;
     string dnam1 = string("rf_")+to_string(atm.input.myrank)+string(".txt");
 
@@ -325,7 +326,7 @@ int getChi2(int nd, int npar1, double *pars1, double *dev, double **derivs, void
     }
     fclose(mid1);
   }
-   
+  */
   /* --- END DEBUG --- */
 
   

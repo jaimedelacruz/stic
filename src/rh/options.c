@@ -14,6 +14,9 @@
 #include "error.h"
 #include "inputs.h"
 
+#define PROCLOGFILE "scratch/procLog_%06d.txt"
+
+
 
 /* --- Function prototypes --                          -------------- */
 
@@ -26,13 +29,14 @@ extern char messageStr[];
 
 /* ------- begin -------------------------- setOptions.c ------------ */
 
-void setOptions(int argc, char *argv[])
+void setOptions(int argc, char *argv[], int iproc)
 {
   const  char routineName[] = "setOptions";
   static char logfileName[MAX_LINE_SIZE], wavetable[MAX_LINE_SIZE];
 
   int Noption;
-
+  
+  
   Option theOptions[] = {
     {"help", 1, FALSE, "", NULL, NULL, "Prints this message"},
     {"input", 1, TRUE, "keyword.input",
@@ -50,7 +54,8 @@ void setOptions(int argc, char *argv[])
   Noption = sizeof(theOptions) / sizeof(Option);
 
   parse(argc, argv, Noption, theOptions);
-
+  sprintf(logfileName, PROCLOGFILE, iproc);
+  
   if (strlen(logfileName) > 0) {
     if ((commandline.logfile = fopen(logfileName, "w")) == NULL) {
       sprintf(messageStr, "Unable to open log file %s", logfileName);
