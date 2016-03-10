@@ -151,7 +151,7 @@ void spectral::degrade_one(spec_ft &ift, double *dat, int ns)
 {
   
   int nw = ift.n;
-  double (&idat)[nw][ns] = *reinterpret_cast<double (*)[nw][ns]>(dat);
+  //double (&idat)[nw][ns] = *reinterpret_cast<double (*)[nw][ns]>(dat);
 
   
   
@@ -160,9 +160,9 @@ void spectral::degrade_one(spec_ft &ift, double *dat, int ns)
     /* --- pad data array --- */
     
     for(int kk = 0; kk<ift.npad; kk++){
-      if(kk < ift.n                               ) ift.dat[kk] = idat[kk][ss];
-      else if(kk >= ift.n && kk < ift.n + ift.n1/2) ift.dat[kk] = idat[ift.n-1][ss];
-      else ift.dat[kk] = idat[0][ss];
+      if(kk < ift.n                               ) ift.dat[kk] = dat[kk*ns+ss];//idat[kk][ss];
+      else if(kk >= ift.n && kk < ift.n + ift.n1/2) ift.dat[kk] = dat[(ift.n-1)*ns+ss];//idat[ift.n-1][ss];
+      else ift.dat[kk] = dat[ss];//idat[0][ss];
     }
 
     
@@ -186,7 +186,8 @@ void spectral::degrade_one(spec_ft &ift, double *dat, int ns)
     /* --- Copy back in place --- */
     
     for(int kk = 0; kk < ift.n; kk++)
-      idat[kk][ss] = ift.dat[kk];
+      dat[kk*ns+ss] = ift.dat[kk];
+      //idat[kk][ss] = ift.dat[kk];
 
   } // ss
   
