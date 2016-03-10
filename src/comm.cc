@@ -76,7 +76,10 @@ void comm_send_parameters(iput_t &input){
   status = MPI_Bcast(&input.mu,  4, MPI_DOUBLE, 0, MPI_COMM_WORLD); // We are sending 4 doubles from the struct!
   status = MPI_Bcast(&input.max_inv_iter,  1, MPI_UNSIGNED, 0, MPI_COMM_WORLD);
     
- 
+  int dummy = (int)input.verbose;
+  status = MPI_Bcast(&dummy,  1, MPI_UNSIGNED, 0, MPI_COMM_WORLD);
+
+
   
   // Instrument type
   status = MPI_Bcast(const_cast<char *>(input.instrument.c_str()), input.inst_len+1,  MPI_CHAR, 0, MPI_COMM_WORLD);
@@ -149,6 +152,7 @@ void comm_send_parameters(iput_t &input){
     status = MPI_Bcast(&input.nodes.ntype[0],   input.nodes.nnodes,    MPI_INT, 0, MPI_COMM_WORLD);
     
     
+    
   }
   
 }
@@ -165,6 +169,11 @@ void comm_recv_parameters(iput_t &input){
   status = MPI_Bcast(&input.mu,  4, MPI_DOUBLE, 0, MPI_COMM_WORLD); // We are getting 4 doubles from the struct!
   status = MPI_Bcast(&input.max_inv_iter,  1, MPI_UNSIGNED, 0, MPI_COMM_WORLD);
 
+  int dummy = 0;
+  status = MPI_Bcast(&dummy,  1, MPI_UNSIGNED, 0, MPI_COMM_WORLD);
+  input.verbose = (bool)dummy;
+
+  
   //
   //cerr << nline << endl;
   input.lines.resize(nline);

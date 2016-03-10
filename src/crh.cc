@@ -241,7 +241,7 @@ void crh::synth(mdepth_t &m_in, double *syn, cprof_solver sol, bool save_pops){
   bool conv = rhf1d(input.mu, m.ndep, &m.temp[0], &m.rho[0], &m.nne[0], &m.vturb[0], &m.v[0],
 		     &m.b[0], &m.inc[0], &m.azi[0], &m.z[0], &nhtot[0], &m.tau[0],
 		    &cmass[0], 4.44, (bool_t)true, &sp, &save_pop, nlambda, &lambda[0],
-		    input.myrank, savep);
+		    input.myrank, savep, (int)input.verbose);
   
     
   /* --- Retrieve spectra at the observed grid --- */

@@ -98,7 +98,7 @@ void Redistribute(int NmaxIter, double iterLimit)
 	  accel = Accelerate(line->Ng_prd, line->rho_prd[0]);
 	  sprintf(messageStr, "  PRD: iter #%d, atom %s, line %d,",
 		  line->Ng_prd->count-1, atom->ID, kr);
-	  drho = MaxChange_j(line->Ng_prd, messageStr, quiet=FALSE);
+	  drho = MaxChange_j(line->Ng_prd, messageStr, quiet=commandline.quiet);
 	  if (mpi.stop) return; /* Get out if singular matrix, or NAN in dmax */
 	  sprintf(messageStr, (accel) ? " (accelerated)\n" : "\n");
 	  Error(MESSAGE, routineName, messageStr);

@@ -43,7 +43,7 @@ double MaxChange(struct Ng *Ngs, char *text, bool_t quiet)
     if (new[k])
       dmax = MAX(dmax, fabs((new[k] - old[k]) / new[k]));
   }
-  if (!quiet)
+  if (!quiet && !commandline.quiet)
     fprintf(commandline.logfile, "%s delta = %6.4E", text, dmax);
 
   return dmax;

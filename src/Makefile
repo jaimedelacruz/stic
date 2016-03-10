@@ -5,7 +5,7 @@ include makefiles/makefile.$(CPU).$(OS)
 
 RHFOLD = rh/
 
-INCLUDE = $(shell ncxx4-config --cflags) -I$(GSLPATH)/include -I./ -I$(RHFOLD) -I$(RHFOLD)/rhf1df
+INCLUDE = $(shell ncxx4-config --cflags) -I$(GSLPATH)/include -I./ -I$(RHFOLD) -I$(RHFOLD)/rh_1d
 LIBS_FDENS = $(shell ncxx4-config --libs) -lstdc++ -L$(GSLPATH)/lib/ -lgsl -lgslcblas -lfftw3 -lm  
 LIBS = $(LIBS_FDENS) -L./ -lgfortran -L$(RHFOLD)/rh_1d/ -lrhf1d #-fuse-linker-plugin 
 
@@ -26,7 +26,7 @@ FDENS = ceos.o io.o depthmodel.o fillDensities.o
 	$(FC) $(FFLAGS) -c  $< -o $@
 
 RHinv: $(FFILES) $(OFILES_SPARSE)
-#	$(LFC)  -o sparseRH.x $(FFILES) $(OFILES_SPARSE) $(INCLUDE) $(LIBS) -lmpi_cxx -fopenmp -nofor-main # Use with Intel Fortran
+#	$(MPFC)  -o RHinv.x $(FFILES) $(OFILES_SPARSE) $(INCLUDE) $(LIBS) -lmpi_cxx -fopenmp -nofor-main # Use with Intel Fortran
 	$(MPCXX) -o RHinv.x  $(CPPFLAGS) $(OPENMP) $(FFILES) $(OFILES_SPARSE) $(INCLUDE) $(LIBS) # USE with gfortran
 
 clean:

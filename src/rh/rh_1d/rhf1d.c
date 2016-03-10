@@ -67,7 +67,8 @@ bool_t rhf1d(float muz, int rhs_ndep, double *rhs_T, double *rhs_rho,
 	     double *rhs_B, double *rhs_inc, double *rhs_azi,
 	     double *rhs_z, double *rhs_nhtot, double *rhs_tau ,
 	     double *rhs_cmass, double gravity, bool_t stokes, ospec *sp,
-	     crhpop *save_pop, int mynw, double *mylambda, int myrank, int savpop)
+	     crhpop *save_pop, int mynw, double *mylambda, int myrank, int savpop,
+	     int iverbose)
 {
   
   bool_t write_analyze_output, equilibria_only;
@@ -96,6 +97,8 @@ bool_t rhf1d(float muz, int rhs_ndep, double *rhs_T, double *rhs_rho,
   /* --- Read input data and initialize --             -------------- */
   
   setOptions(argc, argv, myrank);
+  if(iverbose == 0) commandline.quiet = true;
+  
   
   if(firsttime){
     getCPU(0, TIME_START, NULL);
