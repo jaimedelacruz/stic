@@ -11,7 +11,6 @@
 #include "spectral.h"
 #include "depthmodel.h"
 #include "ceos.h"
-#include "mpfit.h"
 //
 class atmos{
  public: 
@@ -39,7 +38,8 @@ class atmos{
   virtual std::vector<double> get_scaling(nodes_t &n){return scal;};
   virtual void responseFunction(int npar, mdepth_t &m, double *pars, int nd, double *out, int pp, double *syn);
   //
-  virtual double fitModel( mdepth_t &m, int npar, double *pars, int nobs, double *o, mat<double> &weights);
+  virtual double fitModel2( mdepth_t &m, int npar, double *pars, int nobs, double *o, mat<double> &weights);
+
   virtual void randomizeParameters(nodes_t &n, int npar, double *pars);
   //
   virtual double checkParameter(double val, int n){

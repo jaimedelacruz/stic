@@ -117,7 +117,7 @@ void master_inverter(mdepthall_t &model, mat<double> &pars, mat<double> &obs, ma
 
       /* --- invert --- */
       
-      atm->fitModel( m, input.npar, &pars(yy,xx,0),
+      atm->fitModel2( m, input.npar, &pars(yy,xx,0),
 		    (int)(input.nw_tot*input.ns), &obs(yy,xx,0,0), w);
 
       

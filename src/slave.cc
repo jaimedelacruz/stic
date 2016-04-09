@@ -104,7 +104,7 @@ void do_slave(int myrank, int nprocs, char hostname[]){
       /* --- Invert pixels --- */
       for(int pp = 0; pp<input.nPacked; pp++)
 	input.chi[pp] =
-	  atmos->fitModel( m[pp], input.npar, &pars(pp,0),
+	  atmos->fitModel2( m[pp], input.npar, &pars(pp,0),
 			  (int)(input.nw_tot*input.ns), &obs(pp,0,0), w);
       
       // for(int pp=0;pp<int(input.ipix.size());pp++)

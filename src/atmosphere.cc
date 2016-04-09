@@ -9,10 +9,12 @@
 #include "ceos.h"
 #include "input.h"
 #include "physical_consts.h"
+#include "clm.h"
 //
 using namespace std;
 //
-const double atmos::maxchange[6] = {1500., 2.0e5, 1.5e5, 600., phyc::PI/5, phyc::PI/5};
+const double atmos::maxchange[6] = {1500., 5.0e5, 2.0e5, 800., phyc::PI/5, phyc::PI/5};
+
 
 
 
@@ -209,17 +211,8 @@ void atmos::randomizeParameters(nodes_t &n, int npar, double *pars){
   
 }
 
-void mpfit_check_status(int status){
-  //
-  string inam =  "mpfit_check_status";
-  //
-  if(status <= 0){
-    cerr << inam << "ERROR in MPFIT, code("<< status<<"), check mpfit.h"<<endl;
-    exit(0);
-  }
-}
 
-int getChi2(int nd, int npar1, double *pars1, double *dev, double **derivs, void *tmp1){
+int getChi2(int npar1, int nd, double *pars1, double *dev, double **derivs, void *tmp1){
 
   
   /* --- Cast tmp1 into a double --- */
@@ -280,7 +273,7 @@ int getChi2(int nd, int npar1, double *pars1, double *dev, double **derivs, void
   
   double ichi = 0.0;
   for(unsigned ii=0; ii<nd; ii++) {
-    dev[ii] = (atm.isyn[ii] - atm.obs[ii]) / atm.w[ii]; 
+    dev[ii] = - (atm.isyn[ii] - atm.obs[ii]) / atm.w[ii]; 
     ichi += dev[ii] * dev[ii];
   }
   ichi /= (double)nd;
@@ -341,38 +334,11 @@ int getChi2(int nd, int npar1, double *pars1, double *dev, double **derivs, void
   return 0;
 }
 
+double atmos::fitModel2(mdepth_t &m, int npar, double *pars, int nobs, double *o, mat<double> &weights){
+  
+  
 
-double atmos::fitModel(mdepth_t &m, int npar, double *pars, int nobs, double *o, mat<double> &weights){
-  
-  
-  /* --- Init Mpfit stuff --- */
-  mp_par fitpars[npar];
-  mp_config fitconf;
-  memset(&fitpars[0], 0, npar*sizeof(mp_par));
-  memset(&fitconf,0, sizeof(mp_config));
-
-  
-  /* ---  Set parameter limits --- */
-  for(int pp = 0; pp<npar; pp++){
-    fitpars[pp].limited[0] = 1;
-    fitpars[pp].limited[1] = 1;
-    fitpars[pp].limits[0] = mmin[pp]/scal[pp];
-    fitpars[pp].limits[1] = mmax[pp]/scal[pp];
-    fitpars[pp].side = 3;
-
-    // if(pp == 0){
-    fitpars[pp].do_maxchange = 1;
-    fitpars[pp].maxchange = maxc[pp]/scal[pp];
-      //}else fitpars[pp].do_maxchange = 0;
-    
-    pars[pp] = checkParameter(pars[pp], pp);
-  }
-  
-  fitconf.maxiter = input.max_inv_iter;
-  fitconf.douserscale = 0;
-  fitconf.ftol = 3.0e-3; // Minimum relative change in Chi2 between iters.
-  //  fitconf.stepfactor = 1.0E3; // Initial step bound. 
-    
+ 
   
   /* --- point to obs and weights --- */
   
@@ -393,8 +359,41 @@ double atmos::fitModel(mdepth_t &m, int npar, double *pars, int nobs, double *o,
   isyn.resize(ndata);
   vector<double> bestSyn;
   bestSyn.resize(ndata);
-  //
-  //
+
+  
+  /* --- Init clm --- */
+
+  clm lm = clm(ndata, npar);
+  lm.xtol = 1.e-3;
+  lm.verb = true;
+  lm.ilambda = 0.1;
+  lm.maxreject = 6;
+  lm.svd_thres = 1.e-16;
+  
+  /* ---  Set parameter limits --- */
+  for(int pp = 0; pp<npar; pp++){
+    lm.fcnt[pp].limit[0] = mmin[pp]/scal[pp];
+    lm.fcnt[pp].limit[1] = mmax[pp]/scal[pp];
+    lm.fcnt[pp].scl = 1.0;//scal[pp];
+    
+    if(input.nodes.ntype[pp] == azi_node){
+      lm.fcnt[pp].cyclic = true;
+    }else{
+      lm.fcnt[pp].cyclic = true;
+    }
+ 
+    lm.fcnt[pp].bouncing = false;
+    lm.fcnt[pp].capped = 1;
+    lm.fcnt[pp].maxchange = maxc[pp]/scal[pp];
+    
+    pars[pp] = checkParameter(pars[pp], pp);
+  }
+  
+
+  
+  
+  /* --- Loop iters --- */
+  
   for(int iter = 0; iter < input.nInv; iter++){
     
     /* --- init parameters for this inversion --- */
@@ -412,26 +411,17 @@ double atmos::fitModel(mdepth_t &m, int npar, double *pars, int nobs, double *o,
     
     /* --- Call mpfit --- */
 
-    int status = 1;
-    mp_result result = {};
-    status = mpfit(&getChi2, ndata, npar, &ipars[0], fitpars, &fitconf, (void*)this, &result);
+    double chi2 = lm.fitdata(getChi2, &ipars[0], (void*)this, input.max_inv_iter);
 
     /* --- Re-start populations --- */
     
     cleanup();
-
     
-    /* --- check status --- */
-    
-    if(status <= 0){
-      cerr << "atmos::fitModel: ERROR in MPFIT, code("<< status<<"), check mpfit.h"<<endl;
-    }
-
 
     /* --- Store result? ---*/
     
-    if((result.bestnorm/ndata) < bestChi){
-      bestChi = result.bestnorm / ndata;
+    if(chi2 < bestChi){
+      bestChi = chi2;
       memcpy(&bestPars[0], &ipars[0], npar*sizeof(double));
       memcpy(&bestSyn[0], &isyn[0], ndata*sizeof(double));
     }
@@ -459,7 +449,6 @@ double atmos::fitModel(mdepth_t &m, int npar, double *pars, int nobs, double *o,
   isyn.clear();
   bestSyn.clear();
 }
-
 
   
 void atmos::spectralDegrade(int ns, int npix, int ndata, double *obs){

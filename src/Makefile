@@ -7,12 +7,12 @@ RHFOLD = rh/
 
 INCLUDE = $(shell ncxx4-config --cflags) -I$(GSLPATH)/include -I./ -I$(RHFOLD) -I$(RHFOLD)/rh_1d
 LIBS_FDENS = $(shell ncxx4-config --libs) -lstdc++ -L$(GSLPATH)/lib/ -lgsl -lgslcblas -lfftw3 -lm  
-LIBS = $(LIBS_FDENS) -L./ -lgfortran -L$(RHFOLD)/rh_1d/ -lrhf1d #-fuse-linker-plugin 
+LIBS = $(LIBS_FDENS) -L./ -lgfortran -L$(RHFOLD)/rh_1d/ -lrhf1d -llapack #-fuse-linker-plugin 
 
 
 
 FFILES = eos_math_special.o eos_eqns.o eos.o contop.o contop_3d.o
-OFILES_SPARSE = input.o mpfit.o ceos.o cprofiles.o comm.o depthmodel.o wavelet.o  hinode.o spectral.o atmosphere.o clte.o crh.o io.o slave.o  sparse.o master_sparse.o main_sparse.o 
+OFILES_SPARSE = input.o clm.o ceos.o cprofiles.o comm.o depthmodel.o wavelet.o  hinode.o spectral.o atmosphere.o clte.o crh.o io.o slave.o  sparse.o master_sparse.o main_sparse.o 
 
 FDENS = ceos.o io.o depthmodel.o fillDensities.o
 
@@ -27,7 +27,7 @@ FDENS = ceos.o io.o depthmodel.o fillDensities.o
 
 RHinv: $(FFILES) $(OFILES_SPARSE)
 #	$(MPFC)  -o RHinv.x $(FFILES) $(OFILES_SPARSE) $(INCLUDE) $(LIBS) -lmpi_cxx -fopenmp -nofor-main # Use with Intel Fortran
-	$(MPCXX) -o RHinv.x  $(CPPFLAGS) $(OPENMP) $(FFILES) $(OFILES_SPARSE) $(INCLUDE) $(LIBS) # USE with gfortran
+	$(MPCXX) -o RHinv.x  $(CXXFLAGS) $(OPENMP) $(FFILES) $(OFILES_SPARSE) $(INCLUDE) $(LIBS) # USE with gfortran
 
 clean:
 	rm -f *.o *.mod
