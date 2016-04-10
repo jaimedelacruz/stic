@@ -13,7 +13,7 @@
 //
 using namespace std;
 //
-const double atmos::maxchange[6] = {1500., 5.0e5, 2.0e5, 800., phyc::PI/5, phyc::PI/5};
+const double atmos::maxchange[6] = {1500., 3.0e5, 1.5e5, 800., phyc::PI/5, phyc::PI/5};
 
 
 
@@ -280,50 +280,6 @@ int getChi2(int npar1, int nd, double *pars1, double *dev, double **derivs, void
 
 
   
-  /* --- DEBUG --- */
-  static FILE *chif;
-  static bool firsttime = true;
-  if(!derivs){
-    if(firsttime){
-      string dnam = string("chi2_")+to_string(atm.input.myrank)+string(".txt");
-      chif = fopen(dnam.c_str(), "w");
-      firsttime = false;
-    }
-    fprintf(chif,"CHI2=%f\n", ichi);
-    fflush(chif);
-    /*
-    //    mdepth &m = *atm->imodel;
-    string dnam = string("imodel_")+to_string(atm.input.myrank)+string(".txt");
-    FILE *mid = fopen(dnam.c_str(),"w");
-
-    for(int kk=0; kk<m.ndep;kk++){
-      fprintf(mid, "%e %e %e %e %e %e %e %e %e %e",
-	      m.ltau[kk], m.z[kk], m.temp[kk], m.pgas[kk], m.rho[kk], m.v[kk], m.vturb[kk], m.b[kk], m.inc[kk], m.azi[kk]);
-      //for(int bb=0;bb<npar1;bb++) fprintf(mid, "%e ", derivs[bb][kk]);
-      fprintf(mid,"\n");
-    }
-    fclose(mid);
-    */
-  }
-  /*else{
-    //  mdepth &m = *atm->imodel;
-    string dnam1 = string("rf_")+to_string(atm.input.myrank)+string(".txt");
-
-    FILE *mid1 = fopen(dnam1.c_str(),"w");
-
-
-    for(int kk=0; kk<npar1;kk++){
-      for(int dd=0; dd<nd; dd++)
-	fprintf(mid1, "%e ", derivs[kk][dd]);
-      fprintf(mid1," \n");
-    }
-    fclose(mid1);
-  }
-  */
-  /* --- END DEBUG --- */
-
-  
-  
 
   /* --- clean up --- */
   
@@ -366,9 +322,9 @@ double atmos::fitModel2(mdepth_t &m, int npar, double *pars, int nobs, double *o
   clm lm = clm(ndata, npar);
   lm.xtol = 1.e-3;
   lm.verb = true;
-  lm.ilambda = 0.1;
+  lm.ilambda = 1.0;
   lm.maxreject = 6;
-  lm.svd_thres = 1.e-16;
+  lm.svd_thres = 1.e-15;
   
   /* ---  Set parameter limits --- */
   for(int pp = 0; pp<npar; pp++){

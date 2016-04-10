@@ -1,6 +1,15 @@
 /* 
    Implementation of the clm class (Levenberg-Marquardt least-squares-fit)
    author: J. de la Cruz Rodriguez (Stockholm University 2016)
+
+   Documentation included in the header file clm.h.
+
+   Dependencies: DGESDD_ from LaPack for the SVD calculation.
+
+   Modifications: 
+           2016-04-08, JdlCR: Added Kahan summation to perform the matrix multiplication,
+	                      it improves convergence significantly!
+
 */
 
 #include <algorithm>
@@ -245,7 +254,7 @@ double clm::fitdata(clm_func fx, double *x, void *mydat, int maxiter)
 
   /* --- Init variables --- */
   
-  double chi2 = 1.e13, ochi2 = 1.e13, bestchi2 = 1.e13, olambda = 0.0;
+  double chi2 = 1.e13, ochi2 = 1.e13, bestchi2 = 1.e13, olambda = 0.0, t0 = 0, t1 = 0;
   int iter = 0, nretry = 0;
   bool exitme = false;
   string rej = "";
@@ -268,7 +277,7 @@ double clm::fitdata(clm_func fx, double *x, void *mydat, int maxiter)
   /* --- adjust lambda parameter --- */
 
   double lambda = checkLambda(ilambda);
-
+  t0 = getTime();
 
   /* --- Evaluate residues and RF, init chi2 --- */
 
@@ -322,7 +331,7 @@ double clm::fitdata(clm_func fx, double *x, void *mydat, int maxiter)
       
     }else{
       /* --- Prep lambda for next trial --- */
-      lambda = checkLambda(lambda * lfac);
+      lambda = checkLambda(lambda * lfac * lfac);
       nretry++;
       rej = " *";
       
@@ -336,13 +345,14 @@ double clm::fitdata(clm_func fx, double *x, void *mydat, int maxiter)
     }
 
     /* --- printout --- */
+    
+    t1 = getTime();
 
     if(verb)
-      fprintf(stderr,"[%4d] chi2=%14.5f, dchi2=%e, lambda=%e %s\n",
-	      iter, chi2, chi2-ochi2, olambda, rej.c_str());
+      fprintf(stderr,"[%4d] chi2=%14.5f, dchi2=%e, lambda=%e, elapsed=%5.3fs %s\n",
+	      iter, chi2, chi2-ochi2, olambda, t1-t0,rej.c_str());
     
     ochi2 = chi2;
-    
 
     
     /* --- Check if we are breaking the loop --- */
@@ -369,6 +379,7 @@ double clm::fitdata(clm_func fx, double *x, void *mydat, int maxiter)
 
     /* --- prepare Jacobian for the next iteration --- */
     
+    t0 = t1;
     zero(res, rf);
     fx(npar, nd, x, res, rf, mydat);
 
@@ -401,10 +412,6 @@ extern "C"{
   void dgesdd_( char *JOBZ, int &M, int &N, double *A, int &LDA, double *S,
   		double *U, int &LDU, double *VT, int &LDVT, double *WORK,
   		int &lwork, int* iwork, int &info);
-  
-  void dgelsd_( int &M, int &N, int &NRHS, double *A, int &LDA, double *B,
-		int &LDB, double *S, double &RCOND, int &RANK,
-                double *work, int &lwork, int *iwork, int &info );
 }
 
 /* -------------------------------------------------------------------------------- */
@@ -437,6 +444,7 @@ void clm::compute_trial3(double *res, double **rf, double lambda,
      --- */
 
   for(int yy = 0; yy<npar; yy++){
+    
     for(int xx = 0; xx<=yy; xx++){
       
       memset(tmp, 0, nd*sizeof(double));
@@ -444,45 +452,34 @@ void clm::compute_trial3(double *res, double **rf, double lambda,
 	tmp[ww] = rf[yy][ww] * rf[xx][ww];
       
       A[yy][xx] = sumarr(tmp, nd);
+      A[xx][yy] = A[yy][xx]; // Remember that A is symmetric!
     }
-      
     
-    /* --- Compute gradient of chi2 --- */
+    /* --- Damp the diagonal of A --- */
     
-    memset(tmp, 0, nd*sizeof(double));
-    for(int ww = 0; ww<nd; ww++) tmp[ww] = rf[yy][ww] * res[ww];
-    B[yy] = sumarr(tmp, nd);
-    
-  }
-
-  
-  /* Fill in the other half of A (symmetric)--- */
-
-  for(int yy = 0; yy<npar; yy++)
-    for(int xx = 0; xx<yy; xx++)
-      A[xx][yy] = A[yy][xx];
-
-
-  /* --- Damp the diagonal of A --- */
-  
-  for(int yy = 0; yy<npar; yy++){
-
     diag[yy] = max(A[yy][yy], diag[yy]);
     if(diag[yy] == 0.0) diag[yy] = 1.0;
     
     A[yy][yy] += lambda * (diag[yy]*0.5 + A[yy][yy]*0.5);
-
-  }
-
   
-  /* --- Solve a least square fit to ||B - AX||^2 (internally using SVD) --- */
+  
+  
+    /* --- Compute J^t * Residue --- */
+    
+    memset(tmp, 0, nd*sizeof(double));
+    for(int ww = 0; ww<nd; ww++) tmp[ww] = rf[yy][ww] * res[ww];
+    B[yy] = sumarr(tmp, nd);  
+  } // yy
+  
+  
+  /* --- Solve a least square fit to A^-1 (using SVD) --- */
   
   char bla[1] = {'O'};
   int dummy = 0;
   int npp = npar;
   
   
-  /* --- Request size of work array --- */
+  /* --- Request size of work array for the LaPack routine in the first iter --- */
   
   if(lwork == -1){
     lwork = -1;
@@ -513,18 +510,20 @@ void clm::compute_trial3(double *res, double **rf, double lambda,
   
   backsub(A,w,V,npar,B,xnew);
   
-
   
-  /* --- check for maximum change, add to current pars and normalize --- */
   
+  /* --- 
+     New estimate of the parameters, xnew = x + dx.
+     Check for maximum change, add to current pars and normalize.
+     --- */
   
   scaleParameters(xnew);
   checkMaxChange(xnew);
-
+  
   for(int ii = 0; ii<npar; ii++) xnew[ii] += x[ii];
   
   checkParameters(xnew);
-
+  
   
   /* --- Clean-up mem --- */
   
@@ -541,11 +540,12 @@ void clm::compute_trial3(double *res, double **rf, double lambda,
 
 void clm::backsub(double **u, double *w, double **v, int n, double *b, double *x)
 {
-  //
-  // Ax = B -> A^-1 * B = VT W^-1 U *B
-  // matrices indexes are a bit weird so it works with LAPACK's routines
-  // JdlCR MODIFICATION: Added more accurate routine to add the product of rows/columns.
-  //
+  /* --- 
+     Ax = B -> A^-1 * B = VT W^-1 U *B
+     JdlCR: Matrices indexes are a bit weird so it works with LAPACK's routines.
+            In LaPack both U and V are transposed compared to standard C notation.
+            Added more accurate routine to add the product of rows/columns.
+  --- */
   
   double *tmp = new double [n]();
   double *tmp1 = new double [n]();

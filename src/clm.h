@@ -38,6 +38,7 @@
 		   
 */
 #include <vector>
+#include <sys/time.h>
 
 
 /* --- 
@@ -103,6 +104,13 @@ class clm{
   void scaleRF(double **rf);
   double checkLambda(double lamb);
   void zero(double *res, double **rf);
+
+  double getTime(double t0 = -1.0){
+    struct timeval dum;
+    gettimeofday(&dum, NULL);
+    if(t0 < 0.0) return dum.tv_sec + dum.tv_usec * 1.0E-6;
+    else return (dum.tv_sec + dum.tv_usec * 1.0E-6) - t0;
+  }
 };
 
 #endif
