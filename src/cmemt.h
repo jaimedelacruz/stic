@@ -17,7 +17,13 @@
 	  
 	  2014-10-25, JdlCR: Added [+,-,*,/] operators (not +=, -=, *=, /=),
 	                     also made the [=] operator more efficient.
+
+	  2015-04-10, JdlCR: Changed nc to a 'stack' 6 element C array, 
+	                     hopefully much easier to optimize for the compiler
+			     than a C++ dynamic vector class.
+
 */
+
 #include <algorithm>
 #include <string>
 #include <iostream>
@@ -42,7 +48,8 @@ template <class T> class mat {
  protected:
   //
   std::vector<int> n;
-  std::vector<long unsigned> nc;
+  //std::vector<long unsigned> nc;
+  long unsigned nc[6];
   long unsigned nel;
   //
  public:
@@ -79,7 +86,7 @@ template <class T> class mat {
   ~mat() {
     d.clear();
     n.clear();
-    nc.clear();
+    // nc.clear();
   }
   
 
@@ -92,10 +99,16 @@ template <class T> class mat {
   }
   void set(std::vector<int> dim1){
     //
+    if((int)dim1.size() > 6){
+      std::cerr<<"mat::set: Error, too many dimensions, maximum number is 6"<<std::endl;
+      exit(0);
+    }
+    //
+    memset(&nc[0],0,sizeof(unsigned long)*6);
+    
     nel = 1;
     int ndim = dim1.size();
     n.resize(ndim);
-    nc.resize(ndim);
     //
     for(int dd = 0;dd<ndim;dd++) {
       nel *=  dim1[ndim-dd-1];
@@ -130,7 +143,9 @@ template <class T> class mat {
 
     // Change n and nc to accomodate new dimensions
     n.resize(ndim, int(0));
-    nc.resize(ndim, (long unsigned)0);
+    //nc.resize(ndim, (long unsigned)0);
+    memset(&nc[0],0,sizeof(unsigned long)*6);
+
     
     
     for(int dd=0; dd<ndim;dd++){
