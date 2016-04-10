@@ -30,7 +30,7 @@ librhf1d.a:  $(ONE_D_OBJS)
 ## --- Clean up --                                     -------------- ##
 
 clean:
-	rm -f *.o  rhf1d  solve1d  solveray  backgrcontr
+	rm -f *.o  librhf1d.a
 
 
 ## --- Explicit dependencies on include files --       -------------- ##
