@@ -322,7 +322,7 @@ double clm::fitdata(clm_func fx, double *x, void *mydat, int maxiter)
       
     }else{
       /* --- Prep lambda for next trial --- */
-      lambda = checkLambda(lambda * lfac*lfac);
+      lambda = checkLambda(lambda * lfac);
       nretry++;
       rej = " *";
       
