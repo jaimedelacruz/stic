@@ -1318,7 +1318,7 @@ double ceos::nne_from_T_rho_nne(double T, double &iPg, double rho, double nne, f
   int dir = 0;
   float scale = 2.0, dif = 1.e5, rho_est=0.0;
   int myiter = 0;
-  float Pe = xne * bk * T;
+  float Pe = nne * bk * T;
   xne = nne;
   //
   float iT = T;

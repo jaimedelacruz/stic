@@ -143,7 +143,7 @@ int main(int narg, char *argv[])
 	    
 	    m.eos.contOpacity(temp[kk], nw,  &wav, &kappa[kk],
 			      &scat, frac, na, ne);
-	    
+	    //fprintf(stderr,"%d %e %e\n", kk, kappa[kk], pgas[kk]);
 	  }
 	  /* --- compute the depth-scale --- */
 	  
