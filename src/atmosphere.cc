@@ -13,8 +13,7 @@
 //
 using namespace std;
 //
-const double atmos::maxchange[6] = {1500., 3.0e5, 1.5e5, 800., phyc::PI/5, phyc::PI/5};
-
+const double atmos::maxchange[7] = {1500., 3.0e5, 1.5e5, 800., phyc::PI/5, phyc::PI/5, 2.0};
 
 
 
@@ -30,6 +29,7 @@ vector<double> atmos::get_max_change(nodes_t &n){
     else if(n.ntype[k] == b_node    ) maxc[k] = maxchange[3];
     else if(n.ntype[k] == inc_node  ) maxc[k] = maxchange[4];
     else if(n.ntype[k] == azi_node  ) maxc[k] = maxchange[5];
+    else if(n.ntype[k] == pgas_node ) maxc[k] = maxchange[6];
     else                              maxc[k] = 0;
   }
   return maxc;
@@ -46,6 +46,7 @@ void atmos::responseFunction(int npar, mdepth_t &m_in, double *pars, int nd, dou
 
   mdepth m(m_in.ndep);
   m.cub.d = m_in.cub.d;
+  m.bound_val = m_in.bound_val;
   
   bool store_pops = false; 
   
@@ -61,6 +62,7 @@ void atmos::responseFunction(int npar, mdepth_t &m_in, double *pars, int nd, dou
   //
   //if(input.nodes.ntype[pp] == temp_node) pertu = input.dpar * pval * 0.5;
   //else
+  //if(input.nodes.ntype[pp] == pgas_node) 
   pertu = input.dpar * scal[pp];
   
   /* --- Centered derivatives ? --- */
@@ -241,10 +243,10 @@ int getChi2(int npar1, int nd, double *pars1, double *dev, double **derivs, void
  /* --- Compute derivatives? --- */
   if(derivs){
     
-    for(int pp = npar1-1; pp >= 0; pp--)
+    for(int pp = npar1-1; pp >= 0; pp--){
+      
       if(derivs[pp]){
-	//	cerr<<"COMPUTING RF for PAR="<<pp<<" / "<<npar1-1<<endl;
-	
+
 	/* --- Compute response function ---*/
 	memset(&derivs[pp][0], 0, nd*sizeof(double));
 	atm.responseFunction(npar1, m, &ipars[0], nd,
@@ -254,11 +256,12 @@ int getChi2(int npar1, int nd, double *pars1, double *dev, double **derivs, void
 
 	/* --- renormalize the response function by the 
 	   scaling factor and divide by the noise --- */
-	
+		
 	for(int ii = 0; ii<nd; ii++)
 	  derivs[pp][ii] *= (atm.scal[pp] / atm.w[ii]);
 	
       }
+    }
     
   }
 
@@ -365,7 +368,7 @@ double atmos::fitModel2(mdepth_t &m, int npar, double *pars, int nobs, double *o
     
     
     
-    /* --- Call mpfit --- */
+    /* --- Call clm --- */
 
     double chi2 = lm.fitdata(getChi2, &ipars[0], (void*)this, input.max_inv_iter);
 

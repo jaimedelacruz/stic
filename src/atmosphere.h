@@ -4,6 +4,7 @@
 #include <vector>
 #include <string>
 #include <cstring>
+#include <cmath>
 #include "input.h"
 #include "cmemt.h"
 #include "cprofiles.h"
@@ -15,7 +16,9 @@
 class atmos{
  public: 
   std::vector<double> mmin, mmax, scal, step, isyn, maxc;
-  static const double maxchange[6];
+  static const double maxchange[7];
+  static constexpr double clog10 = log(10.0);
+  
   instrument **inst;
   //  iput_t *in;
   iput_t input;

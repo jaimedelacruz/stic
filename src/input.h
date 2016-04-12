@@ -41,13 +41,14 @@ enum nodes_type_t{
   vturb_node,
   b_node,
   inc_node,
-  azi_node
+  azi_node,
+  pgas_node
 };
 
 
 /* --- nodes struct --- */
 struct nodes{
-  int nnodes, temp_off, v_off, vturb_off, b_off, inc_off, azi_off, tosend;
+  int nnodes, temp_off, v_off, vturb_off, b_off, inc_off, azi_off, pgas_off, tosend, bound;
   std::vector<double> temp;
   std::vector<double> v;
   std::vector<double> vturb;
@@ -55,7 +56,7 @@ struct nodes{
   std::vector<double> inc;
   std::vector<double> azi;
   std::vector<nodes_type_t> ntype;
-  int toinv[6];
+  int toinv[7];
 };
 typedef nodes nodes_t;
 
@@ -64,9 +65,11 @@ typedef nodes nodes_t;
 /* --- input structure --- */
 struct iput{
   unsigned long buffer_size, buffer_size1;
-  int nt, ny, nx, ns, npar, npack, mode, nInv, inst_len, atmos_len, nw_tot, boundary, ndep, solver, centder, thydro, dint;
+  int nt, ny, nx, ns, npar, npack, mode, nInv, inst_len, atmos_len,
+    nw_tot, boundary, ndep, solver, centder, thydro, dint, keep_nne;
   double mu, chi2_thres, sparse_threshold, dpar, init_step;
-  std::string imodel, omodel, iprof, oprof, myid, instrument, atmos_type, wavelet_type, oatmos;
+  std::string imodel, omodel, iprof, oprof, myid, instrument,
+    atmos_type, wavelet_type, oatmos;
   int xx, yy, ipix, nPacked;
   std::vector<double> chi;
   int myrank, nprocs, cgrad;

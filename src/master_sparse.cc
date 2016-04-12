@@ -113,7 +113,7 @@ void master_inverter(mdepthall_t &model, mat<double> &pars, mat<double> &obs, ma
       /* --- Copy data to single pixel model --- */
       
       memcpy(&m.cub.d[0], &model.cub(yy,xx,0,0), 13*ndep*sizeof(double));
-
+      m.bound_val = model.boundary(yy,xx);
 
       /* --- invert --- */
       

@@ -15,10 +15,10 @@
 
 class crh: public atmos{
  public:
-  static const double pmax[6];
-  static const double pmin[6];
-  static const double pscal[6];
-  static const double pstep[6];
+  static const double pmax[7];
+  static const double pmin[7];
+  static const double pscal[7];
+  static const double pstep[7];
 
   // iput_t input;
   int nlambda, nlines, nregions;

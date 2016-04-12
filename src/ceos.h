@@ -86,6 +86,10 @@ class ceos{
   double nne_from_T_rho   (double T, double &iPg,  double rho, float tol = 1.0e-5);
   double rho_from_T_pel   (double T, double &iPg,   double Pe, float tol = 1.0e-5);
   double rho_from_T_nne   (double T, double &iPg,  double nne, float tol = 1.0e-5);
+
+  double nne_from_T_Pg_nne (double T,  double Pg,  double &rho, double nne, double iPe = -1.0);
+  double nne_from_T_rho_nne(double T, double &iPg,  double rho, double nne, float tol = 1.0e-5);
+
   
   float nne_from_T_Pg    (float T, float Pg,  float &rho, float Pe = -1.0);
   float nne_from_T_rho   (float T, float &Pg,  float rho, float tol = 1.0e-5);
@@ -115,7 +119,7 @@ class ceos{
   void read_partial_pressures(int k, std::vector<float> &frac, std::vector<float> &part, float &xa, float &xe);
   void unique(void);
   void fill_densities(int ndep, double *t, double *pgas, double *rho, double *pel,
-		      double *nne, int touse, float tol = 1.0e-5);
+		      double *nne, int touse, int keep_nne = 0, float tol = 1.0e-5);
   
 };
 

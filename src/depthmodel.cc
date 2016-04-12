@@ -16,7 +16,9 @@ void mdepth::setsize(int n){
   cub.set({14, n});
   ndep = n;
   
-  /* --- Assign pointers (keep this order so we can copy the buffer di ---*/
+  /* --- Assign pointers (keep this order so we can 
+     copy the buffer directly ---*/
+  
   temp =  &cub(0,0);
   v =     &cub(1,0);
   vturb = &cub(2,0);
@@ -90,14 +92,22 @@ void mdepth::expand(nodes_t &n, double *p, int interpol){
     int len = (int)n.azi.size();
     nodes2depth(len, &n.azi[0], &p[n.azi_off], ndep, &ltau[0], &azi[0], interpol);
   }
+
+  if(n.toinv[6]){
+    fprintf(stderr, "bound=%1d, val=%e, multi=%e\n", n.bound, bound_val, p[n.pgas_off]);
+    if     (n.bound == 1) pgas[0] = bound_val*p[n.pgas_off];
+    else if(n.bound == 2) rho[0]  = bound_val*p[n.pgas_off];
+    else if(n.bound == 3) nne[0]  = bound_val*p[n.pgas_off];
+    else pgas[0] =  boundary_pgas_default*p[n.pgas_off];
+  }
   
   return;
 }
 
-void mdepth::fill_densities(ceos &eos){
+void mdepth::fill_densities(ceos &eos, int keep_nne){
 
   /* --- which scale do we have? --- */
-
+  
   int bound = -1;
   double spgas = 0.0, srho = 0.0, snne = 0.0;
 
@@ -115,8 +125,7 @@ void mdepth::fill_densities(ceos &eos){
   /* --- Fill the density arrays, the partial pressures are stored internally
      inside fill_densities --- */
   
-  eos.fill_densities(ndep, temp, pgas, rho, pel, nne, bound, 1.e-5);
-
+  eos.fill_densities(ndep, temp, pgas, rho, pel, nne, bound,  keep_nne, 1.e-5);
 }
 
 
@@ -276,130 +285,16 @@ void mdepthall::model_parameters2(mat<double> &tmp, nodes_t &n, int nt){
       compress(ndep, &cub(yy,xx,9,0), &cub(yy,xx,5,0), nn, &n.azi[0], &tmp(yy,xx,k));
       k += nn;
 
-      //	for(int zz = 0; zz < ndep; zz++) ivar()
+      // Pgas boundary
+      
+      if(n.toinv[6]>0){
+	tmp(yy,xx,k) = 1.0;
+      }
+      
     }
 
 }
 
-
-
-int mdepthall::read_model(std::string &filename, int tstep, bool require_tau){
-  io ifile(filename, netCDF::NcFile::read);
-  std::string inam = "mdepthall::read_model: ";
-  int idep, bound = 0;
-  
-    
-  /* --- get dimensions --- */
-  std::vector<int> dims = ifile.dimSize("temp");
-  int ndims = (int)dims.size();
-  
-  if(ndims == 4) dims.erase(dims.begin()); // if time, remove first element
-  else if(ndims != 3) {
-    std::cout << inam << "ERROR, ndims must be 3 or 4: [(nt), ny, nx, ndep], but is "<<ndims<<std::endl;
-  }     
-    
-  /* --- read vars, assuming they exists --- */
-  if(ifile.is_var_defined("temp")){
-    ifile.read_Tstep<double>("temp", temp, tstep);
-  }else {
-    std::cerr << inam << "ERROR, "<<filename <<" does not contain a temperature array, exiting"<<std::endl;
-    exit(0);
-  }
-  dims = temp.getdims();
-  boundary.set({dims[0], dims[1]});
-
-  
-  if(ifile.is_var_defined("ltau500")){
-    ifile.read_Tstep<double>("ltau500", ltau, tstep);
-    //  for(auto &it: ltau.d) it = pow(10.0, it); // Convert Log tau_500 to tau_500
-  }else ltau.set(dims);
-
-  if(ifile.is_var_defined("pgas")){
-    ifile.read_Tstep<double>("pgas", pgas, tstep);
-    bound = 1;
-    for(int yy=0; yy<dims[0]; yy++) for(int xx = 0;xx<dims[1]; xx++) boundary(yy,xx) = pgas(yy,xx,0);
-  }else pgas.set(dims);
-  
-  if(ifile.is_var_defined("rho")){
-    ifile.read_Tstep<double>("rho", rho, tstep);
-    if(bound == 0){
-      bound = 2;
-      for(int yy=0; yy<dims[0]; yy++) for(int xx = 0;xx<dims[1]; xx++) boundary(yy,xx) = rho(yy,xx,0);
-      //convertBoundary(bound);
-    }
-  }else rho.set({0,0});
-
-  if(ifile.is_var_defined("vlos")){
-    ifile.read_Tstep<double>("vlos", v, tstep);
-  }else v.set(dims);
-
-  if(ifile.is_var_defined("nne")){
-    ifile.read_Tstep<double>("nne", nne, tstep);
-    if(bound == 0){
-      bound = 3;
-      for(int yy=0; yy<dims[0]; yy++) for(int xx = 0;xx<dims[1]; xx++) boundary(yy,xx) = nne(yy,xx,0);
-      //convertBoundary(bound);
-    }
-  }else nne.set({0,0});
-  
-  if(ifile.is_var_defined("pel")){
-    ifile.read_Tstep<double>("pel", pel, tstep);
-    if(bound == 0){
-      bound = 4;
-      for(int yy=0; yy<dims[0]; yy++) for(int xx = 0;xx<dims[1]; xx++) boundary(yy,xx) = pel(yy,xx,0);
-      //convertBoundary(bound);
-    }
-  }else pel.set({0,0});
-  
-  if(ifile.is_var_defined("b")){
-    ifile.read_Tstep<double>("b", b, tstep);
-  }else b.set(dims);
-
-  if(ifile.is_var_defined("inc")){
-    ifile.read_Tstep<double>("inc", inc, tstep);
-  }else inc.set(dims);
-
-  if(ifile.is_var_defined("azi")){
-    ifile.read_Tstep<double>("azi", azi, tstep);
-  }else azi.set(dims);
-
-  if(ifile.is_var_defined("vturb")){
-    ifile.read_Tstep<double>("vturb", vturb, tstep);
-  }else vturb.set(dims);
-
-  // If no boundary is given, just point to zeros
-  
-  
-  ndep = temp.size(0);
-
-  if(ifile.is_var_defined("z")){
-    mat<double> tmp;
-    ifile.read_Tstep<double>("z", tmp, tstep);
-    if(tmp.ndims() == 3) z = tmp;
-    else if(tmp.ndims() == 1){
-      z.set(temp.getdims());
-      int nx = (int)z.size(2);
-      int ny = (int)z.size(1);
-      //cout << inam << ""
-      for(int yy = 0; yy<ny;yy++)
-	for(int xx = 0; xx< nx; xx++)
-	  for(int zz = 0; zz<ndep; zz++)
-	    z(zz,yy,xx) = tmp.d[zz];
-    }
-  }else z.set(dims);
-    
-
-  if((ltau.d.size() == 0)){
-    std::cerr << inam << "ERROR, "<<filename
-	      <<" does not contain a depth-scale [ltau500], exiting"
-	      <<std::endl;
-    exit(0);
-  }
-
-  ndep = temp.size(2);
-
-  return bound;
-}
 
 int mdepthall::read_model2(std::string &filename, int tstep, bool require_tau){
   io ifile(filename, netCDF::NcFile::read);

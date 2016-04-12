@@ -24,10 +24,10 @@
 class clte: public atmos{
  public:
   static const double lte_const;
-  static const double pmax[6];
-  static const double pmin[6];
-  static const double pscal[6];
-  static const double pstep[6];
+  static const double pmax[7];
+  static const double pmin[7];
+  static const double pscal[7];
+  static const double pstep[7];
   std::vector<double> step, isyn;
 
   std::vector<line_t> lines;

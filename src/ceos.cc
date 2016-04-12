@@ -496,7 +496,7 @@ double ceos::nne_from_T_rho(double T, double &iPg, double rho, float tol){
   // Call EQSTAT and iterate to get consistent rho with Pg
   // (should be changed by EQSTAT_RHO)!!
   //
-  float xne;
+  //float xne;
   int niter;
   int dum = MAX_ELEM;
   int mode = 0;
@@ -908,7 +908,7 @@ void ceos::hydrostatic(int ndep, float *tau, float *t, float *Pg, float *rho, fl
 }
 
 void ceos::fill_densities(int ndep, double *t, double *pgas, double *rho, double *pel,
-			  double *nne, int touse, float tol){
+			  double *nne, int touse,  int keep_nne, float tol){
 
 
   /* --- touse switches which of the following to use to compute the rest:
@@ -916,32 +916,52 @@ void ceos::fill_densities(int ndep, double *t, double *pgas, double *rho, double
      
      Store partial pressures and partition functions for the RT calculations
      --- */
-  if(touse == 0){
-    for(int k = 0; k<ndep; k++){
-      nne[k] = nne_from_T_Pg(t[k], pgas[k], rho[k]);
-      pel[k] = bk*nne[k]*t[k];
-      store_partial_pressures(ndep, k, xna, xne);
+
+  if((keep_nne == 0) && ((touse == 0) || (touse == 1))){
+    if(touse == 0){
+      for(int k = 0; k<ndep; k++){
+	nne[k] = nne_from_T_Pg(t[k], pgas[k], rho[k]);
+	pel[k] = bk*nne[k]*t[k];
+	store_partial_pressures(ndep, k, xna, xne);
+      }
+    }else if(touse == 1){
+      for(int k = 0; k<ndep; k++){
+	nne[k] = nne_from_T_rho(t[k], pgas[k], rho[k], tol);
+	pel[k] = bk*nne[k]*t[k];
+	store_partial_pressures(ndep, k, xna, xne);	    
+      }
+    }  
+    else{
+      cerr << "ceos::fill_densities: ERROR, touse["<<touse<<"] takes values between 0-3"<<endl;
     }
-  }else if(touse == 1){
-    for(int k = 0; k<ndep; k++){
-      nne[k] = nne_from_T_rho(t[k], pgas[k], rho[k], tol);
-      pel[k] = bk*nne[k]*t[k];
-      store_partial_pressures(ndep, k, xna, xne);	    
+  }else{
+    if(touse == 0){
+      for(int k = 0; k<ndep; k++){
+	nne_from_T_Pg_nne(t[k], pgas[k], rho[k], nne[k]);
+	pel[k] = bk*nne[k]*t[k];
+	store_partial_pressures(ndep, k, xna, xne);
+      }
+    }else if(touse == 1){
+      for(int k = 0; k<ndep; k++){
+	nne_from_T_rho_nne(t[k], pgas[k], rho[k], nne[k],tol);
+	pel[k] = bk*nne[k]*t[k];
+	store_partial_pressures(ndep, k, xna, xne);	    
+      }
+    } else if(touse == 2){
+      for(int k = 0; k<ndep; k++){
+	rho[k] = rho_from_T_pel(t[k], pgas[k], pel[k], tol);
+	nne[k] = xne;
+	store_partial_pressures(ndep, k, xna, xne);
+      }
+    } else if(touse == 3){
+      for(int k = 0; k<ndep; k++){
+	rho[k] = rho_from_T_nne(t[k], pgas[k], nne[k], tol);
+	pel[k] = bk*nne[k]*t[k];
+	store_partial_pressures(ndep, k, xna, xne);
+      }
+    } else{
+      cerr << "ceos::fill_densities: ERROR, touse["<<touse<<"] takes values between 0-3"<<endl;
     }
-  } else if(touse == 2){
-    for(int k = 0; k<ndep; k++){
-      rho[k] = rho_from_T_pel(t[k], pgas[k], pel[k], tol);
-      nne[k] = xne;
-      store_partial_pressures(ndep, k, xna, xne);
-    }
-  } else if(touse == 3){
-    for(int k = 0; k<ndep; k++){
-      rho[k] = rho_from_T_nne(t[k], pgas[k], nne[k], tol);
-      pel[k] = bk*nne[k]*t[k];
-      store_partial_pressures(ndep, k, xna, xne);
-    }
-  } else{
-    cerr << "ceos::fill_densities: ERROR, touse["<<touse<<"] takes values between 0-3"<<endl;
   }
 }
 double ceos::rho_from_T_nne(double T, double &iPg, double nne, float tol){
@@ -958,6 +978,7 @@ double ceos::rho_from_T_nne(double T, double &iPg, double nne, float tol){
   else if(T > 2000) Pg = 1.0/0.01;
   else Pg = 1.0/0.001;
   Pg *= Pe;
+  xne = (float)nne;
   
   //
   // Call EQSTAT and iterate to get consistent rho with Pg
@@ -965,7 +986,7 @@ double ceos::rho_from_T_nne(double T, double &iPg, double nne, float tol){
   //
   int niter;
   int dum = MAX_ELEM;
-  int mode = 0;
+  int mode = 10;
   int dir = 0;
   float scale = 2.0, dif = 1.e5, rho_est=0.0;
   int myiter = 0;
@@ -1018,6 +1039,7 @@ double ceos::rho_from_T_pel(double T, double &iPg, double Pe, float tol){
   else if(T > 2000) Pg = 1.0/0.01;
   else Pg = 1.0/0.001;
   Pg *= Pe;
+  xne = Pe / (bk * T);
   
   //
   // Call EQSTAT and iterate to get consistent rho with Pg
@@ -1025,7 +1047,7 @@ double ceos::rho_from_T_pel(double T, double &iPg, double Pe, float tol){
   //
   int niter;
   int dum = MAX_ELEM;
-  int mode = 0;
+  int mode = 10;
   int dir = 0;
   float scale = 2.0, dif = 1.e5, rho_est=0.0;
   int myiter = 0;
@@ -1115,7 +1137,7 @@ float ceos::nne_from_T_rho(float T, float &Pg, float rho, float tol){
   // Call EQSTAT and iterate to get consistent rho with Pg
   // (should be changed by EQSTAT_RHO)!!
   //
-  float xne;
+  //float xne;
   int niter;
   int dum = MAX_ELEM;
   int mode = 0;
@@ -1277,3 +1299,82 @@ float ceos::rho_from_T_pel(float T, float &Pg, float Pe, float tol){
   return (float)rho_est;
 }
 
+double ceos::nne_from_T_rho_nne(double T, double &iPg, double rho, double nne, float tol){
+  
+  //
+  // Estimate Pelect from Pgas, assuming ionization fraction
+  //
+
+  float Pg = rho * bk * T / (avmol * mp); // Init approximate gas pressure
+  
+  
+  //
+  // Call EQSTAT and iterate to get consistent rho with Pg
+  // (should be changed by EQSTAT_RHO)!!
+  //
+  int niter;
+  int dum = MAX_ELEM;
+  int mode = 10;
+  int dir = 0;
+  float scale = 2.0, dif = 1.e5, rho_est=0.0;
+  int myiter = 0;
+  float Pe = xne * bk * T;
+  xne = nne;
+  //
+  float iT = T;
+  eqstat_(mode, iT, Pg, Pe, &ABUND[0], ELEMEN, &AMASS[0], dum, &idxspec[0],
+	  &totallist[0], &fract[0], &pf[0], &potion[0], &xamass[0],
+	  NLINES, NLIST, xne, xna, rho_est, niter);
+
+  
+  while(fabs(dif) > tol){
+    myiter++;
+
+    
+    if(dif > tol){
+      if(dir != 1) scale = sqrt(scale);
+      Pg *= scale;
+      dir = 1;
+    }else if(-dif > tol){
+      if(dir != -1) scale = sqrt(scale);
+      Pg /= scale;
+      dir = -1;
+    }
+
+    eqstat_(mode, iT, Pg, Pe, &ABUND[0], ELEMEN, &AMASS[0], dum, &idxspec[0],
+	    &totallist[0], &fract[0], &pf[0], &potion[0], &xamass[0],
+	    NLINES, NLIST, xne, xna, rho_est, niter);
+    
+    dif = ((rho - rho_est)/rho);
+
+  }
+
+  iPg = Pg;
+  
+  return (double)xne;
+}
+
+double ceos::nne_from_T_Pg_nne(double T, double Pg,  double &rho, double nne, double Pe){
+
+  //
+  // Estimate Pelect from Pgas, assuming ionization fraction
+  //
+  
+  xne = (float)xne;
+  
+  //
+  // Call EQSTAT
+  //
+  int niter;
+  int dum = MAX_ELEM;
+  int mode = 10;
+  float iPe = nne * bk * T, iT = (float)T, iPg = (float)Pg;
+
+
+  eqstat_(mode, iT, iPg, iPe, &ABUND[0], ELEMEN, &AMASS[0], dum, &idxspec[0],
+	  &totallist[0], &fract[0], &pf[0], &potion[0], &xamass[0],
+	  NLINES, NLIST, xne, xna, RHOest, niter);
+  rho = RHOest;
+  
+  return (double)xne;
+}
