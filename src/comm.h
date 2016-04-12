@@ -23,7 +23,7 @@ void comm_get_buffer_size(iput_t &input);
 void comm_send_parameters(iput_t &input);
 void comm_recv_parameters(iput_t &input);
 void comm_master_pack_data(iput_t &input, mat<double> &obs, mat<double> &model, 
-			   unsigned long &ipix, int proc, mdepthall_t &m, int cgrad);
+			   unsigned long &ipix, int proc, mdepthall_t &m, int cgrad, int action = 1);
 //void comm_master_unpack_data(int &iproc, iput_t input, mat<double> &obs, 
 //			     mat<double> &pars, mat<double> &chi2);
 void comm_master_unpack_data(int &iproc, iput_t input, mat<double> &obs, 
