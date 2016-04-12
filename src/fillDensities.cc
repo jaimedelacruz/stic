@@ -74,6 +74,10 @@ int main(int narg, char *argv[])
     exit(0);
   }
 
+  bool keep_nne = false;
+  if(fabs(m.cub(0,0,8,1) - m.cub(0,0,8,0)) > 0.0) keep_nne = true;
+
+  
   vector<string> names = {"Pgas","Dens", "Nelect"};
   cerr<<"EOS: using ["<<names[touse]<<"]"<<endl;
   fprintf(stderr,"avmol=%e, totalAbund=%e\n", m.eos.avmol, m.eos.totalAbund);
@@ -124,9 +128,11 @@ int main(int narg, char *argv[])
 	if(hydrostat == 0 ){
 	  for(int kk = 0; kk < ndep; kk++){
 	    if(touse == 0)
-	      nne[kk] = m.eos.nne_from_T_Pg( temp[kk], pgas[kk], rho[kk]);
+	      if(keep_nne) m.eos.nne_from_T_Pg_nne( temp[kk], pgas[kk], rho[kk], nne[kk]);
+	      else         nne[kk] = m.eos.nne_from_T_Pg( temp[kk], pgas[kk], rho[kk]);
 	    else if(touse == 1)
-	      nne[kk] = m.eos.nne_from_T_rho(temp[kk], pgas[kk], rho[kk]);
+	      if(keep_nne) m.eos.nne_from_T_rho_nne( temp[kk], pgas[kk], rho[kk], nne[kk]);
+	      else         nne[kk] = m.eos.nne_from_T_rho(temp[kk], pgas[kk], rho[kk]);
 	    else if(touse == 2)
 	      rho[kk] =  m.eos.rho_from_T_nne(temp[kk], pgas[kk], nne[kk]);
 	    
