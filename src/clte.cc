@@ -19,10 +19,10 @@
 using namespace std;
 using namespace phyc;
 //
-const double clte::pmax[6]  = {50000., 20.e5, 7.0e5, 5000.0, PI, 2.0*PI};
-const double clte::pmin[6]  = {2050. ,-20.e5,  +0.0,   +0.0,  +0.0,  +0.0};
-const double clte::pscal[6] = {500. , 1.0e5, 1.0e5, 500.0, PI, PI};
-const double clte::pstep[6] = {1.e0 , 1.e0, 1.0e0, 1.0e0, 1.0e0, 1.0e0};
+const double clte::pmax[7]  = {50000., 20.e5, 7.0e5, 5000.0, PI, 2.0*PI, 100.0};
+const double clte::pmin[7]  = {2050. ,-20.e5,  +0.0,   +0.0,  +0.0,  +0.0, 0.01};
+const double clte::pscal[7] = {500. , 1.0e5, 1.0e5, 500.0, PI, PI, 1.0};
+const double clte::pstep[7] = {1.e0 , 1.e0, 1.0e0, 1.0e0, 1.0e0, 1.0e0, 1.0e0};
 //
 const double clte::lte_const = PI*EE*EE/(ME*CC); // In units of freq.
 
@@ -42,6 +42,7 @@ vector<double> clte::get_max_limits(nodes_t &n){
     else if(n.ntype[k] == b_node    ) mmax[k] = pmax[3];
     else if(n.ntype[k] == inc_node  ) mmax[k] = pmax[4];
     else if(n.ntype[k] == azi_node  ) mmax[k] = pmax[5];
+    else if(n.ntype[k] == pgas_node ) mmax[k] = pmax[6];
     else                              mmax[k] = 0;
   }
   return mmax;
@@ -58,6 +59,7 @@ vector<double> clte::get_min_limits(nodes_t &n){
     else if(n.ntype[k] == b_node    ) mmin[k] = pmin[3];
     else if(n.ntype[k] == inc_node  ) mmin[k] = pmin[4];
     else if(n.ntype[k] == azi_node  ) mmin[k] = pmin[5];
+    else if(n.ntype[k] == pgas_node ) mmin[k] = pmin[6];
     else                              mmin[k] = 0;
   }
   return mmin;
@@ -74,6 +76,7 @@ vector<double> clte::get_scaling(nodes_t &n){
     else if(n.ntype[k] == b_node    ) scal[k] = pscal[3];
     else if(n.ntype[k] == inc_node  ) scal[k] = pscal[4];
     else if(n.ntype[k] == azi_node  ) scal[k] = pscal[5];
+    else if(n.ntype[k] == pgas_node ) scal[k] = pscal[6];
     else                              scal[k] = 1.0;
   }
   return scal;
@@ -83,16 +86,16 @@ vector<double> clte::get_steps(nodes_t &n){
   int nnodes = (int)n.nnodes;
   step.resize(nnodes);
 
-  double ipstep[6];
+  double ipstep[7];
   double sum = 0.0;
   
-  for(int ii=0;ii<6;ii++){
+  for(int ii=0;ii<7;ii++){
     sum += pstep[ii];
     ipstep[ii] = pstep[ii];
   }
-  sum /= 6.0;
+  sum /= 7.0;
   
-  for(int ii=0;ii<6;ii++){
+  for(int ii=0;ii<7;ii++){
     ipstep[ii]/= sum;
     // cerr<<ipstep[ii]<<endl;
   }
@@ -103,6 +106,7 @@ vector<double> clte::get_steps(nodes_t &n){
     else if(n.ntype[k] == b_node    ) step[k] = ipstep[3];
     else if(n.ntype[k] == inc_node  ) step[k] = ipstep[4];
     else if(n.ntype[k] == azi_node  ) step[k] = ipstep[5];
+    else if(n.ntype[k] == pgas_node ) step[k] = ipstep[6];
     else                              step[k] = 1.0;
   }
   return step;

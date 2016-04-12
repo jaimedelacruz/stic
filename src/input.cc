@@ -87,13 +87,14 @@ iput_t read_input(std::string filename, bool verbose){
   input.nw_tot = 0;
   input.nodes.nnodes = 0;
   input.verbose = false; // default
-  memset(input.nodes.toinv, 0, 6*sizeof(int));
+  memset(&input.nodes.toinv[0],0, 7*sizeof(int));
   input.solver = 0;
   input.centder = 0;
   input.init_step = -1.0;
   input.thydro = 1;
   input.nodes.nnodes = 0;
   input.dint = 0;
+  input.keep_nne = 0;
   
   // Open File and read
   std::ifstream in(filename, std::ios::in | std::ios::binary);
@@ -154,6 +155,10 @@ iput_t read_input(std::string filename, bool verbose){
       }
       else if(key == "mode"){
 	input.mode = atoi(field.c_str());
+	set = true;
+      }
+      else if(key == "mode"){
+	input.keep_nne = atoi(field.c_str());
 	set = true;
       }
       else if(key == "randomize_inversions"){
@@ -303,6 +308,14 @@ iput_t read_input(std::string filename, bool verbose){
 	}
 	set = true;
       }
+      else if(key == "invert_pgas_boundary"){
+	std::vector<std::string> param = strsplit(field,",");
+	if(param.size() == 1){
+	  int dum = std::stoi(param[0]);
+	  if(dum > 0) input.nodes.toinv[6] = 1;
+	} 
+	set = true;
+      }
       else if(key == "nodes_vturb"){
 	std::vector<std::string> param = strsplit(field,",");
 	if(param.size() == 1){
@@ -342,7 +355,8 @@ iput_t read_input(std::string filename, bool verbose){
   
   if(input.nodes.azi.size() == 1) input.nodes.nnodes += input.nodes.azi[0];
   else input.nodes.nnodes += input.nodes.azi.size();
-  
+
+  if(input.nodes.toinv[6] > 0) input.nodes.nnodes += 1;
   
   if(verbose && (input.nodes.nnodes > 0)) {
     std::cout << "read_input: total number of nodes = "<<input.nodes.nnodes<<std::endl;
@@ -617,6 +631,7 @@ int set_nodes(nodes_t &n, double min, double max, bool verbose){
     n.tosend += 1;
   }
   
+  
   return n.nnodes;
   
 }
@@ -744,6 +759,14 @@ int set_nodes(nodes_t &n, vector<double> &itau, bool verbose){
   else{
     n.toinv[5] = 0;
     n.tosend += 1;
+  }
+
+
+  
+  /* --- Pgas boundary --- */
+  if(n.toinv[6] > 0){
+    n.pgas_off = k;
+    n.ntype[k] = pgas_node;
   }
   
   return n.nnodes;

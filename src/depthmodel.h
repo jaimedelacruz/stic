@@ -9,7 +9,6 @@
 #include "interpol.h"
 #include "ceos.h"
 #include "cmemt.h"
-//#include "atmosphere.h"
 
 //-------------------------------------------
 // simple class containig model parameters
@@ -22,6 +21,7 @@ class mdepth{
     *z, *pel, *tau, *cmass;
   int ndep;
   mat<double> cub;
+  double bound_val;
   static const double boundary_pgas_default;
   //-------------------------------------------
 
@@ -44,7 +44,7 @@ class mdepth{
   void fixBoundary(int boundary, ceos &eos);
   void getPressureScale(int boundary, ceos &eos);
   void zero(void);
-  void fill_densities(ceos &eos);
+  void fill_densities(ceos &eos, int keep_nne = 0);
   mdepth& operator= ( mdepth &m);
 //-------------------------------------------
 };
@@ -71,7 +71,6 @@ class mdepthall{
 
   void model_parameters (mat<double> &tmp, nodes_t &n, int nt = 1);
   void model_parameters2(mat<double> &tmp, nodes_t &n, int nt = 1);
-  int  read_model(std::string &filename, int tstep = 0,  bool require_tau = false);
   int  read_model2(std::string &filename,int tstep = 0,  bool require_tau = false);
   void compress(int n, double *x, double *y, int nn, double *xx, double *yy);
   void compress(int n, float *x, float *y, int nn, double *xx, double *yy);

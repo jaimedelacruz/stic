@@ -95,7 +95,7 @@ void do_slave(int myrank, int nprocs, char hostname[]){
     int compute_derivatives = 0;
     comm_slave_unpack_data(input, action, obs, pars, m, compute_derivatives);
     if(action == 0) break; // Exit while loop if action = 0
-
+    
     //
     // Execute action depending on input.mode 
     //
@@ -136,7 +136,7 @@ void do_slave(int myrank, int nprocs, char hostname[]){
 	/* --- Call equation of state or hydrostatic equilibrium ? --- */
 
 	if(input.thydro) it.getPressureScale(input.boundary, atmos->eos);
-	else it.fill_densities(atmos->eos);
+	else it.fill_densities(atmos->eos, input.keep_nne);
 
 
 	/* --- Synthesize spectra --- */

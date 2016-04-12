@@ -22,7 +22,7 @@ void comm_get_buffer_size(iput_t &input){
       input.buffer_size =
 	(input.nw_tot*4*sizeof(double) +  // Profiles
 	 input.npar*sizeof(double) + // Model
-	 13 * input.ndep * sizeof(double) + //non-inverted quantities
+	 (13 * input.ndep + 1)* sizeof(double) + //non-inverted quantities
 	 2*sizeof(double)) * input.npack + // Chi2, boundary value
 	6*sizeof(int);            // xx, yy, iproc, pix, action, npacked
       
@@ -42,7 +42,7 @@ void comm_get_buffer_size(iput_t &input){
 	8*sizeof(int) + // xx, yy, iproc, pix, action, npacked, ndep, cgrad
 	input.npar*sizeof(double) * input.npack + // Values of the nodes * npacked
 	1*sizeof(double) + // perturbation to the parameter
-	13*input.ndep*sizeof(double)*input.npack; // atmospheric model
+	(13*input.ndep + 1)*sizeof(double)*input.npack; // atmospheric model
       
       input.buffer_size1 = (input.nw_tot*4*sizeof(double) +                    
 			    input.nw_tot*4*input.npar*sizeof(double) + // Derivatives
@@ -72,7 +72,7 @@ void comm_send_parameters(iput_t &input){
   status = MPI_Bcast(&nregions,  1,    MPI_INT, 0, MPI_COMM_WORLD);  
   status = MPI_Bcast(&input.buffer_size,  2,    MPI_UNSIGNED_LONG, 0, MPI_COMM_WORLD);
 
-  status = MPI_Bcast(&input.nt, 17,    MPI_INT, 0, MPI_COMM_WORLD); // We are sending 11 ints from the struct!
+  status = MPI_Bcast(&input.nt, 18,    MPI_INT, 0, MPI_COMM_WORLD); // We are sending 11 ints from the struct!
   status = MPI_Bcast(&input.mu,  4, MPI_DOUBLE, 0, MPI_COMM_WORLD); // We are sending 4 doubles from the struct!
   status = MPI_Bcast(&input.max_inv_iter,  1, MPI_UNSIGNED, 0, MPI_COMM_WORLD);
     
@@ -145,13 +145,16 @@ void comm_send_parameters(iput_t &input){
     
     
     // Variables to Invert
-    status = MPI_Bcast(input.nodes.toinv,     6,    MPI_INT, 0, MPI_COMM_WORLD);
+    status = MPI_Bcast(input.nodes.toinv,     7,    MPI_INT, 0, MPI_COMM_WORLD);
+
+    
     
     
     // Send type of nodes
     status = MPI_Bcast(&input.nodes.ntype[0],   input.nodes.nnodes,    MPI_INT, 0, MPI_COMM_WORLD);
     
-    
+
+    input.nodes.bound = input.boundary;
     
   }
   
@@ -165,7 +168,7 @@ void comm_recv_parameters(iput_t &input){
   status = MPI_Bcast(&nregions,  1,    MPI_INT, 0, MPI_COMM_WORLD);
   status = MPI_Bcast(&input.buffer_size,  2,    MPI_UNSIGNED_LONG, 0, MPI_COMM_WORLD);
 
-  status = MPI_Bcast(&input.nt, 17,    MPI_INT, 0, MPI_COMM_WORLD); // We are getting 15 ints from the struct!
+  status = MPI_Bcast(&input.nt, 18,    MPI_INT, 0, MPI_COMM_WORLD); // We are getting 15 ints from the struct!
   status = MPI_Bcast(&input.mu,  4, MPI_DOUBLE, 0, MPI_COMM_WORLD); // We are getting 4 doubles from the struct!
   status = MPI_Bcast(&input.max_inv_iter,  1, MPI_UNSIGNED, 0, MPI_COMM_WORLD);
 
@@ -268,16 +271,20 @@ void comm_recv_parameters(iput_t &input){
     status = MPI_Bcast(&input.nodes.nnodes,     8,    MPI_INT, 0, MPI_COMM_WORLD);
     
     // Variables to Invert
-    status = MPI_Bcast(input.nodes.toinv,     6,    MPI_INT, 0, MPI_COMM_WORLD);
+    status = MPI_Bcast(input.nodes.toinv,     7,    MPI_INT, 0, MPI_COMM_WORLD);
     
     
     // Send type of nodes
     input.nodes.ntype.resize(input.nodes.nnodes);
     status = MPI_Bcast(&input.nodes.ntype[0],   input.nodes.nnodes,    MPI_INT, 0, MPI_COMM_WORLD);
+
+    input.nodes.bound = input.boundary;
+
   }
 }
 void comm_master_pack_data(iput_t &input, mat<double> &obs, mat<double> &model,
-			     unsigned long &ipix, int proc, mdepthall_t &m, int cgrad){
+			   unsigned long &ipix, int proc, mdepthall_t &m, int cgrad,
+			   int action){
   string inam = "comm_pack_data: ";
   double dum[m.ndep];
   memset(dum, 0, m.ndep * sizeof(double));
@@ -289,7 +296,6 @@ void comm_master_pack_data(iput_t &input, mat<double> &obs, mat<double> &model,
   int status;
   int pos = 0;
   int xx, yy;
-  int action = 1;
   unsigned long len = 0;
   //
   unsigned long ntot = input.nx * input.ny;
@@ -330,6 +336,9 @@ void comm_master_pack_data(iput_t &input, mat<double> &obs, mat<double> &model,
 	status = MPI_Pack(&m.cub(yy,xx,0,0), len, MPI_DOUBLE, &buffer[0],
 			  input.buffer_size, &pos, MPI_COMM_WORLD);
 	
+	len = nPacked;
+	status = MPI_Pack(&m.boundary(yy,xx), len, MPI_DOUBLE, &buffer[0],
+			  input.buffer_size, &pos, MPI_COMM_WORLD);
 	//
 	ipix += nPacked; // Increase the pixel count
 	
@@ -382,12 +391,16 @@ void comm_master_pack_data(iput_t &input, mat<double> &obs, mat<double> &model,
 	status = MPI_Pack(&m.cub(yy,xx,0,0), len, MPI_DOUBLE, &buffer[0],
 			  input.buffer_size, &pos, MPI_COMM_WORLD);
 
+	len = nPacked;
+	status = MPI_Pack(&m.boundary(yy,xx), len, MPI_DOUBLE, &buffer[0],
+			  input.buffer_size, &pos, MPI_COMM_WORLD);
 	
 	/* --- Increase the count --- */
 	ipix += nPacked; // Increase the pixel count
        
 	break;
       }
+
     } // Switch case
 
   
@@ -467,8 +480,15 @@ void comm_slave_unpack_data(iput_t &input, int &action, mat<double> &obs, mat<do
 	    it.setsize(input.ndep);
 	    status = MPI_Unpack(buffer, input.buffer_size, &pos, &it.cub.d[0], len,
 				MPI_DOUBLE, MPI_COMM_WORLD );
+
 	  }
 
+	  for(auto &it: m)
+	    status = MPI_Unpack(buffer, input.buffer_size, &pos, &it.bound_val, (int)1,
+				MPI_DOUBLE, MPI_COMM_WORLD );
+	    
+	    
+	  
 	  break;
 	}
       case 2:
@@ -542,6 +562,11 @@ void comm_slave_unpack_data(iput_t &input, int &action, mat<double> &obs, mat<do
 	    status = MPI_Unpack(buffer, input.buffer_size, &pos, &it.cub.d[0], len,
 				MPI_DOUBLE, MPI_COMM_WORLD );
 	  }
+
+	  for(auto &it: m)
+	    status = MPI_Unpack(buffer, input.buffer_size, &pos, &it.bound_val, (int)1,
+				MPI_DOUBLE, MPI_COMM_WORLD );
+	    
 	  
 	  break;
 	}

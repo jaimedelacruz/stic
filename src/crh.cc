@@ -17,10 +17,10 @@ extern "C" {
 using namespace std;
 using namespace phyc;
 //
-const double crh::pmax[6]  = {50000., 20.e5, 9.0e5, 5000.0, PI, 2.0*PI};
-const double crh::pmin[6]  = {2400. ,-20.e5,  +0.0,   +0.0,  +0.0,  +0.0};
-const double crh::pscal[6] = {2000. , 3.0e5, 1.5e5, 1000.0, 2*PI, 2*PI};
-const double crh::pstep[6] = {1.e-1 , 1.e-1, 1.0e-1, 2.0e-1, 1.0e-1, 1.0e-1};
+const double crh::pmax[7]  = {50000., 20.e5, 9.0e5, 5000.0, PI, 2.0*PI, 10.0};
+const double crh::pmin[7]  = {2400. ,-20.e5,  +0.0,   +0.0,  +0.0,  +0.0, 0.5};
+const double crh::pscal[7] = {1500. , 3.0e5, 2.0e5, 1000.0, 2*PI, 2*PI, 20.0};
+const double crh::pstep[7] = {1.e-1 , 1.e-1, 1.0e-1, 2.0e-1, 1.0e-1, 1.0e-1, 1.0e0};
 
 /* ----------------------------------------------------------------*/
 
@@ -36,6 +36,7 @@ vector<double> crh::get_max_limits(nodes_t &n){
     else if(n.ntype[k] == b_node    ) mmax[k] = pmax[3];
     else if(n.ntype[k] == inc_node  ) mmax[k] = pmax[4];
     else if(n.ntype[k] == azi_node  ) mmax[k] = pmax[5];
+    else if(n.ntype[k] == pgas_node ) mmax[k] = pmax[6];
     else                              mmax[k] = 0;
   }
   return mmax;
@@ -56,6 +57,7 @@ vector<double> crh::get_min_limits(nodes_t &n){
     else if(n.ntype[k] == b_node    ) mmin[k] = pmin[3];
     else if(n.ntype[k] == inc_node  ) mmin[k] = pmin[4];
     else if(n.ntype[k] == azi_node  ) mmin[k] = pmin[5];
+    else if(n.ntype[k] == pgas_node ) mmin[k] = pmin[6];
     else                              mmin[k] = 0;
   }
   return mmin;
@@ -75,6 +77,7 @@ vector<double> crh::get_scaling(nodes_t &n){
     else if(n.ntype[k] == b_node    ) scal[k] = pscal[3];
     else if(n.ntype[k] == inc_node  ) scal[k] = pscal[4];
     else if(n.ntype[k] == azi_node  ) scal[k] = pscal[5];
+    else if(n.ntype[k] == pgas_node ) scal[k] = pscal[6];
     else                              scal[k] = 1.0;
   }
   return scal;
@@ -87,16 +90,16 @@ vector<double> crh::get_steps(nodes_t &n){
   int nnodes = (int)n.nnodes;
   step.resize(nnodes);
 
-  double ipstep[6];
+  double ipstep[7];
   double sum = 0.0;
   
-  for(int ii=0;ii<6;ii++){
+  for(int ii=0;ii<7;ii++){
     sum += pstep[ii];
     ipstep[ii] = pstep[ii];
   }
-  sum /= 6.0;
+  sum /= 7.0;
   
-  for(int ii=0;ii<6;ii++){
+  for(int ii=0;ii<7;ii++){
     ipstep[ii]/= sum;
     // cerr<<ipstep[ii]<<endl;
   }
@@ -107,6 +110,7 @@ vector<double> crh::get_steps(nodes_t &n){
     else if(n.ntype[k] == b_node    ) step[k] = ipstep[3];
     else if(n.ntype[k] == inc_node  ) step[k] = ipstep[4];
     else if(n.ntype[k] == azi_node  ) step[k] = ipstep[5];
+    else if(n.ntype[k] == pgas_node ) step[k] = ipstep[6];
     else                              step[k] = 1.0;
   }
   return step;
