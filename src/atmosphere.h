@@ -17,7 +17,7 @@ class atmos{
  public: 
   std::vector<double> mmin, mmax, scal, step, isyn, maxc;
   static const double maxchange[7];
-  static constexpr double clog10 = log(10.0);
+  static constexpr double clog10 = 2.302585092994046;
   
   instrument **inst;
   //  iput_t *in;

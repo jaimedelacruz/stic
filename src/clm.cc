@@ -107,10 +107,10 @@ clm::clm(int ind, int inpar){
   chi2_thres = 1.0;   // Exit inversion if Chi2 is lower than this
   svd_thres = 1.e-16; // Cut-off "relative" thres. for small singular values
   lmax = 1.0e6;       // Maximum lambda value
-  lmin = 1.0e-12;     // Minimum lambda value
+  lmin = 1.0e-6;     // Minimum lambda value
   lfac = 10.0;        // Change lambda by this amount
   ilambda = 0.1;      // Initial damping parameter for the Hessian giag.
-  maxreject = 6;      // Max failed evaluations of lambda.
+  maxreject = 7;      // Max failed evaluations of lambda.
 }
 
 /* -------------------------------------------------------------------------------- */
@@ -331,7 +331,7 @@ double clm::fitdata(clm_func fx, double *x, void *mydat, int maxiter)
       
     }else{
       /* --- Prep lambda for next trial --- */
-      lambda = checkLambda(lambda * lfac * lfac);
+      lambda = checkLambda(lambda * lfac);
       nretry++;
       rej = " *";
       
@@ -461,8 +461,8 @@ void clm::compute_trial3(double *res, double **rf, double lambda,
     if(diag[yy] == 0.0) diag[yy] = 1.0;
     
     A[yy][yy] += lambda * (diag[yy]*0.5 + A[yy][yy]*0.5);
-  
-  
+    //A[yy][yy] *= (1.0 + lambda);
+    //A[yy][yy] += lambda * sqrt(A[yy][yy]*diag[yy]);
   
     /* --- Compute J^t * Residue --- */
     

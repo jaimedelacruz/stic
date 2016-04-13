@@ -95,6 +95,9 @@ iput_t read_input(std::string filename, bool verbose){
   input.nodes.nnodes = 0;
   input.dint = 0;
   input.keep_nne = 0;
+  input.marquardt_damping = -1.0;
+  input.svd_thres = 2.0e-16;
+
   
   // Open File and read
   std::ifstream in(filename, std::ios::in | std::ios::binary);
@@ -133,6 +136,14 @@ iput_t read_input(std::string filename, bool verbose){
 	input.mu = atof(field.c_str());
 	set = true;
       }
+      else if(key == "marquardt_damping"){
+	input.marquardt_damping = atof(field.c_str());
+	set = true;
+      }
+      else if(key == "svd_thres"){
+	input.svd_thres = atof(field.c_str());
+	set = true;
+      }
       else if(key == "mpi_pack"){
 	input.npack = atoi(field.c_str());
 	set = true;
@@ -157,7 +168,7 @@ iput_t read_input(std::string filename, bool verbose){
 	input.mode = atoi(field.c_str());
 	set = true;
       }
-      else if(key == "mode"){
+      else if(key == "keep_nne"){
 	input.keep_nne = atoi(field.c_str());
 	set = true;
       }

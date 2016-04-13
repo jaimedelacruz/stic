@@ -240,6 +240,18 @@ int getChi2(int npar1, int nd, double *pars1, double *dev, double **derivs, void
 
 
   
+    /* --- DEBUG --- */
+  if(atm.input.verbose)
+    if(derivs){
+      FILE *bla = fopen("scratch/int.txt","w");
+      for(int ii=0;ii<nd/4;ii++)
+	fprintf(bla,"%e  %e  %e  %e\n", atm.isyn[ii*4], atm.isyn[ii*4+1],  atm.isyn[ii*4+2], atm.isyn[ii*4+3]);
+      fclose(bla);
+    }
+    /* --- DEBUG --- */
+
+
+  
  /* --- Compute derivatives? --- */
   if(derivs){
     
@@ -261,8 +273,7 @@ int getChi2(int npar1, int nd, double *pars1, double *dev, double **derivs, void
 	  derivs[pp][ii] *= (atm.scal[pp] / atm.w[ii]);
 	
       }
-    }
-    
+    }    
   }
 
 
@@ -271,23 +282,18 @@ int getChi2(int npar1, int nd, double *pars1, double *dev, double **derivs, void
   atm.spectralDegrade(atm.input.ns, (int)1, nd, &atm.isyn[0]);
 
 
-   
-  /* --- Compute difference ---*/
-  
-  double ichi = 0.0;
-  for(unsigned ii=0; ii<nd; ii++) {
-    dev[ii] = - (atm.isyn[ii] - atm.obs[ii]) / atm.w[ii]; 
-    ichi += dev[ii] * dev[ii];
-  }
-  ichi /= (double)nd;
 
+  /* --- Compute residue --- */
+
+  for(int ww = 0; ww < nd; ww++)
+    dev[ww] = (atm.obs[ww] - atm.isyn[ww]) / atm.w[ww];
 
   
 
   /* --- clean up --- */
   
   delete [] ipars;
-  if(derivs)  atm.cleanup();
+  //if(derivs)  atm.cleanup();
 
   
   return 0;
@@ -324,10 +330,12 @@ double atmos::fitModel2(mdepth_t &m, int npar, double *pars, int nobs, double *o
 
   clm lm = clm(ndata, npar);
   lm.xtol = 1.e-3;
-  lm.verb = true;
-  lm.ilambda = 1.0;
+  lm.verb = input.verbose;
+  if(input.marquardt_damping > 0.0) lm.ilambda = input.marquardt_damping;
+  else                              lm.ilambda = 1.0;
   lm.maxreject = 6;
-  lm.svd_thres = 1.e-15;
+  lm.svd_thres = max(input.svd_thres, 1.e-16);
+  lm.chi2_thres = input.chi2_thres;
   
   /* ---  Set parameter limits --- */
   for(int pp = 0; pp<npar; pp++){
@@ -335,16 +343,13 @@ double atmos::fitModel2(mdepth_t &m, int npar, double *pars, int nobs, double *o
     lm.fcnt[pp].limit[1] = mmax[pp]/scal[pp];
     lm.fcnt[pp].scl = 1.0;//scal[pp];
     
-    if(input.nodes.ntype[pp] == azi_node){
-      lm.fcnt[pp].cyclic = true;
-    }else{
-      lm.fcnt[pp].cyclic = true;
-    }
- 
+    if(input.nodes.ntype[pp] == azi_node) lm.fcnt[pp].cyclic = true;
+    else                                  lm.fcnt[pp].cyclic = false;
+    
     lm.fcnt[pp].bouncing = false;
     lm.fcnt[pp].capped = 1;
     lm.fcnt[pp].maxchange = maxc[pp]/scal[pp];
-    
+ 
     pars[pp] = checkParameter(pars[pp], pp);
   }
   
