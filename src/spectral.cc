@@ -93,8 +93,8 @@ spectral::spectral(region_t &in, int nthreads){
   }
 
 
-
-  fprintf(stderr,"spectral::spectral: [%f] -> n=%d, npsf=%d, npad=%d\n", reg.w0, ft[0].n, ft[0].n1, ft[0].npad);
+  
+  //fprintf(stderr,"spectral::spectral: [%f] -> n=%d, npsf=%d, npad=%d\n", reg.w0, ft[0].n, ft[0].n1, ft[0].npad);
 
   
   

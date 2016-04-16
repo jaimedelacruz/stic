@@ -19,7 +19,7 @@ using namespace phyc;
 //
 const double crh::pmax[7]  = {50000., 20.e5, 9.0e5, 5000.0, PI, 2.0*PI, 10.0};
 const double crh::pmin[7]  = {2400. ,-20.e5,  +0.0,   +0.0,  +0.0,  +0.0, 0.5};
-const double crh::pscal[7] = {1500. , 3.0e5, 2.0e5, 1000.0, 2*PI, 2*PI, 20.0};
+const double crh::pscal[7] = {1500. , 3.0e5, 2.0e5, 1000.0, 2*PI, 2*PI, 1.0};
 const double crh::pstep[7] = {1.e-1 , 1.e-1, 1.0e-1, 2.0e-1, 1.0e-1, 1.0e-1, 1.0e0};
 
 /* ----------------------------------------------------------------*/

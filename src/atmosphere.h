@@ -7,7 +7,7 @@
 #include <cmath>
 #include "input.h"
 #include "cmemt.h"
-#include "cprofiles.h"
+#include "cprofiles2.h"
 #include "instruments.h"
 #include "spectral.h"
 #include "depthmodel.h"

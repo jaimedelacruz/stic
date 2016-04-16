@@ -13,7 +13,7 @@
 //
 using namespace std;
 //
-const double atmos::maxchange[7] = {1500., 3.0e5, 1.5e5, 800., phyc::PI/5, phyc::PI/5, 2.0};
+const double atmos::maxchange[7] = {2000., 3.0e5, 1.5e5, 600., phyc::PI/5, phyc::PI/5, 0.4};
 
 
 
@@ -206,6 +206,8 @@ void atmos::randomizeParameters(nodes_t &n, int npar, double *pars){
       pertu =  rnum * scal[pp];
     else if(n.ntype[pp] == azi_node)
       pertu =  rnum * scal[pp];   
+    else if(n.ntype[pp] == pgas_node)
+      pertu = (rnum-0.5) * scal[pp];
       
     pars[pp] = checkParameter(pars[pp] + pertu, pp);
   }
@@ -260,12 +262,17 @@ int getChi2(int npar1, int nd, double *pars1, double *dev, double **derivs, void
       if(derivs[pp]){
 
 	/* --- Compute response function ---*/
+	
 	memset(&derivs[pp][0], 0, nd*sizeof(double));
 	atm.responseFunction(npar1, m, &ipars[0], nd,
 			      &derivs[pp][0], pp, &atm.isyn[0]);
+
+	
+	/* --- Degrade response function --- */
 	
 	atm.spectralDegrade(atm.input.ns, (int)1, nd, &derivs[pp][0]);
 
+	
 	/* --- renormalize the response function by the 
 	   scaling factor and divide by the noise --- */
 		
@@ -301,10 +308,6 @@ int getChi2(int npar1, int nd, double *pars1, double *dev, double **derivs, void
 
 double atmos::fitModel2(mdepth_t &m, int npar, double *pars, int nobs, double *o, mat<double> &weights){
   
-  
-
- 
-  
   /* --- point to obs and weights --- */
   
   obs = &o[0];
@@ -336,6 +339,9 @@ double atmos::fitModel2(mdepth_t &m, int npar, double *pars, int nobs, double *o
   lm.maxreject = 6;
   lm.svd_thres = max(input.svd_thres, 1.e-16);
   lm.chi2_thres = input.chi2_thres;
+  lm.lmax = 1.e4;
+  lm.lmin = 1.e-5;
+
   
   /* ---  Set parameter limits --- */
   for(int pp = 0; pp<npar; pp++){
@@ -359,6 +365,8 @@ double atmos::fitModel2(mdepth_t &m, int npar, double *pars, int nobs, double *o
   /* --- Loop iters --- */
   
   for(int iter = 0; iter < input.nInv; iter++){
+
+    cleanup();
     
     /* --- init parameters for this inversion --- */
     

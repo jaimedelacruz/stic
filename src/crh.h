@@ -9,7 +9,7 @@
 #include "cmemt.h"
 #include "input.h"
 #include "depthmodel.h"
-#include "cprofiles.h"
+#include "cprofiles2.h"
 #include "atmosphere.h"
 #include "rhf1d.h"
 

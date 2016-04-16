@@ -16,7 +16,7 @@
 #include <vector>
 #include <string>
 #include "ceos.h"
-#include "cprofiles.h"
+#include "cprofiles2.h"
 #include "input.h"
 #include "cmemt.h"
 #include "atmosphere.h"

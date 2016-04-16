@@ -215,7 +215,7 @@ void clte::synth(mdepth &m, double *syn, cprof_solver sol, bool store_pops){
     eos.read_partial_pressures(k, frac, part, na, ne);
     
     /* --- Campute contop. for all lambdas --- */
-    eos.contOpacity(m.temp[k], nw,  &lambda[0], &prof.mki(k, 0), &scatt[0], frac, na, ne);
+    eos.contOpacity(m.temp[k], nw,  &lambda[0], &prof.mki[k][0], &scatt[0], frac, na, ne);
 
     
     /* --- Store output for later, remember that eos.fract is in fact 
@@ -262,17 +262,17 @@ void clte::synth(mdepth &m, double *syn, cprof_solver sol, bool store_pops){
 	prof.sf[k] = prof.plank_nu(it.nu[w], m.temp[k]);
 
 	/* --- Normalize elements of the abs. Matrix by ki and store in the vector version of the matrix elements --- */
-	double iki =  prof.mki(k,w+it.off);
+	double iki =  prof.mki[k][w+it.off];
 	prof.ki[k] = iki;
-	prof.kq[k] = prof.mkq(k,w+it.off) / iki;
-	prof.ku[k] = prof.mku(k,w+it.off) / iki;
-	prof.kv[k] = prof.mkv(k,w+it.off) / iki;
-	prof.fq[k] = prof.mfq(k,w+it.off) / iki;
-	prof.fu[k] = prof.mfu(k,w+it.off) / iki;
-	prof.fv[k] = prof.mfv(k,w+it.off) / iki;
+	prof.kq[k] = prof.mkq[k][w+it.off] / iki;
+	prof.ku[k] = prof.mku[k][w+it.off] / iki;
+	prof.kv[k] = prof.mkv[k][w+it.off] / iki;
+	prof.fq[k] = prof.mfq[k][w+it.off] / iki;
+	prof.fu[k] = prof.mfu[k][w+it.off] / iki;
+	prof.fv[k] = prof.mfv[k][w+it.off] / iki;
 
 	/* --- If the height scale is tau_500 then normalize ki by the opacity at 500 nm --- */
-	if((sol == bez_ltau || (sol == lin_ltau))) prof.ki[k] /= prof.mki(k,nw-1);
+	if((sol == bez_ltau || (sol == lin_ltau))) prof.ki[k] /= prof.mki[k][nw-1];
       } // k
 
       /* --- Compute formal solution at this wavelength, select method --- */
