@@ -83,7 +83,7 @@ iput_t read_input(std::string filename, bool verbose){
   input.sparse_threshold = 0.70; //
   input.wavelet_order = 4;
   input.wavelet_type = "daub"; 
-  input.dpar = 1.e-3; // Default
+  input.dpar = 1.e-2; // Default
   input.nw_tot = 0;
   input.nodes.nnodes = 0;
   input.verbose = false; // default

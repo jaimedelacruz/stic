@@ -99,7 +99,8 @@ void mdepth::expand(nodes_t &n, double *p, int interpol){
     else if(n.bound == 2) rho[0]  = bound_val*p[n.pgas_off];
     else if(n.bound == 3) nne[0]  = bound_val*p[n.pgas_off];
     else pgas[0] =  boundary_pgas_default*p[n.pgas_off];
-  }
+  }//else fprintf(stderr, "bound=%1d, val=%e\n", n.bound, bound_val);
+
   
   return;
 }
@@ -150,7 +151,6 @@ void mdepth::getPressureScale(int boundary, ceos &eos){
   
   eos.hydrostatic((int)ndep, &tau[0], &temp[0], &pgas[0], &rho[0], &nne[0], &pel[0],
 		  &z[0], &cmass[0], pgas[0], (float)1.e-5);
-
 }
 
 

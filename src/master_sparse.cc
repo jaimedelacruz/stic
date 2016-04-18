@@ -120,6 +120,11 @@ void master_inverter(mdepthall_t &model, mat<double> &pars, mat<double> &obs, ma
       atm->fitModel2( m, input.npar, &pars(yy,xx,0),
 		    (int)(input.nw_tot*input.ns), &obs(yy,xx,0,0), w);
 
+
+      /* --- Copy inverted model back to model cube --- */
+      
+      memcpy( &model.cub(yy,xx,0,0), &m.cub.d[0], 13*ndep*sizeof(double));
+
       
       per = ++kk / (nx*ny);
       if(per > oper){

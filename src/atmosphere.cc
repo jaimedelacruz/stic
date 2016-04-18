@@ -13,7 +13,7 @@
 //
 using namespace std;
 //
-const double atmos::maxchange[7] = {2000., 3.0e5, 1.5e5, 600., phyc::PI/5, phyc::PI/5, 0.4};
+const double atmos::maxchange[7] = {1500., 3.0e5, 2.0e5, 600., phyc::PI/5, phyc::PI/5, 2.0};
 
 
 
@@ -207,7 +207,7 @@ void atmos::randomizeParameters(nodes_t &n, int npar, double *pars){
     else if(n.ntype[pp] == azi_node)
       pertu =  rnum * scal[pp];   
     else if(n.ntype[pp] == pgas_node)
-      pertu = (rnum-0.5) * scal[pp];
+      pertu = 0.5*(rnum-0.5) * scal[pp];
       
     pars[pp] = checkParameter(pars[pp] + pertu, pp);
   }
@@ -224,8 +224,8 @@ int getChi2(int npar1, int nd, double *pars1, double *dev, double **derivs, void
   atmos &atm = *((atmos*)tmp1); 
   double *ipars = new double [npar1]();
   mdepth &m = *atm.imodel;
+  //atm.cleanup();
 
-  
   /* --- Expand atmosphere ---*/
   
   for(int pp = 0; pp<npar1; pp++)
@@ -242,25 +242,13 @@ int getChi2(int npar1, int nd, double *pars1, double *dev, double **derivs, void
 
 
   
-    /* --- DEBUG --- */
-  if(atm.input.verbose)
-    if(derivs){
-      FILE *bla = fopen("scratch/int.txt","w");
-      for(int ii=0;ii<nd/4;ii++)
-	fprintf(bla,"%e  %e  %e  %e\n", atm.isyn[ii*4], atm.isyn[ii*4+1],  atm.isyn[ii*4+2], atm.isyn[ii*4+3]);
-      fclose(bla);
-    }
-    /* --- DEBUG --- */
-
-
-  
  /* --- Compute derivatives? --- */
   if(derivs){
     
     for(int pp = npar1-1; pp >= 0; pp--){
       
       if(derivs[pp]){
-
+	//atm.cleanup();
 	/* --- Compute response function ---*/
 	
 	memset(&derivs[pp][0], 0, nd*sizeof(double));
@@ -287,22 +275,20 @@ int getChi2(int npar1, int nd, double *pars1, double *dev, double **derivs, void
   /* --- Degrade synthetic spectra --- */
   
   atm.spectralDegrade(atm.input.ns, (int)1, nd, &atm.isyn[0]);
-
+  
 
 
   /* --- Compute residue --- */
 
-  for(int ww = 0; ww < nd; ww++)
+  for(int ww = 0; ww < nd; ww++){
     dev[ww] = (atm.obs[ww] - atm.isyn[ww]) / atm.w[ww];
-
-  
+  }
 
   /* --- clean up --- */
   
   delete [] ipars;
   //if(derivs)  atm.cleanup();
-
-  
+  //atm.cleanup();
   return 0;
 }
 
@@ -332,7 +318,7 @@ double atmos::fitModel2(mdepth_t &m, int npar, double *pars, int nobs, double *o
   /* --- Init clm --- */
 
   clm lm = clm(ndata, npar);
-  lm.xtol = 1.e-3;
+  lm.xtol = 3.e-3;
   lm.verb = input.verbose;
   if(input.marquardt_damping > 0.0) lm.ilambda = input.marquardt_damping;
   else                              lm.ilambda = 1.0;
@@ -342,8 +328,10 @@ double atmos::fitModel2(mdepth_t &m, int npar, double *pars, int nobs, double *o
   lm.lmax = 1.e4;
   lm.lmin = 1.e-5;
 
+
   
   /* ---  Set parameter limits --- */
+  
   for(int pp = 0; pp<npar; pp++){
     lm.fcnt[pp].limit[0] = mmin[pp]/scal[pp];
     lm.fcnt[pp].limit[1] = mmax[pp]/scal[pp];
@@ -360,7 +348,6 @@ double atmos::fitModel2(mdepth_t &m, int npar, double *pars, int nobs, double *o
   }
   
 
-  
   
   /* --- Loop iters --- */
   
@@ -385,6 +372,8 @@ double atmos::fitModel2(mdepth_t &m, int npar, double *pars, int nobs, double *o
 
     double chi2 = lm.fitdata(getChi2, &ipars[0], (void*)this, input.max_inv_iter);
 
+
+    
     /* --- Re-start populations --- */
     
     cleanup();
@@ -395,7 +384,6 @@ double atmos::fitModel2(mdepth_t &m, int npar, double *pars, int nobs, double *o
     if(chi2 < bestChi){
       bestChi = chi2;
       memcpy(&bestPars[0], &ipars[0], npar*sizeof(double));
-      memcpy(&bestSyn[0], &isyn[0], ndata*sizeof(double));
     }
 
     /* --- reached thresthold? ---*/
@@ -407,14 +395,23 @@ double atmos::fitModel2(mdepth_t &m, int npar, double *pars, int nobs, double *o
 
   /* --- re-scale fitted parameters and expand atmos ---*/
   
-  for(int pp = 0; pp<npar; pp++) pars[pp] = bestPars[pp] * scal[pp]; 
+  for(int pp = 0; pp<npar; pp++)
+    pars[pp] = bestPars[pp] * scal[pp];
+  
+  memset(&isyn[0],0,ndata*sizeof(double));
   m.expand(input.nodes, &pars[0], input.dint);
   m.getPressureScale(input.boundary, eos);  
-  synth( m , &obs[0], (cprof_solver)input.solver, false);
-  spectralDegrade(input.ns, (int)1, input.nw_tot, &obs[0]);
-
+  synth( m , &isyn[0], (cprof_solver)input.solver, false);
+  spectralDegrade(input.ns, (int)1, input.nw_tot, &isyn[0]);
 
   
+  double sum = 0.0;
+  for(int ww = 0; ww<ndata;ww++){
+    double tmp = (obs[ww] - isyn[ww]) / weights.d[ww];
+    sum += (tmp*tmp);
+  }
+  fprintf(stderr,"Recomp chi2=%13.5f\n", sum/ndata);
+  memcpy(&obs[0], &isyn[0], ndata*sizeof(double));
   
   /* --- Clean-up --- */
   

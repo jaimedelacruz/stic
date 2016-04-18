@@ -15,11 +15,12 @@
 #include "cmemt.h"
 #include "input.h"
 #include "physical_consts.h"
+#include "cprofiles2.h"
 //
 using namespace std;
 using namespace phyc;
 //
-const double clte::pmax[7]  = {50000., 20.e5, 7.0e5, 5000.0, PI, 2.0*PI, 100.0};
+const double clte::pmax[7]  = {50000., 20.e5, 7.0e5, 5000.0, PI, PI, 100.0};
 const double clte::pmin[7]  = {2050. ,-20.e5,  +0.0,   +0.0,  +0.0,  +0.0, 0.01};
 const double clte::pscal[7] = {500. , 1.0e5, 1.0e5, 500.0, PI, PI, 1.0};
 const double clte::pstep[7] = {1.e0 , 1.e0, 1.0e0, 1.0e0, 1.0e0, 1.0e0, 1.0e0};
@@ -191,8 +192,9 @@ void clte::synth(mdepth &m, double *syn, cprof_solver sol, bool store_pops){
   int nw =     (int)lambda.size(); 
 
   /* --- Init arrays in class cprofiles ---*/
+  
   prof.init(nw, ndep);
-  prof.set_zero_abmat();
+  //prof.set_zero_abmat();
 
   
   /* --- Init sizes --- */
@@ -290,4 +292,9 @@ void clte::synth(mdepth &m, double *syn, cprof_solver sol, bool store_pops){
       
     } // w
   } // regions
+
+  
+  /* --- Deallocate profiles --- */
+  
+  prof.cleanup();
 }

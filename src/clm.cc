@@ -315,22 +315,24 @@ double clm::fitdata(clm_func fx, double *x, void *mydat, int maxiter)
       
       lambda = checkLambda(lambda / lfac);
 
-      
-      /* --- If the relative change was too small, exit --- */
-      
-      if((fabs(reldchi) < xtol)) exitme = true;
 
+      /* --- is the improvements below our threshold? --- */
+
+      if(fabs(reldchi) < xtol) exitme = true;
+	
+   
       
       /* --- Store new best guessed model --- */
       
       bestchi2 = chi2;
-      memcpy(bestpars, xnew, npar*sizeof(double));
-      memcpy(x, xnew, npar*sizeof(double));
+      memcpy(&bestpars[0], xnew, npar*sizeof(double));
+      memcpy(&x[0],        xnew, npar*sizeof(double));
       nretry = 0;
       rej = " ";
       
     }else{
       /* --- Prep lambda for next trial --- */
+      
       lambda = checkLambda(lambda * lfac);
       nretry++;
       rej = " *";
@@ -389,7 +391,7 @@ double clm::fitdata(clm_func fx, double *x, void *mydat, int maxiter)
   
   /* --- Copy results to output array --- */
 
-  memcpy(x, bestpars, npar*sizeof(double));
+  memcpy(&x[0], &bestpars[0], npar*sizeof(double));
   
     
   /* --- clean-up --- */
@@ -460,9 +462,9 @@ void clm::compute_trial3(double *res, double **rf, double lambda,
     diag[yy] = max(A[yy][yy], diag[yy]);
     if(diag[yy] == 0.0) diag[yy] = 1.0;
     
-    A[yy][yy] += lambda * (diag[yy]*0.5 + A[yy][yy]*0.5);
+    //A[yy][yy] += lambda * (diag[yy]*0.5 + A[yy][yy]*0.5);
     //A[yy][yy] *= (1.0 + lambda);
-    //A[yy][yy] += lambda * sqrt(A[yy][yy]*diag[yy]);
+    A[yy][yy] += lambda * sqrt(A[yy][yy]*diag[yy]);
   
     /* --- Compute J^t * Residue --- */
     
