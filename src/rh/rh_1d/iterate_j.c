@@ -92,7 +92,7 @@ void Iterate_j(int NmaxIter, double iterLimit, double *dpopmax_out)
     input.prdswitch = 1.0;
 
   
-  while (niter <= NmaxIter && !StopRequested()) {
+  while ((niter <= NmaxIter || niter < 3) && !StopRequested()) {
     getCPU(2, TIME_START, NULL);
 
     for (nact = 0;  nact < atmos.Nactiveatom;  nact++)

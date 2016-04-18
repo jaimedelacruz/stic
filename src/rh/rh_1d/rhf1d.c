@@ -187,7 +187,7 @@ bool_t rhf1d(float muz, int rhs_ndep, double *rhs_T, double *rhs_rho,
   adjustStokesMode();
   niter = 0;
   
-  while (niter < input.NmaxScatter) {
+  while ((niter < input.NmaxScatter)) {
     if (solveSpectrum(FALSE, FALSE) <= input.iterLimit) break;
     niter++;
   }
@@ -441,7 +441,7 @@ void read_populations(crhpop *save_pop){
     memcpy(&atom->n[0][0], &save_pop->pop[nact].n[0],
 	   atom->Nlevel * atmos.Nspace * sizeof(double));
     
-    memcpy(&atom->ntotal[0], &save_pop->pop[nact].ntotal[0], atmos.Nspace*sizeof(double));
+    ///memcpy(&atom->ntotal[0], &save_pop->pop[nact].ntotal[0], atmos.Nspace*sizeof(double));
 
 
     /* --- Copy rho for PRD lines? --- */
