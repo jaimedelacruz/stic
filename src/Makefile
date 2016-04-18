@@ -7,7 +7,7 @@ RHFOLD = rh/
 
 INCLUDE = $(shell ncxx4-config --cflags) -I$(GSLPATH)/include -I./ -I$(RHFOLD) -I$(RHFOLD)/rh_1d
 LIBS_FDENS = $(shell ncxx4-config --libs) -lstdc++ -L$(GSLPATH)/lib/ -lgsl -lgslcblas -lfftw3 -lm  
-LIBS = $(LIBS_FDENS) -L./ -lgfortran -L$(RHFOLD)/rh_1d/ -lrhf1d -L$(GSLPATH) -lblas -llapack  -lifcore -static-intel #-fuse-linker-plugin 
+LIBS = $(LIBS_FDENS) -L./ -lgfortran -L$(RHFOLD)/rh_1d/ -lrhf1d -L$(GSLPATH) -lblas -llapack # -lifcore -static-intel #-fuse-linker-plugin 
 
 
 
