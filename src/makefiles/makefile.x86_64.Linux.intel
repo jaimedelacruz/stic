@@ -1,0 +1,35 @@
+#
+# Compilers
+#
+CC  = icc
+CXX = icpc
+FC  = ifort
+
+
+#
+# MPI assignments
+#
+OMPI_FC = $(FC)
+OMPI_CXX = $(CXX)
+OMPI_CC = $(CC)
+MPCXX = mpicxx
+MPFC = mpif90
+MPCC = mpicc
+
+
+#
+# OPTIMIZATION
+#
+OPTS = -O3 -axSSSE3,SSE4.2,CORE-AVX2 -ipo -static-intel -lifcore
+CXXFLAGS = $(OPTS) -std=c++11 -gxx-name=g++-4.9 #-Wno-literal-suffix
+CFLAGS = $(OPTS)
+FFLAGS = -O3 -axSSSE3 
+AR = xiar
+OPENMP = -fopenmp
+
+
+#
+# GSL, FFTW3 libs.
+# Any unix system should have this installed in /usr.
+#
+GSLPATH = /usr
