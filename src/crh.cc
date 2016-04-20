@@ -20,7 +20,7 @@ using namespace phyc;
 const double crh::pmax[7]  = {50000., 20.e5, 20.0e5, 5000.0, PI, PI, 10.0};
 const double crh::pmin[7]  = {2400. ,-20.e5,  +0.0,   +0.0,  +0.0,  +0.0, 0.5};
 const double crh::pscal[7] = {1500. , 3.0e5, 2.0e5, 1000.0, 2*PI, 2*PI, 1.0};
-const double crh::pstep[7] = {1.e-1 , 1.e-1, 1.0e-1, 2.0e-1, 1.0e-1, 1.0e-1, 1.0e0};
+const double crh::pstep[7] = {1.e-1 , 1.e-1, 1.0e-1, 2.0e-1, 1.0e-1, 1.0e-1, 1.0e-1};
 
 /* ----------------------------------------------------------------*/
 
@@ -186,7 +186,7 @@ crh::crh(iput_t &inpt, double grav): atmos(inpt, grav){
 
 /* ----------------------------------------------------------------*/
 
-void crh::synth(mdepth_t &m_in, double *syn, cprof_solver sol, bool save_pops){
+bool crh::synth(mdepth_t &m_in, double *syn, cprof_solver sol, bool save_pops){
 
   static int ncall = 0;
   ncall++;
@@ -247,7 +247,24 @@ void crh::synth(mdepth_t &m_in, double *syn, cprof_solver sol, bool save_pops){
 		    &cmass[0], 4.44, (bool_t)true, &sp, &save_pop, nlambda, &lambda[0],
 		    input.myrank, savep, (int)input.verbose);
   
+
+  /* --- Did not converge? --- */
+
+  if(!conv){
+
+    for(int ww = 0; ww<nlambda*4; ww++)
+      syn[ww] = 1.e-13;
+
+    if(sp.I != NULL) delete [] sp.I;
+    if(sp.Q != NULL) delete [] sp.Q;
+    if(sp.U != NULL) delete [] sp.U;
+    if(sp.V != NULL) delete [] sp.V;
+    if(sp.lambda != NULL) delete [] sp.lambda;
     
+    return (bool)false;
+  }
+
+  
   /* --- Retrieve spectra at the observed grid --- */
   
   for(auto &reg: input.regions){
@@ -293,7 +310,8 @@ void crh::synth(mdepth_t &m_in, double *syn, cprof_solver sol, bool save_pops){
   if(sp.U != NULL) delete [] sp.U;
   if(sp.V != NULL) delete [] sp.V;
   if(sp.lambda != NULL) delete [] sp.lambda;
-  
+
+  return conv;
 }
 
 /* ----------------------------------------------------------------*/

@@ -111,6 +111,7 @@ clm::clm(int ind, int inpar){
   lfac = 10.0;        // Change lambda by this amount
   ilambda = 0.1;      // Initial damping parameter for the Hessian giag.
   maxreject = 7;      // Max failed evaluations of lambda.
+  error = false;
 }
 
 /* -------------------------------------------------------------------------------- */
@@ -224,7 +225,12 @@ double clm::getChi2Pars(double *res, double **rf, double lambda,
 
   double *new_res = new double [nd]();
   
-  fx(npar, nd, xnew, new_res, NULL, mydat);
+  int status = fx(npar, nd, xnew, new_res, NULL, mydat);
+  if(status){
+    if(verb)
+      fprintf(stderr, "clm::fitdata: ERROR in the evaluation of FX, aborting inversion\n");
+    error = true;
+  }
   double newchi2 = compute_chi2(new_res);
 
   delete [] new_res;
@@ -281,7 +287,12 @@ double clm::fitdata(clm_func fx, double *x, void *mydat, int maxiter)
 
   /* --- Evaluate residues and RF, init chi2 --- */
 
-  fx(npar, nd, x, res, rf, mydat);
+  int status = fx(npar, nd, x, res, rf, mydat);
+  if(status){
+    if(verb)
+      fprintf(stderr, "clm::fitdata: ERROR in the evaluation of FX, aborting inversion\n");
+    error = true;
+  }
   scaleRF(rf);
   memcpy(&bestpars[0], &x[0], npar*sizeof(double));
   //
@@ -300,9 +311,11 @@ double clm::fitdata(clm_func fx, double *x, void *mydat, int maxiter)
        The new parameters are already checked for limits and too large corrections 
        inside getChi2Pars 
        --- */
-    
+    if(error) break;
     chi2 = getChi2Pars(res, rf, lambda, x, xnew, mydat, fx);
-
+    if(error) break;
+    
+   
 
     /* --- Check if we have improved or not --- */
 
@@ -383,8 +396,13 @@ double clm::fitdata(clm_func fx, double *x, void *mydat, int maxiter)
     
     t0 = t1;
     zero(res, rf);
-    fx(npar, nd, x, res, rf, mydat);
-
+    status = fx(npar, nd, x, res, rf, mydat);
+    if(status){
+      if(verb)
+	fprintf(stderr, "clm::fitdata: ERROR in the evaluation of FX, aborting inversion\n");
+      break;
+    }
+    
     scaleRF(rf);
     iter++;
   }

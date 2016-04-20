@@ -31,7 +31,7 @@ class atmos{
  atmos(iput_t &inpt, double grav = 4.44): eos(inpt.lines, grav), inst(NULL){};
   virtual ~atmos(){};
   // virtual void init(iput_t &input) = 0;
-  virtual void synth(mdepth_t &m, double *out, cprof_solver sol = bez_ltau, bool store_pops = true) = 0;
+  virtual bool synth(mdepth_t &m, double *out, cprof_solver sol = bez_ltau, bool store_pops = true) = 0;
   // virtual void synth_grad(double *model,  double *out, double *dout,  double change = 1.e-3) = 0;
   //virtual double fitmodel(double *m, double *syn) = 0;
   virtual void cleanup() = 0;

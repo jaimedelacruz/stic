@@ -224,8 +224,8 @@ int getChi2(int npar1, int nd, double *pars1, double *dev, double **derivs, void
   atmos &atm = *((atmos*)tmp1); 
   double *ipars = new double [npar1]();
   mdepth &m = *atm.imodel;
-  //atm.cleanup();
 
+  
   /* --- Expand atmosphere ---*/
   
   for(int pp = 0; pp<npar1; pp++)
@@ -238,8 +238,11 @@ int getChi2(int npar1, int nd, double *pars1, double *dev, double **derivs, void
   /* --- Compute synthetic spetra --- */
   
   memset(&atm.isyn[0], 0, nd*sizeof(double));
-  atm.synth( m , &atm.isyn[0], (cprof_solver)atm.input.solver, true);
-
+  bool conv = atm.synth( m , &atm.isyn[0], (cprof_solver)atm.input.solver, true);
+  if(!conv){
+    atm.cleanup();
+    return 1;
+  }
 
   
  /* --- Compute derivatives? --- */
