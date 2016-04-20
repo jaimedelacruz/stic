@@ -72,6 +72,7 @@ double sumarr2(double *arr, int n);
 class clm{
  private:
   int nd, npar, nzero, lwork;
+  bool error;
  public:
   std::vector<clmf> fcnt;
   std::vector<double> diag;
