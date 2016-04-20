@@ -11,6 +11,7 @@
 
 #include <stdlib.h>
 #include <errno.h>
+#include <string.h>
 
 #include "rh.h"
 #include "error.h"
@@ -55,7 +56,10 @@ void Error(enum errorlevel level, const char *routineName,
       fprintf(commandline.logfile, "%s", errorStr);
       if (commandline.logfile != stderr) fprintf(stderr, "%s", errorStr);
 
-      exit(level);
+
+      /* --- Avoid exiting when singular matrix --- */
+      
+      if (!strstr(messageStr,"Singular matrix")) exit(level);
     }
   }
 }

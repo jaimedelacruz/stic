@@ -181,6 +181,15 @@ bool_t rhf1d(float muz, int rhs_ndep, double *rhs_T, double *rhs_rho,
   
   Iterate_j(input.NmaxIter, input.iterLimit, &dpopmax);
 
+
+  /* --- ERRORS ? --- */
+
+  if(mpi.stop){
+    
+    
+  }
+  
+
   
   /* --- Adjust stokes mode in case we are running POLARIZATION_FREE --- */
   
@@ -202,28 +211,32 @@ bool_t rhf1d(float muz, int rhs_ndep, double *rhs_T, double *rhs_rho,
   
 
   /* --- Compute output ray --- */
-  
-  atmos.Nrays     = 1;
-  geometry.Nrays  = 1;
-  geometry.muz[0] = muz;
-  geometry.mux[0] = sqrt(1.0 - SQ(geometry.muz[0]));
-  geometry.muy[0] = 0.0;
-  geometry.wmu[0] = 1.0;
-  spectrum.updateJ = FALSE;
-  
-  calculateRay();
+  if(converged){
+    atmos.Nrays     = 1;
+    geometry.Nrays  = 1;
+    geometry.muz[0] = muz;
+    geometry.mux[0] = sqrt(1.0 - SQ(geometry.muz[0]));
+    geometry.muy[0] = 0.0;
+    geometry.wmu[0] = 1.0;
+    spectrum.updateJ = FALSE;
     
-  
+    calculateRay();
+    
+    
+    
+    /* --- Put back previous values for geometry  --- */
+    
+    atmos.Nrays     = save_Nrays;
+    geometry.Nrays = save_Nrays;
+    geometry.muz[0] = save_muz;
+    geometry.mux[0] = save_mux;
+    geometry.muy[0] = save_muy;
+    geometry.wmu[0] = save_wmu;
+    spectrum.updateJ = TRUE;
 
-  /* --- Put back previous values for geometry  --- */
-  
-  atmos.Nrays     = save_Nrays;
-  geometry.Nrays = save_Nrays;
-  geometry.muz[0] = save_muz;
-  geometry.mux[0] = save_mux;
-  geometry.muy[0] = save_muy;
-  geometry.wmu[0] = save_wmu;
-  spectrum.updateJ = TRUE;
+    input.StokesMode = oldMode;
+
+  }
 
   
   /* --- Copy desired ray to output arrays---*/
@@ -241,15 +254,17 @@ bool_t rhf1d(float muz, int rhs_ndep, double *rhs_T, double *rhs_rho,
   sp->V = calloc(spectrum.Nspect, sizeof(double));
   sp->lambda = calloc(spectrum.Nspect, sizeof(double));
 
-  memcpy(sp->I, spectrum.I[0], spectrum.Nspect * sizeof(double));
   memcpy(sp->lambda, spectrum.lambda, spectrum.Nspect * sizeof(double));
-  if(atmos.Stokes && stokes){
+
+  
+  if(converged){
+    memcpy(sp->I, spectrum.I[0], spectrum.Nspect * sizeof(double));
+    if(atmos.Stokes && stokes){
       memcpy(sp->Q, spectrum.Stokes_Q[0], spectrum.Nspect * sizeof(double));
       memcpy(sp->U, spectrum.Stokes_U[0], spectrum.Nspect * sizeof(double));
       memcpy(sp->V, spectrum.Stokes_V[0], spectrum.Nspect * sizeof(double));	
+    }
   }
-  
-  input.StokesMode = oldMode;
 
 
   /* --- Deallocate n & nstar --- */

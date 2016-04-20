@@ -19,6 +19,8 @@
 
 #include "rh.h"
 #include "error.h"
+#include "rh_1d/rhf1d.h"
+
 
 /* --- Function prototypes --                          -------------- */
 
@@ -29,6 +31,7 @@ void LUbacksubst(int N, double **A, int *index, double *b);
 /* --- Global variables --                             -------------- */
 
 extern char messageStr[];
+extern MPI_t mpi;
 
 
 /* ------- begin -------------------------- SolveLinearEq.c --------- */
@@ -108,6 +111,8 @@ void LUdecomp(int N, double **A, int *index, double *d)
     if (big == 0.0) {
       sprintf(messageStr, "Singular matrix");
       Error(ERROR_LEVEL_2, "LUdecomp", messageStr);
+      free(vv);
+      return;
     }
     vv[i] = 1.0 / big;
   }
