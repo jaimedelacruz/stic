@@ -215,6 +215,8 @@ double clm::getChi2Pars(double *res, double **rf, double lambda,
 			double *x, double *xnew, void *mydat, clm_func fx)
 {
 
+  double newchi2 = 1.e13;
+  
   /* --- Get new estimate of the model for the current lambda value --- */
   
   memset(xnew, 0, sizeof(double)*npar);
@@ -230,8 +232,7 @@ double clm::getChi2Pars(double *res, double **rf, double lambda,
     if(verb)
       fprintf(stderr, "clm::fitdata: ERROR in the evaluation of FX, aborting inversion\n");
     error = true;
-  }
-  double newchi2 = compute_chi2(new_res);
+  }else newchi2 = compute_chi2(new_res);
 
   delete [] new_res;
     
@@ -265,7 +266,7 @@ double clm::fitdata(clm_func fx, double *x, void *mydat, int maxiter)
   bool exitme = false;
   string rej = "";
   memset(&diag[0],0,npar*sizeof(double));
-  
+  error = false;
   
   /* --- Init array for residues and response function --- */
   
@@ -292,6 +293,7 @@ double clm::fitdata(clm_func fx, double *x, void *mydat, int maxiter)
     if(verb)
       fprintf(stderr, "clm::fitdata: ERROR in the evaluation of FX, aborting inversion\n");
     error = true;
+    iter = maxiter+1;
   }
   scaleRF(rf);
   memcpy(&bestpars[0], &x[0], npar*sizeof(double));
@@ -313,6 +315,7 @@ double clm::fitdata(clm_func fx, double *x, void *mydat, int maxiter)
        --- */
     if(error) break;
     chi2 = getChi2Pars(res, rf, lambda, x, xnew, mydat, fx);
+    if(chi2 != chi2) error = true;
     if(error) break;
     
    
@@ -400,6 +403,7 @@ double clm::fitdata(clm_func fx, double *x, void *mydat, int maxiter)
     if(status){
       if(verb)
 	fprintf(stderr, "clm::fitdata: ERROR in the evaluation of FX, aborting inversion\n");
+      error = true;
       break;
     }
     

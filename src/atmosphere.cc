@@ -290,8 +290,7 @@ int getChi2(int npar1, int nd, double *pars1, double *dev, double **derivs, void
   /* --- clean up --- */
   
   delete [] ipars;
-  //if(derivs)  atm.cleanup();
-  //atm.cleanup();
+
   return 0;
 }
 
