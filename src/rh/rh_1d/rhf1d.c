@@ -86,7 +86,12 @@ bool_t rhf1d(float muz, int rhs_ndep, double *rhs_T, double *rhs_rho,
   int argc = 1;
   char *argv[] = {"rhf1d",NULL};
 
-  if(firsttime) memset(&atmos, 0, sizeof(atmos));
+  if(firsttime){
+    memset(&atmos, 0, sizeof(atmos));
+    atmos.cos_gamma = NULL;
+    atmos.cos_2chi = NULL;
+    atmos.sin_2chi = NULL;
+  }
   
   atmos.moving = TRUE;
   atmos.Stokes = FALSE;
@@ -162,45 +167,37 @@ bool_t rhf1d(float muz, int rhs_ndep, double *rhs_T, double *rhs_rho,
   /* --- Reallocate stuff and compute background opac --- */
   
   UpdateAtmosDep();
-  //getBoundary(&geometry);
   Background_j(write_analyze_output=FALSE, equilibria_only=FALSE);
-
-
   
-  /* --- Init profiles, populations and scattering --- */
-
-  getProfiles();
-  initSolution_j( myrank );
-  read_populations(save_pop);
-  initScatter();
-
-  getCPU(1, TIME_POLL, "Total Initialize");
-
   
-  /* --- Solve radiative transfer for active ingredients -- --------- */
-  
-  Iterate_j(input.NmaxIter, input.iterLimit, &dpopmax);
-
-
-  /* --- ERRORS ? --- */
-
-  if(mpi.stop){
+  if(!mpi.stop){
+    
+    /* --- Init profiles, populations and scattering --- */
+    
+    getProfiles();
+    initSolution_j( myrank );
+    read_populations(save_pop);
+    initScatter();
+    
+    getCPU(1, TIME_POLL, "Total Initialize");
     
     
-  }
-  
+    /* --- Solve radiative transfer for active ingredients -- --------- */
+    
+    Iterate_j(input.NmaxIter, input.iterLimit, &dpopmax);
+    
+    
+    /* --- Adjust stokes mode in case we are running POLARIZATION_FREE --- */
+    
+    adjustStokesMode();
+    niter = 0;
+    
+    while ((niter < input.NmaxScatter)) {
+      if (solveSpectrum(FALSE, FALSE) <= input.iterLimit) break;
+      niter++;
+    }
+  } else dpopmax = 1.0e13;
 
-  
-  /* --- Adjust stokes mode in case we are running POLARIZATION_FREE --- */
-  
-  adjustStokesMode();
-  niter = 0;
-  
-  while ((niter < input.NmaxScatter)) {
-    if (solveSpectrum(FALSE, FALSE) <= input.iterLimit) break;
-    niter++;
-  }
- 
   bool_t converged = dpopmax < input.iterLimit;
 
 
@@ -234,11 +231,11 @@ bool_t rhf1d(float muz, int rhs_ndep, double *rhs_T, double *rhs_rho,
     geometry.wmu[0] = save_wmu;
     spectrum.updateJ = TRUE;
 
-    input.StokesMode = oldMode;
 
   }
 
-  
+  input.StokesMode = oldMode;
+
   /* --- Copy desired ray to output arrays---*/
   
   sp->nrays = atmos.Nrays;

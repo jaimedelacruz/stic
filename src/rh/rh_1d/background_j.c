@@ -138,6 +138,7 @@ extern char messageStr[];
 extern BackgroundData bgdat;
 extern rhinfo io;
 extern rhbgmem *bmem;
+extern MPI_t mpi;
 
 /* --- Routines to keep the background opacities in memory 
    Author: Jaime de la Cruz Rodriguez (ISP-SU 2015)
@@ -339,9 +340,12 @@ void Background_j(bool_t write_analyze_output, bool_t equilibria_only)
 
   if (input.NonICE)
     readMolecules(MOLECULAR_CONCENTRATION_FILE);
-  else
+  else{
     ChemicalEquilibrium(N_MAX_CHEM_ITER, CHEM_ITER_LIMIT);
-
+    if(mpi.stop){
+      return;
+    }
+  }
   if (equilibria_only) {
 
     /* --- If we only need ne, LTE populations and collisions, and

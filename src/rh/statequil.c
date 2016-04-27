@@ -24,7 +24,7 @@
 #include "accelerate.h"
 #include "statistics.h"
 #include "error.h"
-
+#include "rh_1d/rhf1d.h"
 
 /* --- Function prototypes --                          -------------- */
 
@@ -34,6 +34,7 @@
 extern Atmosphere atmos;
 extern InputData input;
 extern char messageStr[];
+extern MPI_t mpi;
 
 /* ------- begin -------------------------- statEquil.c ------------- */
 
@@ -92,6 +93,12 @@ void statEquil(Atom *atom, int isum)
     /* --- Solve for new population numbers at location k -- -------- */
 
     SolveLinearEq(Nlevel, Gamma_k, n_k, TRUE);
+    if (mpi.stop) {
+      free(n_k);
+      freeMatrix((void **) Gamma_k);
+      return; /* Get out if there is a singular matrix */
+    }
+    
     for (i = 0;  i < Nlevel;  i++) atom->n[i][k] = n_k[i];
   }
 
@@ -160,6 +167,11 @@ void statEquilMolecule(struct Molecule *molecule, int isum)
       /* --- Solve for new population numbers at location k --------- */
 
       SolveLinearEq(Nlevel, Gamma_k, n_k, TRUE);
+      if (mpi.stop) {
+	free(n_k);
+	freeMatrix((void **) Gamma_k);
+	return; /* Get out if there is a singular matrix */
+      }
       for (vi = 0;  vi < Nlevel;  vi++) molecule->nv[vi][k] = n_k[vi];
     } else
       for (vi = 0;  vi < Nlevel;  vi++) molecule->nv[vi][k] = 0.0;
@@ -189,7 +201,10 @@ double updatePopulations(int niter)
     atom = atmos.activeatoms[nact];
 
     statEquil(atom, input.isum);
+    if(mpi.stop) return 1.;
+    
     accel = Accelerate(atom->Ng_n, atom->n[0]);
+    if(mpi.stop) return 1.;
 
     sprintf(messageStr, " %s,", atom->ID);
     dpops = MaxChange(atom->Ng_n, messageStr, quiet=FALSE);
@@ -203,7 +218,10 @@ double updatePopulations(int niter)
     molecule = atmos.activemols[nact];
 
     statEquilMolecule(molecule, 0);
+    if(mpi.stop) return 1.;
+
     accel = Accelerate(molecule->Ng_nv, molecule->nv[0]);
+    if(mpi.stop) return 1.;
 
     sprintf(messageStr, " %s ,", molecule->ID);
     dpops = MaxChange(molecule->Ng_nv, messageStr, quiet=FALSE);

@@ -22,7 +22,7 @@
 #include "error.h"
 #include "statistics.h"
 #include "inputs.h"
-
+#include "rhf1d.h"
 
 typedef struct {
   bool_t eval_operator, redistribute;
@@ -41,6 +41,7 @@ extern Atmosphere atmos;
 extern Spectrum spectrum;
 extern InputData input;
 extern char messageStr[];
+extern MPI_t mpi;
 
 
 /* ------- begin -------------------------- Iterate.c --------------- */
@@ -109,6 +110,7 @@ void Iterate_j(int NmaxIter, double iterLimit, double *dpopmax_out)
     sprintf(messageStr, "\n -- Iteration %3d\n", niter);
     Error(MESSAGE, routineName, messageStr);
     dpopsmax = updatePopulations(niter);
+    if (mpi.stop) return;
 
     if (atmos.NPRDactive > 0) {
       
@@ -120,6 +122,8 @@ void Iterate_j(int NmaxIter, double iterLimit, double *dpopmax_out)
 	PRDiterlimit = input.PRDiterLimit;
 
       Redistribute(input.PRD_NmaxIter, PRDiterlimit);
+      if (mpi.stop) return;
+	  
     }
 
     sprintf(messageStr, "Total Iteration %3d", niter);

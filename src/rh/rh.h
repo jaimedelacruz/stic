@@ -79,6 +79,7 @@ int    **matrix_int(int Nrow, int Ncol);
 double **matrix_double(int Nrow, int Ncol);
 void   freeMatrix(void **Matrix);
 void   SolveLinearEq(int N, double **A, double *b, bool_t improve);
+void   SolveLinearSvd(int n, double **A, double *b);
 
 
 /* --- Interpolation routines --                       -------------- */

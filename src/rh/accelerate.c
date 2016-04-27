@@ -21,12 +21,14 @@
 #include "accelerate.h"
 #include "error.h"
 #include "statistics.h"
-
+#include "rh_1d/rhf1d.h"
 
 /* --- Function prototypes --                          -------------- */
 
 
 /* --- Global variables --                             -------------- */
+
+extern MPI_t mpi;
 
 
 /* ------- begin -------------------------- NgInit.c ---------------- */
@@ -120,7 +122,12 @@ bool_t Accelerate(struct Ng *Ngs, double *solution)
       }
     }
     SolveLinearEq(Norder, Ngs->A, Ngs->b, TRUE);
-
+    if (mpi.stop) { /* Get out if there is a singular matrix */
+      free(weight);
+      freeMatrix((void **) Delta);
+      return TRUE;
+    }
+    
       /* --- Construct the linear combination for the accelerated
 	     solution, and restore the accelerated solution --  ----- */
 

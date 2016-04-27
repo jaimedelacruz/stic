@@ -68,6 +68,14 @@ void SolveLinearEq(int N, double **A, double *b, bool_t improve)
   /* --- Initial solution --                           ------------- */
 
   LUdecomp(N, A, index, &d);
+  if(mpi.stop){
+    free(residual);
+    free(b_copy);
+    freeMatrix((void **) A_copy);
+    free(index);
+    return; 
+  }
+  
   LUbacksubst(N, A, index, b);
 
   if (improve) {
@@ -112,6 +120,7 @@ void LUdecomp(int N, double **A, int *index, double *d)
       sprintf(messageStr, "Singular matrix");
       Error(ERROR_LEVEL_2, "LUdecomp", messageStr);
       free(vv);
+      mpi.stop = true;
       return;
     }
     vv[i] = 1.0 / big;

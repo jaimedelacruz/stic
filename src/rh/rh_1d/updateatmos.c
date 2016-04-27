@@ -80,7 +80,6 @@ void UpdateAtmosDep(void) {
     if (atom->nstar != NULL) 
       freeMatrix((void **) atom->nstar);
     atom->nstar = matrix_double(atom->Nlevel, atmos.Nspace);
-    // printf("Reallocating nstar[%d,%d]\n", atom->Nlevel, atmos.Nspace);
       
   
     /* When H is treated in LTE, n is just a pointer to nstar,

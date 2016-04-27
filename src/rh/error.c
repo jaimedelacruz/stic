@@ -49,9 +49,8 @@ void Error(enum errorlevel level, const char *routineName,
 	      "Trying to continue.....");
       return;
     } else {
-      sprintf(errorStr, "\a\n\n-TERMINATING_ERROR in routine %s\n %s \n %s\n",
-	      routineName,(messageStr) ? messageStr : " (Undocumented)\n",
-	      "Exiting.....");
+      sprintf(errorStr, "\a\n\n-TERMINATING_ERROR in routine %s\n %s \n",
+	      routineName,(messageStr) ? messageStr : " (Undocumented)\n");
 
       fprintf(commandline.logfile, "%s", errorStr);
       if (commandline.logfile != stderr) fprintf(stderr, "%s", errorStr);

@@ -19,7 +19,7 @@
 #include "error.h"
 #include "statistics.h"
 #include "inputs.h"
-
+#include "rh_1d/rhf1d.h"
 
 #define COMMENT_CHAR  "#"
 
@@ -100,6 +100,7 @@
 extern Atmosphere atmos;
 extern InputData input; 
 extern char   messageStr[];
+extern MPI_t mpi;
 
 
 /* ------- begin -------------------------- ChemicalEquilibrium.c --- */
@@ -234,10 +235,6 @@ void ChemicalEquilibrium(int NmaxIter, double iterLimit)
 	      atom->initial_solution != OLD_POPULATIONS)
 	    fn0[i] += atom->nstar[j][k];
 	  else{
-	    //   printf("%d %d %d \n", i, j, k);
-	    //printf("%g ", fn0[i]);
-	    // printf("%p \n", atom->n[j]);
-
 	    fn0[i] += atom->n[j][k];
 	   
 	  }
@@ -311,8 +308,15 @@ void ChemicalEquilibrium(int NmaxIter, double iterLimit)
 	}
       }
       /* --- Solve linearized equations --             -------------- */
-
-      SolveLinearEq(Nequation, df, f, TRUE);
+      mpi.stop = false;
+      //SolveLinearSvd(Nequation, df, f);
+      SolveLinearEq(Nequation, df, f, true);
+      if(mpi.stop){
+	fprintf(stderr,"chemequil: Singular matrix!\n");
+	fprintf(stderr, "   %d %f %e\n", k, atmos.T[k], atmos.nHtot[k]);
+	return;
+      }
+      
       for (i = 0;  i < Nequation;  i++)  n[i] -= f[i];
 
       /* --- Check convergence and accelerate if appropriate -- ----- */
