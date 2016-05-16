@@ -193,6 +193,7 @@ bool clte::synth(mdepth &m, double *syn, cprof_solver sol, bool store_pops){
 
   /* --- Init arrays in class cprofiles ---*/
   
+  
   prof.init(nw, ndep);
   //prof.set_zero_abmat();
 
