@@ -220,12 +220,13 @@ double ar85cea(int i, int j, int k, struct Atom *atom)
                  Bug fixed: cup initialized to zero 
        --                                              -------------- */
 
-  char    cseq[ATOM_ID_WIDTH+1];
-  int     iz, ichrge, isoseq;
-  double  zz, cup, bkt, b, zeff, iea, y, f1y, a, g;
+  char cseq[ATOM_ID_WIDTH+1];
+  int iz, ichrge, isoseq;
+  double zz, cup, bkt, b, zeff, iea, y, f1y, a, g, cea;
   
   /* --- Initialize output to zero --                  -------------- */
 
+  cea = 0.0;
   y   = 0.0;
   f1y = 0.0;
   cup = 0.0;
@@ -253,13 +254,12 @@ double ar85cea(int i, int j, int k, struct Atom *atom)
 
   if (!strcmp(cseq, "LI")) { 
     
-    iea  = 13.6 * (pow(zz - 0.835, 2) - 0.25*pow(zz - 1.62, 2));
-    b    = 1.0 / (1.0 + 2.0E-4*pow(zz, 3));
+    iea = 13.6 * (pow(zz - 0.835, 2) - 0.25*pow(zz - 1.62, 2));
+    b = 1.0 / (1.0 + 2.0E-4*pow(zz, 3));
     zeff = zz - 0.43;
-    y    = iea / bkt;
-    f1y  = fone(y);
-    g    = 2.22*f1y + 0.67*(1.0 - y*f1y) + 0.49*y*f1y + 
-      1.2*y*(1.0 - y*f1y);
+    y = iea / bkt;
+    f1y = fone(y);
+    g = 2.22*f1y + 0.67*(1.0 - y*f1y) + 0.49*y*f1y + 1.2*y*(1.0 - y*f1y);
     
     cup = (1.60E-07 * 1.2 * b) / (pow(zeff, 2) * sqrt(bkt)) * exp(-y)*g;
     
@@ -320,8 +320,8 @@ double ar85cea(int i, int j, int k, struct Atom *atom)
     if (!strcmp(cseq, "P" )) iea = 23.7 * pow(zz - 13.0, 1.29);
     if (!strcmp(cseq, "S" )) iea = 40.1 * pow(zz - 14.0, 1.1 );
     
-    a   = 4.0E-13 / (SQ(zz) * iea);
-    y   = iea / bkt;
+    a = 4.0E-13 / (SQ(zz) * iea);
+    y = iea / bkt;
     f1y = fone(y);
     cup = 6.69E+7 * a * iea / sqrt(bkt) * exp(-y) *
       ( 1.0 - 0.5*(y - SQ(y) + SQ(y)*y*f1y) );
@@ -419,10 +419,9 @@ double summers(int i, int j, double nne, struct Atom *atom){
   rowcol(isoseq, &row, &col);
 
   rhoq = nne * CUBE(CM_TO_M) / pow(zz, 7);
-  x    = (0.5 * zz + (col - 1.0)) * row / 3.0;
+  x = (0.5 * zz + (col - 1.0)) * row / 3.0;
   beta = -0.2 / log(x + 2.71828);
   rho0 = 30.0 + 50.0*x;
-
   y = pow(1.0 + rhoq/rho0, beta);
 
   return y;
@@ -458,6 +457,7 @@ void CollisionRate(struct Atom *atom, FILE *fp_atom)
   int     nitem, i1, i2, i, j, ij, ji, Nlevel = atom->Nlevel, Nitem,
           status;
   long    Nspace = atmos.Nspace;
+  fpos_t  collpos;
   double  dE, C0, *T, *coeff, *C, Cdown, Cup, gij, *np, xj, fac, fxj;
 
   int      Ncoef, Nrow;
@@ -477,17 +477,14 @@ void CollisionRate(struct Atom *atom, FILE *fp_atom)
       atom->C[ij][k] = 0.0;
     }
   }
-
-  T = coeff = NULL;
+  
+  fgetpos(fp_atom, &collpos);
+  
   C = (double *) malloc(Nspace * sizeof(double));
 
-  /* --- For safety, initialize to 1, since we don't check whether it
-         gets set later on --                          -------------- */
-
-  sumscl = 1.0;
-
+  T = coeff = NULL;
   while ((status = getLine(fp_atom, COMMENT_CHAR,
-			   inputLine, exit_on_EOF=FALSE)) != EOF) {
+		  inputLine, exit_on_EOF=FALSE)) != EOF) {
     strcpy(keyword, strtok(inputLine, " "));
 
     if (!strcmp(keyword, "TEMP")) {
@@ -541,8 +538,7 @@ void CollisionRate(struct Atom *atom, FILE *fp_atom)
       ij = i*Nlevel + j;
       ji = j*Nlevel + i;
 
-   } else if (!strcmp(keyword, "AR85-CEA")  ||
-	      !strcmp(keyword, "BURGESS")) {
+   } else if (!strcmp(keyword, "AR85-CEA")  ||  !strcmp(keyword, "BURGESS")) {
 
       i1 = atoi(strtok(NULL, " "));
       i2 = atoi(strtok(NULL, " "));      
@@ -663,9 +659,7 @@ void CollisionRate(struct Atom *atom, FILE *fp_atom)
 	      nitem, Nitem, keyword);
       Error(ERROR_LEVEL_2, routineName, messageStr);
     }
-    /* --- End of the reading section. Now filling the collision matrix
-
-           Spline interpolation in temperature T for all spatial
+    /* --- Spline interpolation in temperature T for all spatial
            locations. Linear if only 2 interpolation points given - - */
 
     if (!strcmp(keyword, "OMEGA") || !strcmp(keyword, "CE") ||
@@ -891,11 +885,9 @@ void CollisionRate(struct Atom *atom, FILE *fp_atom)
       for (k = 0;  k < Nspace;  k++) {	
 	if (atmos.T[k] >= ar85t1  &&  atmos.T[k] <= ar85t2) {
 
-	  t4  = atmos.T[k] / 1.0E4;
-	  cdn = ar85a * 1E-9 * pow(t4, ar85b) * 
-	    (1.0 + ar85c*exp(ar85d * t4)) * 
+	  t4 = atmos.T[k] / 1.0E4;
+	  cdn = ar85a * 1E-9 * pow(t4, ar85b) * (1.0 + ar85c*exp(ar85d * t4)) * 
 	    atmos.H->n[0][k] * CUBE(CM_TO_M);
-
 	  atom->C[ij][k] += cdn;
 	}
       }
@@ -911,12 +903,12 @@ void CollisionRate(struct Atom *atom, FILE *fp_atom)
       cbar = 2.3;
       
       for (k = 0;  k < Nspace;  k++) {
-	dekt  = de * EV / (KBOLTZMANN * atmos.T[k]);
-	dekt  = MIN(500, dekt);
+	dekt = de * EV / (KBOLTZMANN * atmos.T[k]);
+	dekt = MIN(500, dekt);
 	dekti = 1.0 / dekt;
-        wlog  = log(1.0 + dekti);
-	wb    = pow(wlog, betab / (1.0 + dekti));
-	cup   = 2.1715E-8 * cbar * pow(13.6/de, 1.5) * sqrt(dekt) *
+        wlog = log(1.0 + dekti);
+	wb = pow(wlog, betab / (1.0 + dekti));
+	cup = 2.1715E-8 * cbar * pow(13.6/de, 1.5) * sqrt(dekt) *
           E1(dekt) * wb * atmos.ne[k] * CUBE(CM_TO_M);
 	
         /* --- Add fudge factor --                     -------------- */
@@ -939,6 +931,8 @@ void CollisionRate(struct Atom *atom, FILE *fp_atom)
   free(C);
   free(T);
   free(coeff);
+  
+  fsetpos(fp_atom, &collpos);
 
   sprintf(labelStr, "Collision Rate %2s", atom->ID);
   getCPU(3, TIME_POLL, labelStr);
