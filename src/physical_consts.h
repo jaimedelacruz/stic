@@ -9,27 +9,27 @@
  */
 
 namespace phyc{
-  static const double BK = 1.3806488E-16;               // Boltzmann [erg K]
-  static const double HH = 6.62606957E-27;              // Planck [erg s]
-  static const double EE = 4.80320441E-10;              // Electron charge
-  static const double CC = 2.99792458E10;               // Speed of light
-  static const double PI = 3.14159265358979323846;      // Pi
-  static const double SQPI = 1.7724538509055159;        // sqrt(PI)
-  static const double ME = 9.10938188E-28;              // mass of electron
-  static const double MP = 1.672621777E-24;             // mass of proton
-  static const double AMU = 1.660538921E-24;            // Atomic mass unit
-  static const double R0 = 5.2917721092E-11;            // Bohr radius
-  static const double ISQRTPI = 0.5641895835477563;     // 1 / sqrt(pi)
-  static const double DTOR = PI / 180.0;                // deg to rad
-  static const double RADEG = 180.0 / PI;               // rad to deg
-  static const double EV = 1.602176565E-12;             // Electron Volt to erg
-  static const double CM1_TO_EV = HH*CC/EV;             // CM^-1 to eV
-  static const double EV_TO_CM1 = EV / (HH*CC);         // eV to CM^-1
+  static constexpr double BK = 1.3806488E-16;               // Boltzmann [erg K]
+  static constexpr double HH = 6.62606957E-27;              // Planck [erg s]
+  static constexpr double EE = 4.80320441E-10;              // Electron charge
+  static constexpr double CC = 2.99792458E10;               // Speed of light
+  static constexpr double PI = 3.14159265358979323846;      // Pi
+  static constexpr double SQPI = 1.7724538509055159;        // sqrt(PI)
+  static constexpr double ME = 9.10938188E-28;              // mass of electron
+  static constexpr double MP = 1.672621777E-24;             // mass of proton
+  static constexpr double AMU = 1.660538921E-24;            // Atomic mass unit
+  static constexpr double R0 = 5.2917721092E-11;            // Bohr radius
+  static constexpr double ISQRTPI = 0.5641895835477563;     // 1 / sqrt(pi)
+  static constexpr double DTOR = PI / 180.0;                // deg to rad
+  static constexpr double RADEG = 180.0 / PI;               // rad to deg
+  static constexpr double EV = 1.602176565E-12;             // Electron Volt to erg
+  static constexpr double CM1_TO_EV = HH*CC/EV;             // CM^-1 to eV
+  static constexpr double EV_TO_CM1 = EV / (HH*CC);         // eV to CM^-1
 
-  static const double ident[4][4] = {{1.0,0.0,0.0,0.0}, {0.0,1.0,0.0,0.0},
+  static constexpr double ident[4][4] = {{1.0,0.0,0.0,0.0}, {0.0,1.0,0.0,0.0},
 				     {0.0,0.0,1.0,0.0}, {0.0,0.0,0.0,1.0}};
 
-  static const double fact[31] =
+  static constexpr double fact[31] =
     {1.0, 1.0, 2.0, 6.0, 24.0, 120.0, 720.0, 5040.0, 40320.0, 362880.0, 3628800.0, 39916800.0,
      479001600.0, 6227020800.0, 87178291200.0, 1307674368000.0, 20922789888000.0, 355687428096000.0,
      6402373705728000.0, 121645100408832000.0, 2432902008176640000.0, 51090942171709440000.0,
@@ -38,8 +38,8 @@ namespace phyc{
      304888344611713836734530715648.0, 8841761993739700772720181510144.0, 265252859812191032188804700045312.0};
   
   /* --- ATOMIC MASS of elements --- */
-  static const int   MAX_ELEM = 99;
-  static const float AMASS[MAX_ELEM]=
+  static constexpr int   MAX_ELEM = 99;
+  static constexpr float AMASS[MAX_ELEM]=
   {1.008,  4.003,  6.941,  9.012, 10.811, 12.011, 14.007, 15.999,
    18.998, 20.179, 22.990, 24.305, 26.982, 28.086, 30.974, 32.060,
    35.453, 39.948, 39.102, 40.080, 44.956, 47.900, 50.941, 51.996,
@@ -57,7 +57,7 @@ namespace phyc{
 
   /* --- ionization potential for neutral and single ionized atoms
      source NICOLE ? --- */
-  static const float EION1[MAX_ELEM] =
+  static constexpr float EION1[MAX_ELEM] =
     {13.595,24.58,5.39,9.32,8.298,11.256,14.529,13.614,17.418, 
      21.559,5.138,7.644,5.984,8.149,10.474,10.357,13.012,15.755,4.339, 
      6.111,6.538,6.825,6.738,6.763,7.432,7.896,7.863,7.633,7.724,9.391, 
@@ -68,7 +68,7 @@ namespace phyc{
      ,8.70,9.10,9.00,9.22,10.43,6.105,7.415,7.287,8.43,9.30,10.745, 
      4.,5.276,6.9,6.,6.,6.,6.,6.,6.,6.,6.,6.,6.};
 
-  static const float EION2[MAX_ELEM] =
+  static constexpr float EION2[MAX_ELEM] =
     {0.,54.403,75.62,18.21,25.15,24.376,29.59,35.11,34.98,41.07 
      ,47.290,15.03,18.823,16.34,19.72,23.405,23.798,27.62,31.81,11.868, 
      12.891,13.63,14.205,16.493,15.636,16.178,17.052,18.15,20.286,17.96 
