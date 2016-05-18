@@ -87,7 +87,9 @@ bool_t rhf1d(float muz, int rhs_ndep, double *rhs_T, double *rhs_rho,
   char *argv[] = {"rhf1d",NULL};
 
   if(firsttime){
-    memset(&atmos, 0, sizeof(atmos));
+    memset(&atmos, 0, sizeof(Atmosphere));
+    memset(&geometry, 0, sizeof(Geometry));
+
     atmos.cos_gamma = NULL;
     atmos.cos_2chi = NULL;
     atmos.sin_2chi = NULL;
@@ -433,8 +435,10 @@ void read_populations(crhpop *save_pop){
   Atom *atom;
   int    niter, nact, save_Nrays, nactotal, ii, nprd, kr, kkr;
   AtomicLine *line;
-
-
+  register int k, j;
+  double ratio;
+  
+  
   if(save_pop->pop == NULL || save_pop->nactive != atmos.Nactiveatom){
     // fprintf(stderr,"read_population: atmos->Nactiveatom[%d] != save_pop->nactive[%d]\n",
     //atmos.Nactiveatom, save_pop->nactive);
@@ -453,8 +457,15 @@ void read_populations(crhpop *save_pop){
     memcpy(&atom->n[0][0], &save_pop->pop[nact].n[0],
 	   atom->Nlevel * atmos.Nspace * sizeof(double));
     
-    ///memcpy(&atom->ntotal[0], &save_pop->pop[nact].ntotal[0], atmos.Nspace*sizeof(double));
 
+    /* --- Scale populations to the ratio of ntotal --- */
+    
+    for(k = 0; k < atmos.Nspace; k++){
+      ratio = atom->ntotal[k] / save_pop->pop[nact].ntotal[k];
+      for(j= 0; j < atom->Nlevel; j++ ) atom->n[j][k] *= ratio;
+    }
+    
+    
 
     /* --- Copy rho for PRD lines? --- */
     
