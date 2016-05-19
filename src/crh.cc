@@ -17,9 +17,9 @@ extern "C" {
 using namespace std;
 using namespace phyc;
 //
-const double crh::pmax[7]  = {50000., 20.e5, 20.0e5, 5000.0, PI, PI, 10.0};
+const double crh::pmax[7]  = {50000., 20.e5, 20.0e5, 5000.0, PI, PI, 3.0};
 const double crh::pmin[7]  = {2400. ,-20.e5,  +0.0,   +0.0,  +0.0,  +0.0, 0.5};
-const double crh::pscal[7] = {1500. , 3.0e5, 2.0e5, 1000.0, 2*PI, 2*PI, 1.0};
+const double crh::pscal[7] = {1200. , 3.0e5, 3.0e5, 1000.0, 2*PI, 2*PI, 1.0};
 const double crh::pstep[7] = {1.e-1 , 1.e-1, 1.0e-1, 2.0e-1, 1.0e-1, 1.0e-1, 1.0e-1};
 
 /* ----------------------------------------------------------------*/
@@ -244,7 +244,7 @@ bool crh::synth(mdepth_t &m_in, double *syn, cprof_solver sol, bool save_pops){
   
   bool conv = rhf1d(input.mu, m.ndep, &m.temp[0], &m.rho[0], &m.nne[0], &m.vturb[0], &m.v[0],
 		     &m.b[0], &m.inc[0], &m.azi[0], &m.z[0], &nhtot[0], &m.tau[0],
-		    &cmass[0], 4.44, (bool_t)true, &sp, &save_pop, nlambda, &lambda[0],
+		    &m.cmass[0], 4.44, (bool_t)true, &sp, &save_pop, nlambda, &lambda[0],
 		    input.myrank, savep, (int)input.verbose);
   
 

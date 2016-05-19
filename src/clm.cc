@@ -18,6 +18,8 @@
 #include <cstdio>
 #include <iostream>
 #include <cstring>
+//#include <eigen3/Eigen/Dense>
+//#include <eigen3/Eigen/SVD>
 #include "clm.h"
 
 using namespace std;
@@ -112,6 +114,7 @@ clm::clm(int ind, int inpar){
   ilambda = 0.1;      // Initial damping parameter for the Hessian giag.
   maxreject = 7;      // Max failed evaluations of lambda.
   error = false;
+  proc = 0;           // print-out processor number
 }
 
 /* -------------------------------------------------------------------------------- */
@@ -302,7 +305,7 @@ double clm::fitdata(clm_func fx, double *x, void *mydat, int maxiter)
   bestchi2 = ochi2;
 
   if(verb)
-    fprintf(stdout, "[Init] chi2=%f, lambda=%e\n", ochi2, lambda);
+    fprintf(stdout, "[p:%4d,Init] chi2=%f, lambda=%e\n", proc, ochi2, lambda);
 
 
   /* --- Main iterations --- */
@@ -355,8 +358,8 @@ double clm::fitdata(clm_func fx, double *x, void *mydat, int maxiter)
       
       if(nretry < maxreject){
 	if(verb)
-	  fprintf(stderr,"[%4d]  ->  chi2=%f, increasing lambda [%e -> %e]\n",
-		  iter, chi2, olambda, lambda);
+	  fprintf(stderr,"[p:%4d,i:%4d]  ->  chi2=%f, increasing lambda [%e -> %e]\n",
+		  proc,iter, chi2, olambda, lambda);
 	continue;
       }
 	
@@ -367,8 +370,8 @@ double clm::fitdata(clm_func fx, double *x, void *mydat, int maxiter)
     t1 = getTime();
 
     if(verb)
-      fprintf(stderr,"[%4d] chi2=%14.5f, dchi2=%e, lambda=%e, elapsed=%5.3fs %s\n",
-	      iter, chi2, chi2-ochi2, olambda, t1-t0,rej.c_str());
+      fprintf(stderr,"[p:%4d,i:%4d] chi2=%14.5f, dchi2=%e, lambda=%e, elapsed=%5.3fs %s\n",
+	      proc,iter, chi2, chi2-ochi2, olambda, t1-t0,rej.c_str());
     
     ochi2 = chi2;
 
@@ -377,20 +380,20 @@ double clm::fitdata(clm_func fx, double *x, void *mydat, int maxiter)
     
     if(chi2 < chi2_thres){
       if(verb)
-	fprintf(stderr,"clm::fitdata: Chi2 threshold reached [%f] -> chi2=%f\n",
-		chi2_thres, bestchi2);
+	fprintf(stderr,"clm::fitdata: [p:%4d] Chi2 threshold reached [%f] -> chi2=%f\n",
+		proc,chi2_thres, bestchi2);
       break;
     }
     
     if(nretry >= maxreject){
       if(verb) 
-	fprintf(stderr,"clm::fitdata: Too many failed attempts, finalizing inversion\n");
+	fprintf(stderr,"clm::fitdata: [p:%4d] Too many failed attempts, finalizing inversion\n", proc);
       break;
     }
 
     if(exitme){
       if(verb) 
-	fprintf(stderr,"clm::fitdata: relative change in chi2 is too low, inversion finished\n");
+	fprintf(stderr,"clm::fitdata:  [p:%4d] relative change in chi2 is too low, inversion finished\n", proc);
       break;
     }
     
@@ -402,7 +405,7 @@ double clm::fitdata(clm_func fx, double *x, void *mydat, int maxiter)
     status = fx(npar, nd, x, res, rf, mydat);
     if(status){
       if(verb)
-	fprintf(stderr, "clm::fitdata: ERROR in the evaluation of FX, aborting inversion\n");
+	fprintf(stderr, "clm::fitdata: [p:%4d] ERROR in the evaluation of FX, aborting inversion\n", proc);
       error = true;
       break;
     }
@@ -481,13 +484,13 @@ void clm::compute_trial3(double *res, double **rf, double lambda,
     
     /* --- Damp the diagonal of A --- */
     
-    diag[yy] = max(A[yy][yy], diag[yy]);
+    diag[yy] = max(A[yy][yy], diag[yy]*0.6);
     if(diag[yy] == 0.0) diag[yy] = 1.0;
     
-    //A[yy][yy] += lambda * (diag[yy]*0.5 + A[yy][yy]*0.5);
-    //A[yy][yy] *= (1.0 + lambda);
-    A[yy][yy] += lambda * sqrt(A[yy][yy]*diag[yy]);
-  
+    //A[yy][yy] += lambda * sqrt(A[yy][yy]*diag[yy]);
+    A[yy][yy] += lambda * diag[yy];
+
+    
     /* --- Compute J^t * Residue --- */
     
     memset(tmp, 0, nd*sizeof(double));

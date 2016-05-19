@@ -43,10 +43,10 @@ const char ceos::ELEMEN[MAX_ELEM][3]=
 
 
 const float ceos::ABUND_default[MAX_ELEM] =
-  {-0.04048,-1.0506,-10.88,-10.89, -9.44, -3.48, -3.99, 
+  {-0.04048,-1.07,-10.95,-10.89, -9.44, -3.48, -3.99, 
    -3.11, -7.48, -3.95,  -5.71, -4.46, -5.57, -4.49, -6.59, -4.83, 
    -6.54, -5.48, -6.82,  -5.68, -8.94, -7.05, -8.04, -6.37, -6.65, 
-   -4.37, -7.12, -5.79,  -7.83, -7.44, -9.16, -8.63, -9.67, -8.69, 
+   -4.50, -7.12, -5.79,  -7.83, -7.44, -9.16, -8.63, -9.67, -8.69, 
    -9.41, -8.81, -9.44,  -9.14, -9.80, -9.54,-10.62,-10.12,-20.00, 
    -10.20,-10.92,-10.35, -11.10,-10.18,-10.58,-10.04,-11.04, -9.80, 
    -10.53, -9.81,-10.92,  -9.91,-10.82,-10.49,-11.33,-10.54,-20.00, 
@@ -74,27 +74,10 @@ void s2f(string &in, char *out, unsigned n){
   //out[n-1] = '\0';
 }
 
-ceos::ceos(double grav){
 
-  string inam = "ceos::ceos: ";
-  gravity = pow(10.0, grav);
+void ceos::initEOS(vector<line_t> &lines){
 
-
-  
-  //
-  // Init abund and normalize the fraction
-  //
-  double sum = 0.0;
-  for(int ii = 0; ii<MAX_ELEM; ii++) {
-    ABUND[ii] = pow(10.0, ABUND_default[ii]);
-    sum += ABUND[ii];
-  }
-  for(int ii = 0; ii<MAX_ELEM; ii++) ABUND[ii] /= sum;
-  totalAbund = sum/ABUND[0];
-
-  // fprintf(stderr,"ABUND=%e %e\n", sum, ABUND[0]);
-
-
+  const string inam = "ceos::initEOS: ";
   
   //
   // Init list of background absorvers (this could be more elegant...)
@@ -103,20 +86,41 @@ ceos::ceos(double grav){
 	     "C",    "Al",   "Si",    "Si",    "Ca",   "Ca", 
 	     "Mg",   "Mg",   "N",     "Fe",   "O"};
 
-  char cspecies[species.size()][8];
-  for(unsigned ii=0;ii<species.size();ii++) {
-    s2f(species[ii], cspecies[ii], 8);
-  }
-  
-  
+
   ion =
     { 1, 2, 0, 1, 2, 3,
      1, 1, 1, 2, 1, 2,
      1, 2, 1, 1, 1};
 
 
+  
+  
+  //
+  // Add external line list
+  //
+  if(lines.size() > 0){
+    int kk = (int)(species.size() + lines.size());
+    ion.resize(kk);
+    
+    kk = (int)species.size();
+    for(auto &it: lines){
+      species.push_back(string(it.elem));
+      ion[kk] = it.ion;
+      it.off = kk++; 
+    }
+  }
+  
+  char cspecies[species.size()][8];
+  for(unsigned ii=0;ii<species.size();ii++) {
+    s2f(species[ii], cspecies[ii], 8);
+  }
+  
+  
+  
+
   // WARNING, these indexes are passed to fortran routines, where
-  // arrays start at index 1. If used inside this wrapper, this should be accounted for!
+  // arrays start at index 1. If used inside this wrapper, this
+  // should be accounted for!
   //
   IXH1  = 1,  IXH2  = 2, IXHMIN = 3, IXHE1 = 4,  IXHE2 = 5,  IXHE3 = 6, IXC1 = 7;
   IXAL1 = 8,  IXSI1 = 9, IXSI2  = 10, IXCA1 = 11, IXCA2 = 12, IXMG1 = 13;
@@ -152,7 +156,7 @@ ceos::ceos(double grav){
   
   idxspec.resize(NLINES, 0);
   ntotallist = 8*NLIST;
-  totallist = new char [ntotallist];
+  totallist.resize(ntotallist);
   ntotallist /= 8;
   NLIST = 0;
 
@@ -181,153 +185,122 @@ ceos::ceos(double grav){
       cerr << inam << "ERROR, unreasonable abundances";
       exit(0);
     }
-   cout << inam << "EOS initialized with default list + background absorvers "<<endl;
+  // cout << inam << "EOS initialized with default list + background absorvers "<<endl;
 
 
+
+}
+
+
+ceos::ceos(double grav){
+
+  string inam = "ceos::ceos: ";
+  gravity = pow(10.0, grav);
 
 
   
-  //
-  // Estimate average molecular weight, excluding electrons?
-  //
-  wsum = 0;
-  asum = 0;
-  for(int ii = 0; ii<MAX_ELEM; ii++){
-    wsum += AMASS[ii] * ABUND[ii];
-    asum += ABUND[ii];
-  }
+  /* --- Init abundances --- */
 
-  avmol = wsum / asum;
+  vector<iabund> modABUND;
+  initAbundances(modABUND);
+  
+  
+  
+  /* --- Init arrays for fortran routines --- */
+  
+  vector<line_t> lines;
+  initEOS(lines);
 
-
+  
+  
   /* --- Get unique species in the user line-list --- */
+  
   unique();
   
 }
+
 
 
 ceos::ceos(vector<line_t> &lines, double grav){
 
   string inam = "ceos::ceos: ";
   gravity = pow(10.0, grav);
+
   
-  //
-  // Init abund and normalize the fraction
-  //
+  /* --- Init abundances --- */
+
+  vector<iabund> modABUND;
+  initAbundances(modABUND);
+
+  
+  /* --- Init arrays for fortran routines --- */
+  
+  initEOS(lines);
+
+
+  /* --- Get unique species in the user line-list --- */
+  
+  unique();
+  
+  
+}
+
+ceos::ceos(vector<line_t> &lines, vector<iabund> &ab, double grav){
+
+  string inam = "ceos::ceos: ";
+  gravity = pow(10.0, grav);
+
+  
+  /* --- Init abundances --- */
+
+  initAbundances(ab);
+
+  
+  /* --- Init arrays for fortran routines --- */
+  
+  initEOS(lines);
+
+
+  /* --- Get unique species in the user line-list --- */
+  
+  unique();
+  
+  
+}
+
+
+// ------------------------------------------------------------------------- 
+// Init abundances
+// ------------------------------------------------------------------------- 
+void ceos::initAbundances(vector<iabund> &ab, bool verbose)
+{
+
+  /* --- Init default abundances --- */
+  
+  for(int ii=0; ii<MAX_ELEM; ii++) ABUND[ii] = pow(10., ABUND_default[ii]);
+  
+  
+  /* --- replace abunds --- */
+  
+  for(auto &it: ab){
+    
+    for(int ii=0; ii<MAX_ELEM; ii++){
+      if(!strcmp(ELEMEN[ii], it.elem)){
+	ABUND[ii] = pow(10., it.abund);
+	if(verbose) fprintf(stderr, "ceos::initAbundances: Changed [%s] -> %7.3f\n", it.elem, it.abund);
+	break;
+      }
+    } // ii
+  } // it
+
+
   double sum = 0.0;
-  for(int ii = 0; ii<MAX_ELEM; ii++) {
-    ABUND[ii] = pow(10.0, ABUND_default[ii]);
-    sum += ABUND[ii];
-  }
+  for(int ii = 0; ii<MAX_ELEM; ii++) sum += ABUND[ii];
+  
   for(int ii = 0; ii<MAX_ELEM; ii++) ABUND[ii] /= sum;
   totalAbund = sum/ABUND[0];
 
-
-
-  
-  //
-  // Init list of background absorvers (this could be more elegant...)
-  //
-  species = {"H",   "H",     "H",     "He",   "He",   "He", 
-	     "C",    "Al",   "Si",    "Si",    "Ca",   "Ca", 
-	     "Mg",   "Mg",   "N",     "Fe",   "O"};
-  
-  ion =
-    { 1, 2, 0, 1, 2, 3,
-     1, 1, 1, 2, 1, 2,
-     1, 2, 1, 1, 1};
-
-
-  //
-  // Add external line list
-  //
-  if(lines.size() > 0){
-    int kk = (int)(species.size() + lines.size());
-    ion.resize(kk);
-
-    kk = (int)species.size();
-    for(auto &it: lines){
-      species.push_back(string(it.elem));
-      ion[kk] = it.ion;
-      it.off = kk++; 
-    }
-  }
-  
-  char cspecies[species.size()][8];
-  for(unsigned ii=0;ii<species.size();ii++) {
-    s2f(species[ii], cspecies[ii], 8);
-  }
-
-
-  
-  // WARNING, these indexes are passed to fortran routines, where
-  // arrays start at index 1. If used inside this wrapper, this should be accounted for!
-  //
-  IXH1  = 1,  IXH2  = 2, IXHMIN = 3, IXHE1 = 4,  IXHE2 = 5,  IXHE3 = 6, IXC1 = 7;
-  IXAL1 = 8,  IXSI1 = 9, IXSI2  = 10, IXCA1 = 11, IXCA2 = 12, IXMG1 = 13;
-  IXMG2 = 14, IXN1 = 15, IXFE1 = 16, IXO1 = 17;
-
-  
-  //
-  // Count elements on the list
-  //
-  NELEM = MAX_ELEM;
-  NLINES = species.size();
-  NLIST = 0; // Load the default list
-
-  switch(eqcount_(ELEMEN, cspecies, &ion[0], NLINES, NLIST, NELEM))
-    {
-    case 0: break;
-    case 1:
-      cerr << inam <<"ERROR, found ilegal species name"<<endl;
-      exit(0);
-      break;
-    case 2:
-      cerr << inam << "ERROR, SPLSIZ must be larger than "<<species.size()<<endl;
-      exit(0);
-      break;
-    }
-
-
-
-  
-  /*
-    Merge default list and user provided list
-  */
-  
-  idxspec.resize(NLINES, 0);
-  ntotallist = NLIST;
-  totallist = new char [8*ntotallist];
-  NLIST = 0;
-   fract.resize(ntotallist);
-      pf.resize(ntotallist);
-  potion.resize(ntotallist);
-  xamass.resize(ntotallist);
-
-  switch(eqlist_(&ABUND[0], ELEMEN, &cspecies[0], &ion[0], &idxspec[0], &totallist[0],
-		 NLINES, NLIST, ntotallist, NELEM))
-    {
-    case 0: break;
-    case 1:
-      cerr << inam <<"ERROR, found ilegal species name"<<endl;
-      exit(0);
-    case 2:
-      cerr << inam << "ERROR, SPLSIZ must be larger than "<<species.size()<<endl;
-      exit(0);
-    case 3:
-      cerr << inam << "ERROR, Missing ionization stage";
-      exit(0);
-    case 4:
-      cerr << inam << "ERROR, e- is not the las item on the list";
-      exit(0);
-    case 5:
-      cerr << inam << "ERROR, unreasonable abundances";
-      exit(0);
-    }
-  //cout << inam << "EOS initialized with default list + background absorvers + external line list "<< ntotallist<<endl;
-
-
-  
+   
   //
   // Estimate average molecular weight, excluding electrons?
   //
@@ -340,10 +313,6 @@ ceos::ceos(vector<line_t> &lines, double grav){
 
   avmol = wsum / asum;
 
-
-  /* --- Get unique species in the user line-list --- */
-  unique();
-  
   
 }
 

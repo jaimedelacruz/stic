@@ -20,7 +20,6 @@
 #include "accelerate.h"
 #include "error.h"
 
-
 /* --- Acceleration parameters --                      -------------- */
 
 #define NG_HSE_DELAY   0
@@ -43,7 +42,7 @@ extern char   messageStr[];
 void Hydrostatic(int NmaxIter, double iterLimit)
 {
   const char routineName[] = "Hydrostatic";
-  register int k, n, m, i;
+  register int k, n, m, i,j;
 
   bool_t  Debeye, quiet, H2present;
   int    niter, Ngdelay, Ngperiod, Ngorder, Nhse;
@@ -167,6 +166,8 @@ void Hydrostatic(int NmaxIter, double iterLimit)
       /* --- Solve linearized set --                   -------------- */
 
       SolveLinearEq(Nhse, dfdn, f, TRUE);
+      //SolveLinearSvd(Nhse, dfdn, f);
+
       for (n = 0;  n < Nhse;  n++)  n_k[n] -= f[n];
 
       /* --- Check convergence and accelerate if appropriate -- ----- */

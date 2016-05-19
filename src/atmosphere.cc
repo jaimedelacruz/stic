@@ -13,7 +13,7 @@
 //
 using namespace std;
 //
-const double atmos::maxchange[7] = {1500., 3.0e5, 2.0e5, 600., phyc::PI/5, phyc::PI/5, 2.0};
+const double atmos::maxchange[7] = {2500., 4.0e5, 2.0e5, 600., phyc::PI/5, phyc::PI/5, 0.2};
 
 
 
@@ -60,10 +60,9 @@ void atmos::responseFunction(int npar, mdepth_t &m_in, double *pars, int nd, dou
   double pertu = 0.0;
     
   //
-  //if(input.nodes.ntype[pp] == temp_node) pertu = input.dpar * pval * 0.5;
+  //if(input.nodes.ntype[pp] == temp_node) pertu = input.dpar * pval * 0.2;
   //else
-  //if(input.nodes.ntype[pp] == pgas_node) 
-  pertu = input.dpar * scal[pp];
+    pertu = input.dpar * scal[pp];
   
   /* --- Centered derivatives ? --- */
   
@@ -94,7 +93,8 @@ void atmos::responseFunction(int npar, mdepth_t &m_in, double *pars, int nd, dou
       
       //if(input.nodes.ntype[pp] == temp_node && input.thydro == 1)
 	m.getPressureScale(input.boundary, eos);
-      
+	m.nne_enhance(input.nodes, npar, &ipars[0], eos);
+
       synth(m, &out[0], (cprof_solver)input.solver, store_pops);
     }
 
@@ -111,7 +111,8 @@ void atmos::responseFunction(int npar, mdepth_t &m_in, double *pars, int nd, dou
       
       // if(input.nodes.ntype[pp] == temp_node && input.thydro == 1)
 	m.getPressureScale(input.boundary, eos);
-      
+	m.nne_enhance(input.nodes, npar, &ipars[0], eos);
+
       synth(m, &spec[0], (cprof_solver)input.solver, store_pops);
     }
 
@@ -156,8 +157,9 @@ void atmos::responseFunction(int npar, mdepth_t &m_in, double *pars, int nd, dou
     
     m.expand(input.nodes, &ipars[0],  input.dint);
     //  if((input.nodes.ntype[pp] == temp_node) && (input.thydro == 1))
-      m.getPressureScale(input.boundary, eos);
-    
+    m.getPressureScale(input.boundary, eos);
+    m.nne_enhance(input.nodes, npar, &ipars[0], eos);
+      
     synth(m, &out[0], (cprof_solver)input.solver, store_pops);
     
     
@@ -233,6 +235,7 @@ int getChi2(int npar1, int nd, double *pars1, double *dev, double **derivs, void
   
   m.expand(atm.input.nodes, &ipars[0], atm.input.dint);
   m.getPressureScale(atm.input.boundary, atm.eos);
+  m.nne_enhance(atm.input.nodes, npar1, &ipars[0], atm.eos);
 
   
   /* --- Compute synthetic spetra --- */
@@ -329,7 +332,7 @@ double atmos::fitModel2(mdepth_t &m, int npar, double *pars, int nobs, double *o
   lm.chi2_thres = input.chi2_thres;
   lm.lmax = 1.e4;
   lm.lmin = 1.e-5;
-
+  lm.proc = input.myrank;
 
   
   /* ---  Set parameter limits --- */
@@ -343,7 +346,7 @@ double atmos::fitModel2(mdepth_t &m, int npar, double *pars, int nobs, double *o
     else                                  lm.fcnt[pp].cyclic = false;
     
     lm.fcnt[pp].bouncing = false;
-    lm.fcnt[pp].capped = 1;
+    lm.fcnt[pp].capped = 0;
     lm.fcnt[pp].maxchange = maxc[pp]/scal[pp];
  
     pars[pp] = checkParameter(pars[pp], pp);

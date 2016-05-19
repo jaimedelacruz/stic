@@ -34,6 +34,12 @@ extern "C" {
 }
 
 
+struct iabund{
+  char elem[3];
+  float abund;
+};
+
+
 /* class definition */
 class ceos{
  private:
@@ -68,18 +74,22 @@ class ceos{
   std::vector<std::string> uspec;
 
   float xne, xna, RHOest;
-  char *totallist;
+  std::vector<char> totallist;
   int ntotallist;
 
   mat<float> buf;
   
   // Functions
-  // ceos(){};
+  
   ceos(double grav = 4.44);
   ceos(std::vector<line_t> &lines, double grav = 4.44);
+  ceos(std::vector<line_t> &lines, std::vector<iabund> &ab, double grav = 4.44);
+  void initAbundances(std::vector<iabund> &ab, bool verbose = false);
+  void initEOS(std::vector<line_t> &lines);
+  
   
   ~ceos(){
-    delete [] totallist;
+    totallist.clear();
   }
 
   double nne_from_T_Pg    (double T,  double Pg,  double &rho, double iPe = -1.0);

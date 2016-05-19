@@ -1,9 +1,11 @@
 #include <vector>
 #include <string>
 #include <iostream>
+#include <cmath>
 #include "depthmodel.h"
 #include "interpol.h"
 #include "ceos.h"
+#include "physical_consts.h"
 
 using namespace std;
 
@@ -59,6 +61,37 @@ void mdepth::nodes2depth(int n, double *x, double *y, int nn, double *xx, double
   }
 }
 
+void mdepth::nne_enhance(nodes_t &nodes, int n, double *pars, ceos &eos){
+
+  /* --- are we inverting the nne enhancement? --- */
+  
+  bool doit = false;
+  double mult = 1.0;
+  //
+  for(int ii = 0; ii < nodes.nnodes; ii++)
+    if(nodes.ntype[ii] == pgas_node){
+      doit = true;
+      mult = pars[ii];
+    }
+  if(!doit) return;
+
+  //fprintf(stderr,"   [mult=%f]\n", mult);
+  
+  /* --- Enhance electron pressure from ltau_500 <= -4.5 --- */
+
+  const double dx = 0.2, x0 = -4.8;
+  
+  for(int ii = 0; ii<ndep; ii++){
+    double at = -tanh((ltau[ii]-x0)*phyc::PI/(dx)) * 0.5 + 0.5;
+    double corr = mult * at + (1.0 - at);
+    nne[ii] *= corr;
+
+    eos.nne_from_T_Pg_nne (temp[ii], pgas[ii],  rho[ii], nne[ii]);
+    eos.store_partial_pressures(ndep, ii, eos.xna, eos.xne);
+  }
+
+}
+
 void mdepth::expand(nodes_t &n, double *p, int interpol){
   
   // int ndep = (int)cub.size(1);
@@ -92,7 +125,7 @@ void mdepth::expand(nodes_t &n, double *p, int interpol){
     int len = (int)n.azi.size();
     nodes2depth(len, &n.azi[0], &p[n.azi_off], ndep, &ltau[0], &azi[0], interpol);
   }
-
+  /*
   if(n.toinv[6]){
     fprintf(stderr, "bound=%1d, val=%e, multi=%e\n", n.bound, bound_val, p[n.pgas_off]);
     if     (n.bound == 1) pgas[0] = bound_val*p[n.pgas_off];
@@ -101,6 +134,7 @@ void mdepth::expand(nodes_t &n, double *p, int interpol){
     else pgas[0] =  boundary_pgas_default*p[n.pgas_off];
   }//else fprintf(stderr, "bound=%1d, val=%e\n", n.bound, bound_val);
 
+  */
   
   return;
 }
@@ -185,7 +219,7 @@ void mdepthall::compress(int n, float *x, float *y, int nn, double *xx, double *
     yy[0] = tmp / (double)n;
     return;
   } else {
-    linpol<float, double>(n, x, y, nn, xx, yy, false);
+    linpol<float, double>(n, x, y, nn, xx, yy, true);
     return;
   }
 }
@@ -536,10 +570,11 @@ void mdepthall::convertBoundary(int bound, bool verbose){
 void mdepthall::expand(int n, double *x, double *y, int nn, double *xx, double *yy, int interpolation){
 
   if     (n == 1)                for(int kk=0;kk<nn;kk++) yy[kk] = y[0];
-  else if((n == 2))  linpol<double,double>(n, x, y, nn, xx, yy, true);
+  else if((n == 2))              linpol<double,double>(n, x, y, nn, xx, yy, true);
   else if(n >= 3){
-    if(interpolation == 0) linpol<double,double>(n, x, y, nn, xx, yy, true);
-    else                  hermpol<double,double>(n, x, y, nn, xx, yy, true);
+    if(interpolation == 0)       linpol<double,double>(n, x, y, nn, xx, yy, true);
+    else if(interpolation == 1) bezpol2<double,double>(n, x, y, nn, xx, yy, true);
+    else                        hermpol<double,double>(n, x, y, nn, xx, yy, true);
   }
   else return;
 }

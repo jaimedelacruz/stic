@@ -6,8 +6,8 @@ include makefiles/makefile.$(CPU).$(OS)
 RHFOLD = rh/
 
 INCLUDE = $(shell ncxx4-config --cflags) -I$(GSLPATH)/include -I./ -I$(RHFOLD) -I$(RHFOLD)/rh_1d
-LIBS_FDENS = $(shell ncxx4-config --libs) -lstdc++ -L$(GSLPATH)/lib/ -lgsl -lgslcblas -lfftw3 -lm  
-LIBS = $(LIBS_FDENS) -L./ -lgfortran -L$(RHFOLD)/rh_1d/ -lrhf1d -L$(GSLPATH) -lblas -llapack # -lifcore -static-intel #-fuse-linker-plugin 
+LIBS_FDENS = $(shell ncxx4-config --libs) -lstdc++ -L$(GSLPATH)/lib/
+LIBS = $(LIBS_FDENS) -lgfortran -L./ -L$(RHFOLD)/rh_1d/ -lrhf1d -L$(GSLPATH) -lblas -llapack  -lgsl -lgslcblas -lfftw3 # -lifcore -static-intel #-fuse-linker-plugin 
 
 
 
@@ -33,5 +33,5 @@ clean:
 	rm -f *.o *.mod
 
 fillDensities: $(FFILES) $(FDENS)
-	$(FC) -o fillDensities.x $(FFILES) $(FDENS) $(LIBS_FDENS) #-nofor-main
+	$(MPCXX) -o fillDensities.x $(CXXFLAGS) $(FFILES) $(OPENMP) $(FDENS) $(LIBS_FDENS)  $(INCLUDE) #-nofor-main
 

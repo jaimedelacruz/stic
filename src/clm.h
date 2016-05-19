@@ -78,7 +78,7 @@ class clm{
   std::vector<double> diag;
   bool verb;
   double xtol, chi2_thres, svd_thres, lfac, lmax, lmin, ilambda;
-  int maxreject;
+  int maxreject, proc;
 
   
   /* --- Constructor / Destructor --- */
