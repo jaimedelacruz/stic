@@ -62,26 +62,26 @@ class cprofiles{
       w4 = tav * (36183.31 - uav * (3321.9905 - uav * (1540.787 -
 						       uav * (219.0313 - uav * (35.76683 - uav * (1.320522 -
 												  uav * 0.56419))))));
-    
+      
       std::complex<double> v4 = (32066.6 - uav * (24322.84 - uav * (9022.228 - 
 								    uav * (2186.181 - uav * (364.2191 - uav * (61.57037 -
 													       uav * (1.841439 - uav)))))));
       w4 = exp(uav) - w4 / v4;
     }
-  
+    
     /* ---  Note that FVGT below is in fact 2 * (Faradey-Voigt function) ---*/
     vgt = w4.real();
     far = 0.5 * w4.imag();
   }
-
-  inline void voigtf(double damp, double vv, double &H, double &F){
-
-    std::complex<double> Z(damp,-fabs(vv));
   
+  inline void voigtf(double damp, double vv, double &H, double &F){
+    
+    std::complex<double> Z(damp,-fabs(vv));
+    
     Z = ((((((A[6]*Z+A[5])*Z+A[4])*Z+A[3])*Z+A[2])*Z+A[1])*Z+A[0]) /
       (((((((Z+B[6])*Z+B[5])*Z+B[4])*Z+B[3])*Z+B[2])*Z+B[1])*Z+B[0]);
-
-  
+    
+    
     H = Z.real();
     F = ((vv<0.0)?-0.5:0.5) * Z.imag();
   
@@ -200,10 +200,12 @@ class cprofiles{
   void init(int nw, int ndep){
 
     /* --- do not reallocate if already allocated --- */
-    if(nnw == nw && nndep == ndep)
-      return;
+    
+    //if(nnw == nw && nndep == ndep)
+    //  return;
 
     /* --- Otherwise allocate everything --- */
+    
     nndep = ndep;
     nnw = nw;
   
@@ -211,9 +213,9 @@ class cprofiles{
     mkq = (double**)mat2d(ndep, nw);
     mku = (double**)mat2d(ndep, nw);
     mkv = (double**)mat2d(ndep, nw);
-    mkq = (double**)mat2d(ndep, nw);
-    mku = (double**)mat2d(ndep, nw);
-    mkv = (double**)mat2d(ndep, nw);
+    mfq = (double**)mat2d(ndep, nw);
+    mfu = (double**)mat2d(ndep, nw);
+    mfv = (double**)mat2d(ndep, nw);
 
     ki.resize(ndep);
     kq.resize(ndep);
@@ -222,14 +224,13 @@ class cprofiles{
     fq.resize(ndep);
     fu.resize(ndep);
     fv.resize(ndep);
-  
   } 
 
   //----------------------------------------------------------------
   // Destructor
   //----------------------------------------------------------------
   ~cprofiles(){
-    cleanup();
+    //cleanup();
   }
 
   //----------------------------------------------------------------
@@ -244,13 +245,13 @@ class cprofiles{
     fu.clear();
     fv.clear();
   
-    del_mat(mki);
-    del_mat(mkq);
-    del_mat(mku);
-    del_mat(mkv);
-    del_mat(mfq);
-    del_mat(mfu);
-    del_mat(mfv);
+    if(mki != NULL) del_mat(mki);
+    if(mkq != NULL) del_mat(mkq);
+    if(mku != NULL) del_mat(mku);
+    if(mkv != NULL) del_mat(mkv);
+    if(mfq != NULL) del_mat(mfq);
+    if(mfu != NULL) del_mat(mfu);
+    if(mfv != NULL) del_mat(mfv);
   }
 
 
@@ -906,6 +907,7 @@ class cprofiles{
   void del_mat(double **p){
     delete[] (p[0]);
     delete[] (p);
+    p = NULL;
   }
 };
 #endif
