@@ -16,8 +16,10 @@
   Piece-wise linear interpolation, with optinal 
   linear extrapolation outside the input range.
  */ 
-template <class T, class U> void linpol(int n, T *x, T *y, int nn, U *xx, U *yy, bool extrapolate = false){
+template <class T, class U> void linpol(size_t ni, T *x, T *y, size_t nni, U *xx, U *yy, bool extrapolate = false){
 
+  unsigned n = (unsigned)ni, nn = (unsigned)nni;
+  
   //
   // increasing or decreasing x?
   //
@@ -37,7 +39,7 @@ template <class T, class U> void linpol(int n, T *x, T *y, int nn, U *xx, U *yy,
       // Check if there are points to compute
       for(unsigned j = off; j<nn; j++){
 
-	if((xx[j] >= x[k-1]) & (xx[j] < x[k])){
+	if((xx[j] >= x[k-1]) && (xx[j] < x[k])){
 	  yy[j] = a * xx[j] + b;
 	  off++;
 	}
@@ -57,7 +59,7 @@ template <class T, class U> void linpol(int n, T *x, T *y, int nn, U *xx, U *yy,
       // Check if there are points to compute
       for(unsigned j = off; j<nn; j++){
 	
-	if((xx[j] <= x[k-1]) & (xx[j] > x[k])){
+	if((xx[j] <= x[k-1]) && (xx[j] > x[k])){
 	  yy[j] = a * xx[j] + b;
 	  off++;
 	}
@@ -100,8 +102,10 @@ template <class T, class U> void linpol(int n, T *x, T *y, int nn, U *xx, U *yy,
   Hermitian interpolant from Auer (2003), Formal Solution: Explicit answers.
 
  */ 
-template <class T1, class T2> void hermpol(int n, T1 *x, T1 *y, int nn, T2 *xx, T2 *yy, bool extrapolate = false){
+template <class T1, class T2> void hermpol(size_t ni, T1 *x, T1 *y, size_t nni, T2 *xx, T2 *yy, bool extrapolate = false){
 
+  unsigned n = (unsigned)ni, nn = (unsigned)nni;
+  
   // Increasing x?
   bool sign = true;
   if( (x[1] - x[0]) < 0 ) sign = false;
@@ -253,7 +257,9 @@ template <class T> std::vector<double> parab_fit(T d, T e, T f, T yd, T ye, T yf
 }
 
 
-template <class T1, class T2> void bezpol2(int n, T1 *x, T1 *y, int nn, T2 *xx, T2 *yy, bool extrapolate = false){
+template <class T1, class T2> void bezpol2(size_t ni, T1 *x, T1 *y, size_t nni, T2 *xx, T2 *yy, bool extrapolate = false){
+
+  unsigned n = (unsigned)ni, nn = (unsigned)nni;
 
   // Increasing x?
   bool sign = true;
@@ -268,7 +274,6 @@ template <class T1, class T2> void bezpol2(int n, T1 *x, T1 *y, int nn, T2 *xx, 
   double der = 0;
   double dx = 0;
   unsigned off = 0;
-  double c0 = 0, c1 = 0;
   
   if(sign){
 
