@@ -40,6 +40,7 @@
 #include "initial_j.h"
 #include "scatter_j.h"
 #include "iterate_j.h"
+
 /* --- Function prototypes --                          -------------- */
 
 
@@ -187,19 +188,24 @@ bool_t rhf1d(float muz, int rhs_ndep, double *rhs_T, double *rhs_rho,
     /* --- Solve radiative transfer for active ingredients -- --------- */
     
     Iterate_j(input.NmaxIter, input.iterLimit, &dpopmax);
-    
+    if(isnan(dpopmax) || isinf(dpopmax) || dpopmax < 0){
+      mpi.stop = true;
+    }
+      
     
     /* --- Adjust stokes mode in case we are running POLARIZATION_FREE --- */
     
-    adjustStokesMode();
-    niter = 0;
-    
-    while ((niter < input.NmaxScatter)) {
-      if (solveSpectrum(FALSE, FALSE) <= input.iterLimit) break;
-      niter++;
-    }
+    if(!mpi.stop){
+      adjustStokesMode();
+      niter = 0;
+      
+      while ((niter < input.NmaxScatter)) {
+	if (solveSpectrum(FALSE, FALSE) <= input.iterLimit) break;
+	niter++;
+      }
+    } else dpopmax = 1.0e13;
   } else dpopmax = 1.0e13;
-
+  
   bool_t converged = dpopmax < input.iterLimit;
 
 
