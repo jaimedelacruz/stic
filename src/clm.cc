@@ -266,7 +266,7 @@ double clm::fitdata(clm_func fx, double *x, void *mydat, int maxiter)
   
   double chi2 = 1.e13, ochi2 = 1.e13, bestchi2 = 1.e13, olambda = 0.0, t0 = 0, t1 = 0;
   int iter = 0, nretry = 0;
-  bool exitme = false;
+  bool exitme = false, toolittle = false;
   string rej = "";
   memset(&diag[0],0,npar*sizeof(double));
   error = false;
@@ -337,8 +337,10 @@ double clm::fitdata(clm_func fx, double *x, void *mydat, int maxiter)
 
       /* --- is the improvements below our threshold? --- */
 
-      if(fabs(reldchi) < xtol) exitme = true;
-	
+      if(fabs(reldchi) < xtol){
+	if(toolittle) exitme = true;
+	else toolittle = true;
+      }else toolittle = false;
    
       
       /* --- Store new best guessed model --- */
@@ -483,11 +485,12 @@ void clm::compute_trial3(double *res, double **rf, double lambda,
     }
     
     /* --- Damp the diagonal of A --- */
-    
-    diag[yy] = max(A[yy][yy], diag[yy]*0.6);
+    const double tt = 0.1;
+
+    diag[yy] = max(A[yy][yy], diag[yy]);
     if(diag[yy] == 0.0) diag[yy] = 1.0;
+    if(A[yy][yy] < diag[yy]*tt) diag[yy] = A[yy][yy] / tt;
     
-    //A[yy][yy] += lambda * sqrt(A[yy][yy]*diag[yy]);
     A[yy][yy] += lambda * diag[yy];
 
     
