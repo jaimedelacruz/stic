@@ -63,7 +63,7 @@ struct clmf{
    --- */
 
 typedef int (*clm_func)(int npar, int nd, double *x, double *res, double **rf, void *mydata);
-double sumarr(double *arr, int n);
+double sumarr(double *arr, size_t n);
 double sumarr2(double *arr, int n);
 
 

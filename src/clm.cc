@@ -52,13 +52,13 @@ double **var2dim(double *data, int nx1, int nx2){
 
 /* --- Kahan summation for the elements of a vector--- */
 
-inline double sumarr(double *arr, int n){
+inline double sumarr(double *arr, size_t n){
 
-  double sum = 0.0, c = 0.0;
+  long double sum = 0.0L, c = 0.0L;
   
-  for(int kk = 0; kk<n; kk++){
-    double y = arr[kk] - c;
-    double t = sum + y;
+  for(size_t kk = 0; kk<n; kk++){
+    long double y = arr[kk] - c;
+    long double t = sum + y;
     c = (t - sum) - y;
     sum = t;
   }
@@ -108,11 +108,11 @@ clm::clm(int ind, int inpar){
   xtol = 1.e-5;       // Controls the minimum relative change to Chi2
   chi2_thres = 1.0;   // Exit inversion if Chi2 is lower than this
   svd_thres = 1.e-16; // Cut-off "relative" thres. for small singular values
-  lmax = 1.0e6;       // Maximum lambda value
-  lmin = 1.0e-6;     // Minimum lambda value
+  lmax = 1.0e4;       // Maximum lambda value
+  lmin = 1.0e-4;      // Minimum lambda value
   lfac = 10.0;        // Change lambda by this amount
-  ilambda = 0.1;      // Initial damping parameter for the Hessian giag.
-  maxreject = 7;      // Max failed evaluations of lambda.
+  ilambda = 1.0;      // Initial damping parameter for the Hessian giag.
+  maxreject = 6;      // Max failed evaluations of lambda.
   error = false;
   proc = 0;           // print-out processor number
 }
@@ -233,7 +233,7 @@ double clm::getChi2Pars(double *res, double **rf, double lambda,
   int status = fx(npar, nd, xnew, new_res, NULL, mydat);
   if(status){
     if(verb)
-      fprintf(stderr, "clm::fitdata: ERROR in the evaluation of FX, aborting inversion\n");
+      fprintf(stderr, "clm::fitdata: [p:%4d] ERROR in the evaluation of FX, aborting inversion\n", proc);
     error = true;
   }else newchi2 = compute_chi2(new_res);
 
@@ -294,7 +294,7 @@ double clm::fitdata(clm_func fx, double *x, void *mydat, int maxiter)
   int status = fx(npar, nd, x, res, rf, mydat);
   if(status){
     if(verb)
-      fprintf(stderr, "clm::fitdata: ERROR in the evaluation of FX, aborting inversion\n");
+      fprintf(stderr, "clm::fitdata: [p:%4d] ERROR in the evaluation of FX, aborting inversion\n", proc);
     error = true;
     iter = maxiter+1;
   }
@@ -483,16 +483,21 @@ void clm::compute_trial3(double *res, double **rf, double lambda,
       A[yy][xx] = sumarr(tmp, nd);
       A[xx][yy] = A[yy][xx]; // Remember that A is symmetric!
     }
-    
-    /* --- Damp the diagonal of A --- */
-    const double tt = 0.1;
 
+    /* --- It works better to store the largest diagonal terms
+       in this cycle and multiply lambda by this value than the 
+       current estimate. I am setting a cap on how much larger
+       it can be relative to the current value 
+       --- */
+    
     diag[yy] = max(A[yy][yy], diag[yy]);
     if(diag[yy] == 0.0) diag[yy] = 1.0;
-    if(A[yy][yy] < diag[yy]*tt) diag[yy] = A[yy][yy] / tt;
-    
-    A[yy][yy] += lambda * diag[yy];
 
+    
+    /* --- Damp the diagonal of A --- */
+
+    A[yy][yy] += lambda * std::min(diag[yy], A[yy][yy] * 100.0);
+    
     
     /* --- Compute J^t * Residue --- */
     
