@@ -19,11 +19,11 @@ MPFC = $(FC) #mpif90
 #
 # OPTIMIZATION
 #
-OPTS = -O3  -flto -ffat-lto-objects -march=haswell -lm -lpthread #-O3 -g -march=native -lm -lpthread
-CXXFLAGS = $(OPTS) -std=c++11 #-gxx-name=g++-4.7 #-Wno-literal-suffix 
+OPTS = -O3 -ipo -xCORE-AVX2 -mkl=cluster #-O3 -g -march=native -lm -lpthread
+CXXFLAGS = $(OPTS) -std=c++11 -gxx-name=g++-4.7 #-Wno-literal-suffix 
 CFLAGS = $(OPTS)
 FFLAGS = $(OPTS)
-AR = ar #gcc-ar-4.8
+AR = xiar 
 OPENMP = -fopenmp
 
 
@@ -31,4 +31,4 @@ OPENMP = -fopenmp
 # GSL, FFTW3 libs.
 # Any unix system should have this installed in /usr.
 #
-GSLPATH = /usr
+#GSLPATH = /usr
