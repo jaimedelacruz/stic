@@ -98,6 +98,8 @@ clm::clm(int ind, int inpar){
 
   fcnt.resize(npar);
   diag.resize(npar);
+  // for(int ii=0;ii<npar;ii++)
+    memset(&fcnt[0], 0, npar*sizeof(clmf));
 
   
   /* --- 
@@ -164,19 +166,26 @@ double clm::checkLambda(double lamb)
 
 /* -------------------------------------------------------------------------------- */
 
-void clm::checkMaxChange(double *dx)
+void clm::checkMaxChange(double *dx, double *x)
 {
 
   /* --- check that corrections to the parameter 
      are within reasonable limits --- */
   
+  double maxcha = 0.0;
   for(int ii = 0; ii<npar; ii++){
     if(!fcnt[ii].capped) continue;
     
-    if(fabs(dx[ii]) > fcnt[ii].maxchange)
-      dx[ii] *= fcnt[ii].maxchange / fabs(dx[ii]);
-  }
+    if(dx[ii] >= 0) maxcha = fcnt[ii].maxchange[1];
+    else maxcha = fcnt[ii].maxchange[0];
+
+    if(fcnt[ii].relchange) maxcha *= fabs(x[ii]);
     
+
+    if(fabs(dx[ii]) > fabs(maxcha)) dx[ii] *= fabs(maxcha / dx[ii]);
+
+  }
+
 }
 
 /* -------------------------------------------------------------------------------- */
@@ -553,7 +562,7 @@ void clm::compute_trial3(double *res, double **rf, double lambda,
      --- */
   
   scaleParameters(xnew);
-  checkMaxChange(xnew);
+  checkMaxChange(xnew, x);
   
   for(int ii = 0; ii<npar; ii++) xnew[ii] += x[ii];
   

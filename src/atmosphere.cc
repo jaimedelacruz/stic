@@ -13,7 +13,7 @@
 //
 using namespace std;
 //
-const double atmos::maxchange[7] = {2500., 4.0e5, 2.0e5, 600., phyc::PI/5, phyc::PI/5, 0.2};
+const double atmos::maxchange[7] = {2500., 2.0e5, 2.0e5, 600., phyc::PI/5, phyc::PI/5, 0.2};
 
 
 
@@ -331,7 +331,7 @@ double atmos::fitModel2(mdepth_t &m, int npar, double *pars, int nobs, double *o
   lm.svd_thres = max(input.svd_thres, 1.e-16);
   lm.chi2_thres = input.chi2_thres;
   lm.lmax = 1.e4;
-  lm.lmin = 1.e-5;
+  lm.lmin = 1.e-4;
   lm.proc = input.myrank;
 
   
@@ -346,9 +346,17 @@ double atmos::fitModel2(mdepth_t &m, int npar, double *pars, int nobs, double *o
     else                                  lm.fcnt[pp].cyclic = false;
     
     lm.fcnt[pp].bouncing = false;
-    lm.fcnt[pp].capped = 0;
-    lm.fcnt[pp].maxchange = maxc[pp]/scal[pp];
- 
+    lm.fcnt[pp].capped = 1;
+    
+    if(input.nodes.ntype[pp] == temp_node){
+      lm.fcnt[pp].relchange = true;
+      lm.fcnt[pp].maxchange[0] = 0.2;
+      lm.fcnt[pp].maxchange[1] = 0.4;
+    }else{
+      lm.fcnt[pp].relchange = false;
+      lm.fcnt[pp].maxchange[0] = maxc[pp]/scal[pp];
+      lm.fcnt[pp].maxchange[1] = maxc[pp]/scal[pp];
+    }
     pars[pp] = checkParameter(pars[pp], pp);
   }
   

@@ -48,11 +48,12 @@
 struct clmf{
   double limit[2];
   bool capped;
-  double maxchange;
+  double maxchange[2];
   double scl;
   bool cyclic;
   bool bouncing;
   bool userscaled;
+  bool relchange;
 };
 
 
@@ -91,7 +92,7 @@ class clm{
   /* --- prototypes --- */
 
   void checkParameters(double *x);
-  void checkMaxChange(double *dx);
+  void checkMaxChange(double *dx, double *x);
   void normalizeParameters(double *x);
   void scaleParameters(double *x);
   double fitdata(clm_func ifx, double *x, void *mydat, int maxiter = 50);
