@@ -21,7 +21,7 @@ MPFC = mpif90
 #
 OPTS = -O3  -march=haswell -lm -lpthread
 CXXFLAGS = $(OPTS) -std=c++11 -Wno-literal-suffix
-CFLAGS = $(OPTS)
+CFLAGS = $(OPTS) -DHAVE_F90
 FFLAGS = $(OPTS)
 AR = gcc-ar-4.8
 OPENMP = -fopenmp

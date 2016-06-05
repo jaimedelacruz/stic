@@ -20,9 +20,9 @@ MPCC = mpicc
 #
 # OPTIMIZATION
 #
-OPTS = -O3 -xCORE-AVX2 -g -static-intel -lifcore
+OPTS = -O3 -xCORE-AVX-I -g -static-intel -lifcore
 CXXFLAGS = $(OPTS) -std=c++11 -gxx-name=g++-4.9 #-Wno-literal-suffix
-CFLAGS = $(OPTS)
+CFLAGS = $(OPTS) -DHAVE_F90
 FFLAGS = -O3 -axSSSE3 
 AR = xiar
 OPENMP = -fopenmp
