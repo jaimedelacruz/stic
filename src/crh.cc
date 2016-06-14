@@ -220,10 +220,7 @@ bool crh::synth(mdepth_t &m_in, double *syn, cprof_solver sol, bool save_pops){
   for(int kk = 0; kk < m.ndep; kk++){
 
     eos.read_partial_pressures(kk, frac, part, xa, xe);
-    nhtot[kk] = frac[eos.IXH1-1] * part[eos.IXH1-1] * 1.e6;
-    // fprintf(stderr, "%e %e %e %e %e %e %e \n",
-    //    m.ltau[kk], m.z[kk]*1.e-5, m.temp[kk], m.nne[kk], nhtot[kk], m.v[kk],
-    //	    m.vturb[kk]);
+    nhtot[kk] = (frac[eos.IXH1-1] * part[eos.IXH1-1] + frac[eos.IXH2-1] * part[eos.IXH2-1]) * 1.e6;
 
     m.cmass[kk] *= 10.0; // *= G_TO_KG / CM_TO_M**2
     m.rho[kk] *= 1000.; // G_TO_KG / CM_TO_M**3
@@ -253,7 +250,7 @@ bool crh::synth(mdepth_t &m_in, double *syn, cprof_solver sol, bool save_pops){
   if(!conv){
 
     for(int ww = 0; ww<nlambda*4; ww++)
-      syn[ww] = 1.e-13;
+      syn[ww] = 1.e13;
 
     if(sp.I != NULL) delete [] sp.I;
     if(sp.Q != NULL) delete [] sp.Q;
