@@ -19,7 +19,7 @@ using namespace phyc;
 //
 const double crh::pmax[7]  = {50000., 15.e5, 15.0e5, 5000.0, PI, PI, 3.0};
 const double crh::pmin[7]  = {2700. ,-15.e5,  +0.0,   +0.0,  +0.0,  +0.0, 0.5};
-const double crh::pscal[7] = {1200. , 3.0e5, 3.0e5, 1000.0, 2*PI, 2*PI, 1.0};
+const double crh::pscal[7] = {1200. , 2.0e5, 2.0e5, 1000.0, 2*PI, 2*PI, 1.0};
 const double crh::pstep[7] = {1.e-1 , 1.e-1, 1.0e-1, 2.0e-1, 1.0e-1, 1.0e-1, 1.0e-1};
 
 /* ----------------------------------------------------------------*/
@@ -219,6 +219,10 @@ bool crh::synth(mdepth_t &m_in, double *syn, cprof_solver sol, bool save_pops){
   
   for(int kk = 0; kk < m.ndep; kk++){
 
+
+    /* --- nHtot = nH1 + nH2. The eos returns the partial pressure divided by the 
+       LTE partition function so we must multiply by the partition function --- */
+    
     eos.read_partial_pressures(kk, frac, part, xa, xe);
     nhtot[kk] = (frac[eos.IXH1-1] * part[eos.IXH1-1] + frac[eos.IXH2-1] * part[eos.IXH2-1]) * 1.e6;
 
