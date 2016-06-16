@@ -13,8 +13,10 @@
 #include "rh.h"
 #include "error.h"
 #include "inputs.h"
+#include <sys/types.h>
+#include <unistd.h>
 
-#define PROCLOGFILE "scratch/procLog_%06d.txt"
+#define PROCLOGFILE "scratch/procLog_cpu-%06d_pid-%08d.txt"
 
 
 
@@ -33,7 +35,7 @@ void setOptions(int argc, char *argv[], int iproc)
 {
   const  char routineName[] = "setOptions";
   static char logfileName[MAX_LINE_SIZE], wavetable[MAX_LINE_SIZE];
-
+    
   int Noption;
   
   
@@ -54,7 +56,7 @@ void setOptions(int argc, char *argv[], int iproc)
   Noption = sizeof(theOptions) / sizeof(Option);
 
   parse(argc, argv, Noption, theOptions);
-  sprintf(logfileName, PROCLOGFILE, iproc);
+  sprintf(logfileName, PROCLOGFILE, iproc, (int)getpid());
   
   if (strlen(logfileName) > 0) {
     if ((commandline.logfile = fopen(logfileName, "w")) == NULL) {
