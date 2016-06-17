@@ -234,7 +234,7 @@ bool crh::synth(mdepth_t &m_in, double *syn, cprof_solver sol, bool save_pops){
     
     m.cmass[kk] *= 10.0; // *= G_TO_KG / CM_TO_M**2
     m.rho[kk] *= 1000.; // G_TO_KG / CM_TO_M**3
-    m.v[kk] *= 1.e-2; // CM_TO_M
+    m.v[kk] *= -1.e-2; // CM_TO_M and change the sign so upflows are positive
     m.vturb[kk] *= 1.e-2; // CM_TO_M
     m.z[kk] *= 1.0e-2;    // CM_TO_M
     m.nne[kk] *= 1.e6;    // 1 / CM_TO_M**3
