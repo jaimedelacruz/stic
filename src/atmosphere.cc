@@ -48,8 +48,10 @@ void atmos::responseFunction(int npar, mdepth_t &m_in, double *pars, int nd, dou
   m.cub.d = m_in.cub.d;
   m.bound_val = m_in.bound_val;
   
-  bool store_pops = false; 
-  
+  bool store_pops = false;
+  int centder = input.centder; 
+  if(input.nodes.ntype[pp] == v_node) centder = 1;
+  //  if(input.nodes.ntype[pp] == vturb_node) centder = 1;
 
   /* --- Init perturbation --- */
   double *ipars = new double [npar];
@@ -60,17 +62,16 @@ void atmos::responseFunction(int npar, mdepth_t &m_in, double *pars, int nd, dou
   double pertu = 0.0;
     
   //
-  //if(input.nodes.ntype[pp] == temp_node) pertu = input.dpar * pval * 0.2;
-  //else
-    pertu = input.dpar * scal[pp];
+  if(input.nodes.ntype[pp] == temp_node) pertu = input.dpar * pval * 0.35;
+  else                                   pertu = input.dpar * scal[pp];
   
   /* --- Centered derivatives ? --- */
   
-  if(input.centder > 0){
+  if(centder > 0){
     
     /* --- Up and down perturbations --- */
-    double up = pertu * 0.75;
-    double down = - pertu*0.75;
+    double up = pertu * 0.5;
+    double down = - pertu * 0.5;
 
     
     /* --- Init temporary vars for storing spectra --- */
@@ -350,8 +351,8 @@ double atmos::fitModel2(mdepth_t &m, int npar, double *pars, int nobs, double *o
     
     if(input.nodes.ntype[pp] == temp_node){
       lm.fcnt[pp].relchange = true;
-      lm.fcnt[pp].maxchange[0] = 0.2;
-      lm.fcnt[pp].maxchange[1] = 0.4;
+      lm.fcnt[pp].maxchange[0] = 0.25;
+      lm.fcnt[pp].maxchange[1] = 2.0;
     }else{
       lm.fcnt[pp].relchange = false;
       lm.fcnt[pp].maxchange[0] = maxc[pp]/scal[pp];

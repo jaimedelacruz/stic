@@ -222,12 +222,13 @@ bool crh::synth(mdepth_t &m_in, double *syn, cprof_solver sol, bool save_pops){
 
     /* --- 
        nHtot = n_HI + n_HII. The eos returns the partial density divided by the 
-       LTE partition function so we must multiply by the partition function to recover just the 
-       partial density.
+       LTE partition function so we must multiply by the partition function to 
+       recover just the partial density.
        --- */
     
     eos.read_partial_pressures(kk, frac, part, xa, xe);
-    nhtot[kk] = (frac[eos.IXH1-1] * part[eos.IXH1-1] + frac[eos.IXH2-1] * part[eos.IXH2-1]) * 1.0E6;
+    nhtot[kk] = (frac[eos.IXH1-1] * part[eos.IXH1-1] +
+		 frac[eos.IXH2-1] * part[eos.IXH2-1]) * 1.0E6;
 
     
     /* --- Convert units to SI --- */
