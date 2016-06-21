@@ -147,9 +147,9 @@ void do_slave(int myrank, int nprocs, char hostname[]){
 	/* --- If not converged, printout message --- */
 	if(!conv) {
 	  int x =0, y=0;
-	  comm_get_xy(input.pix+pixel, input.nx, y, x);
+	  comm_get_xy(input.ipix+pixel, input.nx, y, x);
 	  
-	  fprintf(stderr,"[%6d] slave: ERROR, atom populations did not converge for pixel (x,y) = [%4d,%4d]", myrank, input.nx, x, y);
+	  fprintf(stderr,"[%6d] slave: ERROR, atom populations did not converge for pixel (x,y) = [%4d,%4d]", myrank, x, y);
 	}
       
 	
