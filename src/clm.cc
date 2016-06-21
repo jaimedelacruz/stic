@@ -304,18 +304,19 @@ double clm::fitdata(clm_func fx, double *x, void *mydat, int maxiter)
   if(status){
     if(verb)
       fprintf(stderr, "clm::fitdata: [p:%4d] ERROR in the evaluation of FX, aborting inversion\n", proc);
+    ochi2 = 1.e13;
     error = true;
     iter = maxiter+1;
+  }else{
+    scaleRF(rf);
+    memcpy(&bestpars[0], &x[0], npar*sizeof(double));
+    //
+    ochi2 = compute_chi2(res);
+    bestchi2 = ochi2;
+    
+    if(verb)
+      fprintf(stdout, "[p:%4d,Init] chi2=%f, lambda=%e\n", proc, ochi2, lambda);
   }
-  scaleRF(rf);
-  memcpy(&bestpars[0], &x[0], npar*sizeof(double));
-  //
-  ochi2 = compute_chi2(res);
-  bestchi2 = ochi2;
-
-  if(verb)
-    fprintf(stdout, "[p:%4d,Init] chi2=%f, lambda=%e\n", proc, ochi2, lambda);
-
 
   /* --- Main iterations --- */
 
@@ -505,8 +506,9 @@ void clm::compute_trial3(double *res, double **rf, double lambda,
     
     /* --- Damp the diagonal of A --- */
 
-    A[yy][yy] += lambda * std::min(diag[yy], A[yy][yy] * 100.0);
-    
+    //A[yy][yy] += lambda * std::min(diag[yy], A[yy][yy] * 100.0);
+    A[yy][yy] *= (1.0 + lambda);
+
     
     /* --- Compute J^t * Residue --- */
     

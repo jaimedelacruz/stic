@@ -289,6 +289,7 @@ bool_t rhf1d(float muz, int rhs_ndep, double *rhs_T, double *rhs_rho,
   }
 
   fclose(commandline.logfile);
+  remove(commandline.logfile);
   
   return converged;
 }
