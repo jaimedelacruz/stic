@@ -57,6 +57,7 @@ void setOptions(int argc, char *argv[], int iproc)
 
   parse(argc, argv, Noption, theOptions);
   sprintf(logfileName, PROCLOGFILE, iproc, (int)getpid());
+  strcpy(commandline.logfileName, logfileName);
   
   if (strlen(logfileName) > 0) {
     if ((commandline.logfile = fopen(logfileName, "w")) == NULL) {
