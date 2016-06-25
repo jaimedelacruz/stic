@@ -44,6 +44,7 @@ class mdepth{
   void fixBoundary(int boundary, ceos &eos);
   void nne_enhance(nodes_t &nodes, int n, double *pars, ceos &eos);
   void getPressureScale(int boundary, ceos &eos);
+  void getScales(ceos &eos, int bound);
   void zero(void);
   void fill_densities(ceos &eos, int keep_nne = 0);
   mdepth& operator= ( mdepth &m);

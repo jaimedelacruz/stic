@@ -206,8 +206,8 @@ bool_t rhf1d(float muz, int rhs_ndep, double *rhs_T, double *rhs_rho,
     } else dpopmax = 1.0e13;
   } else dpopmax = 1.0e13;
   
-  bool_t converged = dpopmax < input.iterLimit;
-
+  bool_t converged = dpopmax < 1.e-3;//input.iterLimit;
+  
 
   /* --- Store populations if needed --- */
       
@@ -289,6 +289,7 @@ bool_t rhf1d(float muz, int rhs_ndep, double *rhs_T, double *rhs_rho,
   }
 
   fclose(commandline.logfile);
+  remove(commandline.logfileName);
   
   return converged;
 }

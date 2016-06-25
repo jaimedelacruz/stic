@@ -288,6 +288,7 @@ template <class T1, class T2> void bezpol2(size_t ni, T1 *x, T1 *y, size_t nni, 
 	double lambda = (1.0 + dx / (dx + odx)) / 3.0;
 	if(dy*ody > 0) der = (dy*ody) / ((1.0-lambda)*ody + lambda * dy);
 	else der = 0;
+	//der = (dy*ody) / ((1.0-lambda)*ody + lambda * dy);
       } else der = ody;
       
 
@@ -333,6 +334,7 @@ template <class T1, class T2> void bezpol2(size_t ni, T1 *x, T1 *y, size_t nni, 
 	double lambda = (1.0 + dx / (dx + odx)) / 3.0;
 	if(dy*ody > 0) der = (dy*ody) / ((1.0-lambda)*ody + lambda * dy);
 	else der = 0;
+	//der = (dy*ody) / ((1.0-lambda)*ody + lambda * dy);
       } else der = ody;
 
 

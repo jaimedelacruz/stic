@@ -161,8 +161,97 @@ void mdepth::fill_densities(ceos &eos, int keep_nne){
      inside fill_densities --- */
   
   eos.fill_densities(ndep, temp, pgas, rho, pel, nne, bound,  keep_nne, 1.e-5);
+
+
+
+  /* --- Get scales --- */
+
+  double sz = 0.0, stau = 0.0, scm = 0.0;
+  for(int kk = 0; kk<ndep; kk++){
+    sz += fabs(z[kk]);
+    stau += fabs(ltau[kk]);
+    scm += fabs(cmass[kk]);
+  }
+
+  bound = -1;
+  if(stau > 0.0)     bound = 0;
+  else if(sz > 0.0)  bound = 1;
+  else if(scm > 0.0) bound = 2;
+
+
+  /* --- Fill scales --- */
+
+  getScales(eos, bound);
+  
+  
 }
 
+void mdepth::getScales(ceos &eos, int bound){
+
+  vector<double> kappa;
+  kappa.resize(ndep);
+  int nw = 1;
+  double wav = 5000.0, scat = 0.0;
+  vector<float> frac, part;
+  float na=0, ne=0;
+
+  
+  /* --- get cont opac --- */
+  
+  for(int k=0; k<ndep; k++){
+    eos.read_partial_pressures(0, frac, part, na, ne);
+    eos.contOpacity(temp[k], nw,  &wav, &kappa[k],
+			      &scat, frac, na, ne);
+  }
+  
+  
+  if(bound == 0){  /* --- if we know tau --- */
+
+
+    tau[0] = pow(10.0, ltau[0]);
+    cmass[0] = (tau[0] / kappa[0]) * rho[0];
+    z[0] = 0.0;
+    
+    for(int k = 1; k < ndep; k++){
+      tau[k] = pow(10.0, ltau[k]);
+      z[k] = z[k-1] - 2.0 * (tau[k] - tau[k-1]) / (kappa[k] + kappa[k-1]);
+      cmass[k] = cmass[k-1] + 0.5*(rho[k-1] + rho[k]) * (z[k-1] - z[k]);
+    } // k
+  }else if(bound == 1){  /* --- if we know Z --- */
+
+    eos.read_partial_pressures(0, frac, part, na, ne);
+    tau[0] = 0.5 * kappa[0] * (z[0] - z[1]);
+    cmass[0] = (na + ne) * (phyc::BK * temp[0] / eos.gravity);
+    ltau[0] = log10(tau[0]);
+
+    for(int k = 1; k < ndep; k++){
+      tau[k] = tau[k-1] + 0.5 * (kappa[k-1] + kappa[k]) * (z[k-1] - z[k]);
+      cmass[k] = cmass[k-1] + 0.5 * (rho[k-1] + rho[k]) * (z[k-1] - z[k]);
+      ltau[k] = log10(tau[k]);
+    }
+    
+
+  }else if(bound ==2){ /* --- If we know cmass --- */
+    
+    z[0] = 0.0;
+    tau[0] = 0.0; //kappa[0]/rho[0] * cmass[0];
+    
+    
+    for(int k = 1; k < ndep; k++){
+      z[k] = z[k-1] - 2.0 * (cmass[k] - cmass[k-1]) / (rho[k-1] + rho[k]);
+      tau[k] = tau[k-1] + 0.5 * (kappa[k-1] + kappa[k]) * (z[k-1] - z[k]);
+    }
+    
+    /* --- Extrapolate tau at the top --- */
+    
+    double toff = exp(2.0 * log(tau[1]) - log(tau[2]));
+    
+    for(int k = 0; k < ndep; k++){
+      tau[k] = log10(tau[k]+toff);
+    } 
+  }
+  
+}
 
 
 void mdepth::fixBoundary(int boundary, ceos &eos){

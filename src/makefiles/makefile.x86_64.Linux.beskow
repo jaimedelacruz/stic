@@ -19,9 +19,9 @@ MPFC = $(FC) #mpif90
 #
 # OPTIMIZATION
 #
-OPTS = -O3 -ipo -xCORE-AVX2 -mkl=cluster #-O3 -g -march=native -lm -lpthread
+OPTS = -O3 -xCORE-AVX2 -mkl=cluster #-O3 -g -march=native -lm -lpthread
 CXXFLAGS = $(OPTS) -std=c++11 -gxx-name=g++-4.7 #-Wno-literal-suffix 
-CFLAGS = $(OPTS)
+CFLAGS = $(OPTS) -DHAVE_F90
 FFLAGS = $(OPTS)
 AR = xiar 
 OPENMP = -fopenmp

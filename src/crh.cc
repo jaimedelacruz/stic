@@ -220,12 +220,19 @@ bool crh::synth(mdepth_t &m_in, double *syn, cprof_solver sol, bool save_pops){
   for(int kk = 0; kk < m.ndep; kk++){
 
 
-    /* --- nHtot = nH1 + nH2. The eos returns the partial pressure divided by the 
-       LTE partition function so we must multiply by the partition function --- */
+    /* --- 
+       nHtot = n_HI + n_HII. The eos returns the partial density divided by the 
+       LTE partition function so we must multiply by the partition function to 
+       recover just the partial density.
+       --- */
     
     eos.read_partial_pressures(kk, frac, part, xa, xe);
-    nhtot[kk] = (frac[eos.IXH1-1] * part[eos.IXH1-1] + frac[eos.IXH2-1] * part[eos.IXH2-1]) * 1.e6;
+    nhtot[kk] = (frac[eos.IXH1-1] * part[eos.IXH1-1] +
+		 frac[eos.IXH2-1] * part[eos.IXH2-1]) * 1.0E6;
 
+    
+    /* --- Convert units to SI --- */
+    
     m.cmass[kk] *= 10.0; // *= G_TO_KG / CM_TO_M**2
     m.rho[kk] *= 1000.; // G_TO_KG / CM_TO_M**3
     m.v[kk] *= -1.e-2; // CM_TO_M and change the sign so upflows are positive

@@ -70,10 +70,10 @@ void Iterate_j(int NmaxIter, double iterLimit, double *dpopmax_out)
   }
   for (nact = 0;  nact < atmos.Nactivemol;  nact++) {
     molecule = atmos.activemols[nact];
-    Ngorder  = (input.accelerate_mols) ? input.Ngorder : 0;
+    //Ngorder  = (input.accelerate_mols) ? input.Ngorder : 0;
 
     molecule->Ng_nv = NgInit(molecule->Nv*atmos.Nspace, input.Ngdelay,
-			     Ngorder, input.Ngperiod, molecule->nv[0]);
+			     input.Ngorder, input.Ngperiod, molecule->nv[0]);
   }
 
   /* --- Start of the main iteration loop --             ------------ */
@@ -301,7 +301,7 @@ void *Formal_pthread(void *argument)
 {
   threadinfo *ti = (threadinfo *) argument;
 
-  /* --- Threads wrapper around Formal --              -------------- */ 
+  /* --- Threads wrapper around Formal --              -------------- */
 
   ti->dJ = Formal(ti->nspect, ti->eval_operator, ti->redistribute);
 
