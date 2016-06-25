@@ -5,6 +5,7 @@
 #include <cmath>
 #include <complex>
 #include <vector>
+#include <cmath>
 #include "physical_consts.h"
 #include "cmemt.h"
 #include "input.h"
@@ -54,7 +55,7 @@ class cprofiles{
       w4 = tav * 0.5641896 / (0.5 + uav);
     } else if(sav >= 5.5){
       w4 = tav * (1.410474 + uav * 0.5641896) / (0.75+uav * (3.0 + uav));
-    } else if(a >= (0.195 * abs(v) - 0.176)){
+    } else if(a >= (0.195 * fabs(v) - 0.176)){
       w4 = (16.4955 + tav * (20.20933 + tav * (11.96482 + tav * (3.778987 +
 								 tav * 0.5642236)))) / (16.4955 + tav * (38.82363 + tav * (39.27121 +
 															   tav * (21.69274 + tav * (6.699398 + tav)))));
@@ -305,7 +306,7 @@ class cprofiles{
       float Mup = line.Jup + 1 - iup;
       for(int ilow = 1; ilow <= 3; ilow++){
 	float Mlow = Mup - 2 + ilow;
-	if(abs(Mlow) <= line.Jlow){
+	if(fabs(Mlow) <= line.Jlow){
 	
 	  /* --- Compute relative Zeeman strength, 
 	     Landi Degl'innocenti & Landolfi (2004), 
@@ -477,7 +478,7 @@ class cprofiles{
 
     if(((ib-m3) % 4) != 0) cc = -cc;
     w3js = cc;
-    if(abs(w3js) < 1.e-8) w3js = 0.0;
+    if(fabs(w3js) < 1.e-8) w3js = 0.0;
     return w3js;
   }
 

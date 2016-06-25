@@ -1,6 +1,7 @@
 #include <math.h>
 //#include <string.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 /* --- 
    Solve Linear systems with SVD for rank defficient matrices

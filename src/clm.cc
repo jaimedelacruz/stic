@@ -18,6 +18,7 @@
 #include <cstdio>
 #include <iostream>
 #include <cstring>
+#include <cmath>
 //#include <eigen3/Eigen/Dense>
 //#include <eigen3/Eigen/SVD>
 #include "clm.h"
