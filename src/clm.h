@@ -76,7 +76,7 @@ class clm{
   bool error;
  public:
   std::vector<clmf> fcnt;
-  std::vector<double> diag;
+  std::vector<double> diag, tmp;
   bool verb;
   double xtol, chi2_thres, svd_thres, lfac, lmax, lmin, ilambda;
   int maxreject, proc;
@@ -99,7 +99,9 @@ class clm{
   double compute_chi2(double *res);
   double getChi2Pars(double *res, double **rf, double lambda,
 		     double *x, double *xnew, void *mydat, clm_func fx);
-  void compute_trial3(double *res, double **rf, double lambda,
+  //  void compute_trial3(double *res, double **rf, double lambda,
+  //	      double *x, double *xnew);
+  void compute_trial2(double *res, double **rf, double lambda,
 		      double *x, double *xnew);
   void backsub(double **u, double *w, double **v, int n,
 	       double *b, double *x);

@@ -4,11 +4,14 @@
 
    Documentation included in the header file clm.h.
 
-   Dependencies: DGESDD_ from LaPack for the SVD calculation.
+   Dependencies: DGESDD_ from LaPack for the SVD calculation, Eigen3.
 
    Modifications: 
            2016-04-08, JdlCR: Added Kahan summation to perform the matrix multiplication,
 	                      it improves convergence significantly!
+	   
+	   2016-06-26, JdlCR: Changed to Eigen3 routines for SVD, 
+	                      the implementation is much cleaner.
 
 */
 
@@ -19,11 +22,12 @@
 #include <iostream>
 #include <cstring>
 #include <cmath>
-//#include <eigen3/Eigen/Dense>
-//#include <eigen3/Eigen/SVD>
+#include <eigen3/Eigen/Dense>
+#include <eigen3/Eigen/SVD>
 #include "clm.h"
 
 using namespace std;
+using namespace Eigen;
 
 /* -------------------------------------------------------------------------------- */
 
@@ -93,14 +97,14 @@ clm::clm(int ind, int inpar){
   nd = ind;
   npar = inpar;
   lwork = -1; // To be used on the first call by LaPack's SVD
+  tmp.resize(nd);
 
   
   /* --- resize fit control arrays --- */
 
   fcnt.resize(npar);
   diag.resize(npar);
-  // for(int ii=0;ii<npar;ii++)
-    memset(&fcnt[0], 0, npar*sizeof(clmf));
+  memset(&fcnt[0], 0, npar*sizeof(clmf));
 
   
   /* --- 
@@ -233,7 +237,7 @@ double clm::getChi2Pars(double *res, double **rf, double lambda,
   /* --- Get new estimate of the model for the current lambda value --- */
   
   memset(xnew, 0, sizeof(double)*npar);
-  compute_trial3(res, rf, lambda, x, xnew);
+  compute_trial2(res, rf, lambda, x, xnew);
 
 
   /* --- Evaluate the new model, no response function is needed --- */
@@ -445,35 +449,154 @@ double clm::fitdata(clm_func fx, double *x, void *mydat, int maxiter)
 
 /* -------------------------------------------------------------------------------- */
 
-extern "C"{
+// extern "C"{
 
-  /* --- Prototypes for the LAPACK routines --- */
+//   /* --- Prototypes for the LAPACK routines --- */
   
-  void dgesdd_( char *JOBZ, int &M, int &N, double *A, int &LDA, double *S,
-  		double *U, int &LDU, double *VT, int &LDVT, double *WORK,
-  		int &lwork, int* iwork, int &info);
-}
+//   void dgesdd_( char *JOBZ, int &M, int &N, double *A, int &LDA, double *S,
+//   		double *U, int &LDU, double *VT, int &LDVT, double *WORK,
+//   		int &lwork, int* iwork, int &info);
+// }
+
+// /* -------------------------------------------------------------------------------- */
+
+// void clm::compute_trial3(double *res, double **rf, double lambda,
+// 			double *x, double *xnew)
+// {
+
+  
+//   /* --- Init arrays --- */
+  
+//   double **A = mat2d(npar, npar);
+//   double **V = mat2d(npar, npar);
+
+//   double *B = new double [npar];
+//   double *w = new double [npar];
+//   int   *iw = new int  [8*npar]();
+  
+//   double *work = NULL;
+
+  
+  
+//   /* --- 
+//      compute the curvature matrix and the right-hand side of eq.: 
+//      A*(dx) = B
+//      where A = J.T # J
+//            B = J.T # res
+// 	   and "dx" is the correction to the current model
+//      --- */
+
+//   for(int yy = 0; yy<npar; yy++){
+    
+//     for(int xx = 0; xx<=yy; xx++){
+      
+//       memset(tmp, 0, nd*sizeof(double));
+//       for(int ww = 0; ww<nd; ww++)
+// 	tmp[ww] = rf[yy][ww] * rf[xx][ww];
+      
+//       A[yy][xx] = sumarr(&tmp[0], nd);
+//       A[xx][yy] = A[yy][xx]; // Remember that A is symmetric!
+//     }
+
+//     /* --- It works better to store the largest diagonal terms
+//        in this cycle and multiply lambda by this value than the 
+//        current estimate. I am setting a cap on how much larger
+//        it can be relative to the current value 
+//        --- */
+    
+//     diag[yy] = max(A[yy][yy], diag[yy]);
+//     if(diag[yy] == 0.0) diag[yy] = 1.0;
+
+    
+//     /* --- Damp the diagonal of A --- */
+
+//     //A[yy][yy] += lambda * std::min(diag[yy], A[yy][yy] * 100.0);
+//     A[yy][yy] *= (1.0 + lambda);
+
+    
+//     /* --- Compute J^t * Residue --- */
+    
+//     memset(tmp, 0, nd*sizeof(double));
+//     for(int ww = 0; ww<nd; ww++) tmp[ww] = rf[yy][ww] * res[ww];
+//     B[yy] = sumarr(&tmp[0], nd);  
+//   } // yy
+  
+  
+//   /* --- Solve a least square fit to A^-1 (using SVD) --- */
+  
+//   char bla[1] = {'O'};
+//   int dummy = 0;
+//   int npp = npar;
+  
+  
+//   /* --- Request size of work array for the LaPack routine in the first iter --- */
+  
+//   if(lwork == -1){
+//     lwork = -1;
+//     double wrkopt=0.0;
+//     dgesdd_(&bla[0], npp, npp, &A[0][0], npp, w, NULL, npp, &V[0][0] ,
+// 	    npp, &wrkopt, lwork, iw, dummy);
+//     lwork = (int)wrkopt;
+//   }
+  
+  
+//   /* --- Call DGESDD --- */
+  
+//   work = new double [lwork];
+//   dummy = 0;
+//   dgesdd_(&bla[0], npp, npp, &A[0][0], npp, w, NULL, npp, &V[0][0] ,
+// 	  npp, work, lwork, iw, dummy);
+  
+  
+//   /* --- Check for too small singular values --- */
+  
+//   double minval = w[0] * svd_thres;
+//   for(int ii = 1; ii < npar; ii++) if(w[ii] < minval) w[ii] = 0.0;
+  
+  
+  
+//   /* --- Solve the system, xnew at this point is the correction to x, 
+//      not the new parameters. We should do xnew += x. --- */
+  
+//   backsub(A,w,V,npar,B,xnew);
+  
+  
+  
+//   /* --- 
+//      New estimate of the parameters, xnew = x + dx.
+//      Check for maximum change, add to current pars and normalize.
+//      --- */
+  
+//   scaleParameters(xnew);
+//   checkMaxChange(xnew, x);
+  
+//   for(int ii = 0; ii<npar; ii++) xnew[ii] += x[ii];
+  
+//   checkParameters(xnew);
+  
+  
+//   /* --- Clean-up mem --- */
+  
+//   del_mat(A);
+//   del_mat(V);
+//   delete [] B;
+//   delete [] w;
+//   delete [] work;
+//   delete [] iw;
+// }
 
 /* -------------------------------------------------------------------------------- */
-
-void clm::compute_trial3(double *res, double **rf, double lambda,
+void clm::compute_trial2(double *res, double **rf, double lambda,
 			double *x, double *xnew)
 {
 
   
   /* --- Init arrays --- */
   
-  double **A = mat2d(npar, npar);
-  double **V = mat2d(npar, npar);
+  MatrixXd A(npar, npar);
+  VectorXd B(npar);
+  Map<VectorXd> RES(xnew, npar);
 
-  double *B = new double [npar];
-  double *w = new double [npar];
-  int   *iw = new int  [8*npar]();
-  
-  double *work = NULL;
-  double  *tmp = new double [nd];
-
-  
   
   /* --- 
      compute the curvature matrix and the right-hand side of eq.: 
@@ -485,79 +608,49 @@ void clm::compute_trial3(double *res, double **rf, double lambda,
 
   for(int yy = 0; yy<npar; yy++){
     
+    /* --- Compute the Hessian matrix --- */
+
     for(int xx = 0; xx<=yy; xx++){
+      for(int ww = 0; ww<nd; ww++) tmp[ww] = rf[yy][ww] * rf[xx][ww];
       
-      memset(tmp, 0, nd*sizeof(double));
-      for(int ww = 0; ww<nd; ww++)
-	tmp[ww] = rf[yy][ww] * rf[xx][ww];
+      A(yy,xx) = sumarr(&tmp[0], nd);
+      A(xx,yy) = A(yy,xx); // Remember that A is symmetric!
       
-      A[yy][xx] = sumarr(tmp, nd);
-      A[xx][yy] = A[yy][xx]; // Remember that A is symmetric!
     }
 
+
+    
     /* --- It works better to store the largest diagonal terms
        in this cycle and multiply lambda by this value than the 
        current estimate. I am setting a cap on how much larger
        it can be relative to the current value 
        --- */
     
-    diag[yy] = max(A[yy][yy], diag[yy]);
+    diag[yy] = max(A(yy,yy), diag[yy]);
     if(diag[yy] == 0.0) diag[yy] = 1.0;
 
     
     /* --- Damp the diagonal of A --- */
 
-    //A[yy][yy] += lambda * std::min(diag[yy], A[yy][yy] * 100.0);
-    A[yy][yy] *= (1.0 + lambda);
+    A(yy,yy) += lambda * std::min(diag[yy], A(yy,yy) * 10.0);
+    //A[yy][yy] *= (1.0 + lambda);
 
     
     /* --- Compute J^t * Residue --- */
     
-    memset(tmp, 0, nd*sizeof(double));
     for(int ww = 0; ww<nd; ww++) tmp[ww] = rf[yy][ww] * res[ww];
-    B[yy] = sumarr(tmp, nd);  
+    B[yy] = sumarr(&tmp[0], nd);
+    
   } // yy
+
+
   
+  /* --- Solve linear system with SVD decomposition and singular value thresholding --- */
   
-  /* --- Solve a least square fit to A^-1 (using SVD) --- */
-  
-  char bla[1] = {'O'};
-  int dummy = 0;
-  int npp = npar;
-  
-  
-  /* --- Request size of work array for the LaPack routine in the first iter --- */
-  
-  if(lwork == -1){
-    lwork = -1;
-    double wrkopt=0.0;
-    dgesdd_(&bla[0], npp, npp, &A[0][0], npp, w, NULL, npp, &V[0][0] ,
-	    npp, &wrkopt, lwork, iw, dummy);
-    lwork = (int)wrkopt;
-  }
-  
-  
-  /* --- Call DGESDD --- */
-  
-  work = new double [lwork];
-  dummy = 0;
-  dgesdd_(&bla[0], npp, npp, &A[0][0], npp, w, NULL, npp, &V[0][0] ,
-	  npp, work, lwork, iw, dummy);
-  
-  
-  /* --- Check for too small singular values --- */
-  
-  double minval = w[0] * svd_thres;
-  for(int ii = 1; ii < npar; ii++) if(w[ii] < minval) w[ii] = 0.0;
-  
-  
-  
-  /* --- Solve the system, xnew at this point is the correction to x, 
-     not the new parameters. We should do xnew += x. --- */
-  
-  backsub(A,w,V,npar,B,xnew);
-  
-  
+  JacobiSVD<MatrixXd,ColPivHouseholderQRPreconditioner> svd(A, ComputeThinU | ComputeThinV);
+  svd.setThreshold(svd_thres);
+  RES = svd.solve(B);
+
   
   /* --- 
      New estimate of the parameters, xnew = x + dx.
@@ -572,48 +665,40 @@ void clm::compute_trial3(double *res, double **rf, double lambda,
   checkParameters(xnew);
   
   
-  /* --- Clean-up mem --- */
   
-  del_mat(A);
-  del_mat(V);
-  delete [] B;
-  delete [] w;
-  delete [] tmp;
-  delete [] work;
-  delete [] iw;
 }
 
 /* -------------------------------------------------------------------------------- */
 
-void clm::backsub(double **u, double *w, double **v, int n, double *b, double *x)
-{
-  /* --- 
-     Ax = B -> A^-1 * B = VT W^-1 U *B
-     JdlCR: Matrices indexes are a bit weird so it works with LAPACK's routines.
-            In LaPack both U and V are transposed compared to standard C notation.
-            Added more accurate routine to add the product of rows/columns.
-  --- */
+// void clm::backsub(double **u, double *w, double **v, int n, double *b, double *x)
+// {
+//   /* --- 
+//      Ax = B -> A^-1 * B = VT W^-1 U *B
+//      JdlCR: Matrices indexes are a bit weird so it works with LAPACK's routines.
+//             In LaPack both U and V are transposed compared to standard C notation.
+//             Added more accurate routine to add the product of rows/columns.
+//   --- */
   
-  double *tmp = new double [n]();
-  double *tmp1 = new double [n]();
+//   double *tmp2 = new double [n]();
+//   double *tmp1 = new double [n]();
   
-  for(int jj=0;jj<n;jj++){    
-    if(fabs(w[jj]) == 0.0) continue;
+//   for(int jj=0;jj<n;jj++){    
+//     if(fabs(w[jj]) == 0.0) continue;
     
-    double sum = 0.0;
-    for(int ii = 0; ii<n; ii++)
-      tmp1[ii]= u[jj][ii]*b[ii];
+//     double sum = 0.0;
+//     for(int ii = 0; ii<n; ii++)
+//       tmp1[ii]= u[jj][ii]*b[ii];
     
-    tmp[jj] = sumarr(tmp1,n)/w[jj];
-  }
+//     tmp2[jj] = sumarr(tmp1,n)/w[jj];
+//   }
   
-  for(int j=0;j<n;j++){    
-    double sum = 0.0;
-    for(int jj=0;jj<n;jj++)
-      tmp1[jj]= tmp[jj]*v[j][jj];
-    x[j] = sumarr(tmp1,n);
-  }  
+//   for(int j=0;j<n;j++){    
+//     double sum = 0.0;
+//     for(int jj=0;jj<n;jj++)
+//       tmp1[jj]= tmp2[jj]*v[j][jj];
+//     x[j] = sumarr(tmp1,n);
+//   }  
 
-  delete [] tmp;
-  delete [] tmp1;
-}
+//   delete [] tmp2;
+//   delete [] tmp1;
+// }
