@@ -103,8 +103,8 @@ class clm{
   //	      double *x, double *xnew);
   void compute_trial2(double *res, double **rf, double lambda,
 		      double *x, double *xnew);
-  void backsub(double **u, double *w, double **v, int n,
-	       double *b, double *x);
+  //void backsub(double **u, double *w, double **v, int n,
+  //	       double *b, double *x);
   void scaleRF(double **rf);
   double checkLambda(double lamb);
   void zero(double *res, double **rf);
