@@ -11,7 +11,7 @@
 	                      it improves convergence significantly!
 	   
 	   2016-06-26, JdlCR: Changed to Eigen3 routines for SVD, 
-	                      the implementation is much cleaner.
+	                      the implementation is much cleaner and faster than LaPack.
 
 */
 
@@ -75,16 +75,16 @@ inline double sumarr(double *arr, size_t n){
 
 inline double sumarr2(double *arr, int n){
 
-  double sum = 0.0, c = 0.0;
+  long double sum = 0.0, c = 0.0;
   
   for(int kk = 0; kk<n; kk++){
-    double y = arr[kk]*arr[kk] - c;
-    double t = sum + y;
+    long double y = arr[kk]*arr[kk] - c;
+    long double t = sum + y;
     c = (t - sum) - y;
     sum = t;
   }
     
-  return sum;
+  return (double)sum;
 }
 
 
@@ -446,6 +446,128 @@ double clm::fitdata(clm_func fx, double *x, void *mydat, int maxiter)
   return (double)bestchi2;
 }
 
+/* -------------------------------------------------------------------------------- */
+
+void clm::compute_trial2(double *res, double **rf, double lambda,
+			double *x, double *xnew)
+{
+
+  
+  /* --- Init arrays --- */
+  
+  MatrixXd A(npar, npar);
+  VectorXd B(npar);
+  Map<VectorXd> RES(xnew, npar);
+
+  
+  /* --- 
+     compute the curvature matrix and the right-hand side of eq.: 
+     A*(dx) = B
+     where A = J.T # J
+           B = J.T # res
+	   and "dx" is the correction to the current model
+     --- */
+
+  for(int yy = 0; yy<npar; yy++){
+    
+    /* --- Compute the Hessian matrix --- */
+
+    for(int xx = 0; xx<=yy; xx++){
+      for(int ww = 0; ww<nd; ww++) tmp[ww] = rf[yy][ww] * rf[xx][ww];
+      
+      A(yy,xx) = sumarr(&tmp[0], nd);
+      A(xx,yy) = A(yy,xx); // Remember that A is symmetric!
+      
+    }
+
+
+    
+    /* --- It works better to store the largest diagonal terms
+       in this cycle and multiply lambda by this value than the 
+       current estimate. I am setting a cap on how much larger
+       it can be relative to the current value 
+       --- */
+    
+    diag[yy] = max(A(yy,yy), diag[yy]);
+    if(diag[yy] == 0.0) diag[yy] = 1.0;
+
+    
+    /* --- Damp the diagonal of A --- */
+
+    A(yy,yy) += lambda * std::min(diag[yy], A(yy,yy) * 10.0);
+    //A[yy][yy] *= (1.0 + lambda);
+
+    
+    /* --- Compute J^t * Residue --- */
+    
+    for(int ww = 0; ww<nd; ww++) tmp[ww] = rf[yy][ww] * res[ww];
+    B[yy] = sumarr(&tmp[0], nd);
+    
+  } // yy
+
+
+  
+  /* --- Solve linear system with SVD decomposition and singular value thresholding --- */
+  
+  JacobiSVD<MatrixXd,ColPivHouseholderQRPreconditioner> svd(A, ComputeThinU | ComputeThinV);
+  svd.setThreshold(svd_thres);
+  RES = svd.solve(B);
+
+  
+  /* --- 
+     New estimate of the parameters, xnew = x + dx.
+     Check for maximum change, add to current pars and normalize.
+     --- */
+  
+  scaleParameters(xnew);
+  checkMaxChange(xnew, x);
+  
+  for(int ii = 0; ii<npar; ii++) xnew[ii] += x[ii];
+
+
+  
+  /* --- Check that new parameters are within limits --- */
+  
+  checkParameters(xnew);
+  
+
+ 
+}
+
+/* -------------------------------------------------------------------------------- */
+
+// void clm::backsub(double **u, double *w, double **v, int n, double *b, double *x)
+// {
+//   /* --- 
+//      Ax = B -> A^-1 * B = VT W^-1 U *B
+//      JdlCR: Matrices indexes are a bit weird so it works with LAPACK's routines.
+//             In LaPack both U and V are transposed compared to standard C notation.
+//             Added more accurate routine to add the product of rows/columns.
+//   --- */
+  
+//   double *tmp2 = new double [n]();
+//   double *tmp1 = new double [n]();
+  
+//   for(int jj=0;jj<n;jj++){    
+//     if(fabs(w[jj]) == 0.0) continue;
+    
+//     double sum = 0.0;
+//     for(int ii = 0; ii<n; ii++)
+//       tmp1[ii]= u[jj][ii]*b[ii];
+    
+//     tmp2[jj] = sumarr(tmp1,n)/w[jj];
+//   }
+  
+//   for(int j=0;j<n;j++){    
+//     double sum = 0.0;
+//     for(int jj=0;jj<n;jj++)
+//       tmp1[jj]= tmp2[jj]*v[j][jj];
+//     x[j] = sumarr(tmp1,n);
+//   }  
+
+//   delete [] tmp2;
+//   delete [] tmp1;
+// }
 
 /* -------------------------------------------------------------------------------- */
 
@@ -583,122 +705,4 @@ double clm::fitdata(clm_func fx, double *x, void *mydat, int maxiter)
 //   delete [] w;
 //   delete [] work;
 //   delete [] iw;
-// }
-
-/* -------------------------------------------------------------------------------- */
-void clm::compute_trial2(double *res, double **rf, double lambda,
-			double *x, double *xnew)
-{
-
-  
-  /* --- Init arrays --- */
-  
-  MatrixXd A(npar, npar);
-  VectorXd B(npar);
-  Map<VectorXd> RES(xnew, npar);
-
-  
-  /* --- 
-     compute the curvature matrix and the right-hand side of eq.: 
-     A*(dx) = B
-     where A = J.T # J
-           B = J.T # res
-	   and "dx" is the correction to the current model
-     --- */
-
-  for(int yy = 0; yy<npar; yy++){
-    
-    /* --- Compute the Hessian matrix --- */
-
-    for(int xx = 0; xx<=yy; xx++){
-      for(int ww = 0; ww<nd; ww++) tmp[ww] = rf[yy][ww] * rf[xx][ww];
-      
-      A(yy,xx) = sumarr(&tmp[0], nd);
-      A(xx,yy) = A(yy,xx); // Remember that A is symmetric!
-      
-    }
-
-
-    
-    /* --- It works better to store the largest diagonal terms
-       in this cycle and multiply lambda by this value than the 
-       current estimate. I am setting a cap on how much larger
-       it can be relative to the current value 
-       --- */
-    
-    diag[yy] = max(A(yy,yy), diag[yy]);
-    if(diag[yy] == 0.0) diag[yy] = 1.0;
-
-    
-    /* --- Damp the diagonal of A --- */
-
-    A(yy,yy) += lambda * std::min(diag[yy], A(yy,yy) * 10.0);
-    //A[yy][yy] *= (1.0 + lambda);
-
-    
-    /* --- Compute J^t * Residue --- */
-    
-    for(int ww = 0; ww<nd; ww++) tmp[ww] = rf[yy][ww] * res[ww];
-    B[yy] = sumarr(&tmp[0], nd);
-    
-  } // yy
-
-
-  
-  /* --- Solve linear system with SVD decomposition and singular value thresholding --- */
-  
-  JacobiSVD<MatrixXd,ColPivHouseholderQRPreconditioner> svd(A, ComputeThinU | ComputeThinV);
-  svd.setThreshold(svd_thres);
-  RES = svd.solve(B);
-
-  
-  /* --- 
-     New estimate of the parameters, xnew = x + dx.
-     Check for maximum change, add to current pars and normalize.
-     --- */
-  
-  scaleParameters(xnew);
-  checkMaxChange(xnew, x);
-  
-  for(int ii = 0; ii<npar; ii++) xnew[ii] += x[ii];
-  
-  checkParameters(xnew);
-  
-  
-  
-}
-
-/* -------------------------------------------------------------------------------- */
-
-// void clm::backsub(double **u, double *w, double **v, int n, double *b, double *x)
-// {
-//   /* --- 
-//      Ax = B -> A^-1 * B = VT W^-1 U *B
-//      JdlCR: Matrices indexes are a bit weird so it works with LAPACK's routines.
-//             In LaPack both U and V are transposed compared to standard C notation.
-//             Added more accurate routine to add the product of rows/columns.
-//   --- */
-  
-//   double *tmp2 = new double [n]();
-//   double *tmp1 = new double [n]();
-  
-//   for(int jj=0;jj<n;jj++){    
-//     if(fabs(w[jj]) == 0.0) continue;
-    
-//     double sum = 0.0;
-//     for(int ii = 0; ii<n; ii++)
-//       tmp1[ii]= u[jj][ii]*b[ii];
-    
-//     tmp2[jj] = sumarr(tmp1,n)/w[jj];
-//   }
-  
-//   for(int j=0;j<n;j++){    
-//     double sum = 0.0;
-//     for(int jj=0;jj<n;jj++)
-//       tmp1[jj]= tmp2[jj]*v[j][jj];
-//     x[j] = sumarr(tmp1,n);
-//   }  
-
-//   delete [] tmp2;
-//   delete [] tmp1;
 // }
