@@ -5,14 +5,14 @@
    author: J. de la Cruz Rodriguez (Department of Astronomy, Stockholm University 2016)
    
    DEPENDENCIES:
-         There are two implementations of the routine that gets the corrections to the model. one based on GSL and the other one based on LAPACK (DEFAULT). A third implementation is commented out in the implementation file, which makes use of EIGEN3.
+          EIGEN3, LaPack (routines commented out, but still working).
 
    PARAMETERS: (DEFAULT VALUES) 
       svd_thres  = 1.e-16 -> Relative threshold for small singular values
-      ilambda    = 1.e-2  -> Initial damping parameter for the Hessian diag.
-      lfac       = 5.0    -> Scale factor for lambda.
-      lmax       = 1.e+5  -> Max lambda parameter
-      lmin       = 1.e-10 -> Min lambda parameter
+      ilambda    = 1.0    -> Initial damping parameter for the Hessian diag.
+      lfac       = 10     -> Scale factor for lambda.
+      lmax       = 1.e+4  -> Max lambda parameter
+      lmin       = 1.e-4  -> Min lambda parameter
       chi2_thres = 1.0    -> Inversion will be finished if Chi2 <= chi2_thres
       xtol       = 1.e-5  -> Min relative change in Chi2
       maxreject  = 6      -> Allowed number of consecutive 
