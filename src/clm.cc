@@ -480,7 +480,6 @@ void clm::compute_trial2(double *res, double **rf, double lambda,
       
     }
 
-
     
     /* --- It works better to store the largest diagonal terms
        in this cycle and multiply lambda by this value than the 
@@ -495,7 +494,6 @@ void clm::compute_trial2(double *res, double **rf, double lambda,
     /* --- Damp the diagonal of A --- */
 
     A(yy,yy) += lambda * std::min(diag[yy], A(yy,yy) * 10.0);
-    //A[yy][yy] *= (1.0 + lambda);
 
     
     /* --- Compute J^t * Residue --- */
@@ -507,7 +505,10 @@ void clm::compute_trial2(double *res, double **rf, double lambda,
 
 
   
-  /* --- Solve linear system with SVD decomposition and singular value thresholding --- */
+  /* --- 
+     Solve linear system with SVD decomposition and singular value thresholding.
+     The SVD is computed with Eigen3 instead of LaPack.
+     --- */
   
   JacobiSVD<MatrixXd,ColPivHouseholderQRPreconditioner> svd(A, ComputeThinU | ComputeThinV);
   svd.setThreshold(svd_thres);
