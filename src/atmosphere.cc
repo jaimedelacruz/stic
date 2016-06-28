@@ -237,7 +237,8 @@ int getChi2(int npar1, int nd, double *pars1, double *dev, double **derivs, void
   m.expand(atm.input.nodes, &ipars[0], atm.input.dint);
   m.getPressureScale(atm.input.boundary, atm.eos);
   //m.nne_enhance(atm.input.nodes, npar1, &ipars[0], atm.eos);
-  if(atm.input.nodes.toinv[6] == 1) fprintf(stderr,"   Mult_pgas=%e\n", ipars[npar1-1]);
+  if(atm.input.nodes.toinv[6] == 1 && atm.input.verbose)
+    fprintf(stderr,"   Mult_pgas=%e\n", ipars[npar1-1]);
 
   
   /* --- Compute synthetic spetra --- */
