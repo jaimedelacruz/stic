@@ -13,7 +13,7 @@
 //
 using namespace std;
 //
-const double atmos::maxchange[7] = {2500., 2.0e5, 2.0e5, 600., phyc::PI/5, phyc::PI/5, 0.2};
+const double atmos::maxchange[7] = {2500., 2.0e5, 2.0e5, 600., phyc::PI/5, phyc::PI/5, 0.6};
 
 
 
@@ -94,7 +94,7 @@ void atmos::responseFunction(int npar, mdepth_t &m_in, double *pars, int nd, dou
       
       //if(input.nodes.ntype[pp] == temp_node && input.thydro == 1)
 	m.getPressureScale(input.boundary, eos);
-	m.nne_enhance(input.nodes, npar, &ipars[0], eos);
+	//m.nne_enhance(input.nodes, npar, &ipars[0], eos);
 
       synth(m, &out[0], (cprof_solver)input.solver, store_pops);
     }
@@ -112,7 +112,7 @@ void atmos::responseFunction(int npar, mdepth_t &m_in, double *pars, int nd, dou
       
       // if(input.nodes.ntype[pp] == temp_node && input.thydro == 1)
 	m.getPressureScale(input.boundary, eos);
-	m.nne_enhance(input.nodes, npar, &ipars[0], eos);
+	//m.nne_enhance(input.nodes, npar, &ipars[0], eos);
 
       synth(m, &spec[0], (cprof_solver)input.solver, store_pops);
     }
@@ -159,7 +159,7 @@ void atmos::responseFunction(int npar, mdepth_t &m_in, double *pars, int nd, dou
     m.expand(input.nodes, &ipars[0],  input.dint);
     //  if((input.nodes.ntype[pp] == temp_node) && (input.thydro == 1))
     m.getPressureScale(input.boundary, eos);
-    m.nne_enhance(input.nodes, npar, &ipars[0], eos);
+    //m.nne_enhance(input.nodes, npar, &ipars[0], eos);
       
     synth(m, &out[0], (cprof_solver)input.solver, store_pops);
     
@@ -236,7 +236,8 @@ int getChi2(int npar1, int nd, double *pars1, double *dev, double **derivs, void
   
   m.expand(atm.input.nodes, &ipars[0], atm.input.dint);
   m.getPressureScale(atm.input.boundary, atm.eos);
-  m.nne_enhance(atm.input.nodes, npar1, &ipars[0], atm.eos);
+  //m.nne_enhance(atm.input.nodes, npar1, &ipars[0], atm.eos);
+  if(atm.input.nodes.toinv[6] == 1) fprintf(stderr,"   Mult_pgas=%e\n", ipars[npar1-1]);
 
   
   /* --- Compute synthetic spetra --- */
@@ -414,7 +415,7 @@ double atmos::fitModel2(mdepth_t &m, int npar, double *pars, int nobs, double *o
   
   memset(&isyn[0],0,ndata*sizeof(double));
   m.expand(input.nodes, &pars[0], input.dint);
-  m.getPressureScale(input.boundary, eos);  
+  m.getPressureScale(input.boundary, eos); 
   synth( m , &isyn[0], (cprof_solver)input.solver, false);
   spectralDegrade(input.ns, (int)1, input.nw_tot, &isyn[0]);
 

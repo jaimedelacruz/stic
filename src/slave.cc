@@ -199,7 +199,7 @@ void do_slave(int myrank, int nprocs, char hostname[]){
 
 	/* --- get pressure scale assuming hydrostatic eq. --- */
 	it.getPressureScale(input.boundary, atmos->eos); // Hydrostatic eq. to derive pressure scale
-	it.nne_enhance(input.nodes, input.npar, &pars(pixel,0), atmos->eos);
+	//it.nne_enhance(input.nodes, input.npar, &pars(pixel,0), atmos->eos);
 
 	memcpy(&pgas_saved[0], &it.pgas[0], input.ndep*sizeof(double)); // Store pgas
 

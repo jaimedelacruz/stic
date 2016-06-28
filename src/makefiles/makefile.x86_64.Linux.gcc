@@ -19,11 +19,11 @@ MPFC = mpif90
 #
 # OPTIMIZATION
 #
-OPTS = -O3  -march=haswell -lm -lpthread
+OPTS = -O3 -ffast-math -march=native -Wa,-q -lm -lpthread
 CXXFLAGS = $(OPTS) -std=c++11 -Wno-literal-suffix
 CFLAGS = $(OPTS) -DHAVE_F90
 FFLAGS = $(OPTS)
-AR = gcc-ar-4.8
+AR = gcc-ar-6
 OPENMP = -fopenmp
 
 

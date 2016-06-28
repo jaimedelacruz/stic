@@ -125,16 +125,15 @@ void mdepth::expand(nodes_t &n, double *p, int interpol){
     int len = (int)n.azi.size();
     nodes2depth(len, &n.azi[0], &p[n.azi_off], ndep, &ltau[0], &azi[0], interpol);
   }
-  /*
+  
   if(n.toinv[6]){
-    fprintf(stderr, "bound=%1d, val=%e, multi=%e\n", n.bound, bound_val, p[n.pgas_off]);
     if     (n.bound == 1) pgas[0] = bound_val*p[n.pgas_off];
     else if(n.bound == 2) rho[0]  = bound_val*p[n.pgas_off];
     else if(n.bound == 3) nne[0]  = bound_val*p[n.pgas_off];
     else pgas[0] =  boundary_pgas_default*p[n.pgas_off];
   }//else fprintf(stderr, "bound=%1d, val=%e\n", n.bound, bound_val);
 
-  */
+  
   
   return;
 }
