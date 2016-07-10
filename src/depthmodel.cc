@@ -160,7 +160,7 @@ void mdepth::fill_densities(ceos &eos, int keep_nne){
      inside fill_densities --- */
   
   eos.fill_densities(ndep, temp, pgas, rho, pel, nne, bound,  keep_nne, 1.e-5);
-
+  
 
 
   /* --- Get scales --- */
