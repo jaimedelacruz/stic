@@ -464,7 +464,7 @@ void CollisionRate(struct Atom *atom, FILE *fp_atom)
   double **cdi, **badi;
   double   acolsh,tcolsh,aradsh,xradsh,adish,bdish,t0sh,t1sh,summrs,tg,cdn,cup;
   double   ar85t1,ar85t2,ar85a,ar85b,ar85c,ar85d,t4;
-  double   de,zz,betab,cbar,dekt,dekti,wlog,wb, sumscl;
+  double   de,zz,betab,cbar,dekt,dekti,wlog,wb, sumscl = 0.0;
 
   getCPU(3, TIME_START, NULL);
 
