@@ -11,6 +11,7 @@
 #include <string>
 #include "input.h"
 #include "cmemt.h"
+#include "cop.h"
 
 /* Interface for Fortran routines */
 extern "C" {
@@ -24,6 +25,7 @@ extern "C" {
 	       float *, int &, int &, float &, float &, float &, int &);
   void check_(const char [][3], char [][8], int *, int &, int &, int &);
 
+  /*
   void contop_(float &T, float &TKEV, float &TK, float &HKT, float &TLOG,
 	       float &XNA, float &XNE, double *WLGRID, double *OPACITY,
 	       double *SCATTER,  
@@ -31,6 +33,7 @@ extern "C" {
 	       float &HE3, float &C1, float &AL1, float &SI1, float &SI2,
 	       float &CA1, float &CA2, float &MG1, float &MG2, float &FE1,
 	       float &N1, float &O1, int &nWLGRID, int &NLINES, int &NTOTALLIST);
+  */
 }
 
 

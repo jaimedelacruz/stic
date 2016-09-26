@@ -508,49 +508,50 @@ double ceos::nne_from_T_rho(double T, double &iPg, double rho, float tol){
 }
 
 void ceos::contOpacity(double T, int nw, double *w,
-		       double *opac, double *scattering, std::vector<float> &frac, float na, float ne){
+		       double *opac, double *scattering, std::vector<float> &frac,
+		       float na, float ne){
 
   
-  float TKEV = 8.6171E-5*T;
-  float TK   = 1.38065E-16*T;
-  float HTK  = 6.6256E-27/TK;
-  float TLOG = log(T);
-  float iT = T;
+  double TKEV = 8.6171E-5*T;
+  double TK   = 1.38065E-16*T;
+  double HTK  = 6.6256E-27/TK;
+  double TLOG = log(T);
+  double iT = T;
 
   int nlines = (int)idxspec.size();
   
-  contop_(iT, TKEV, TK, HTK, TLOG, na, ne, w, opac, scattering,
-	  frac[IXH1-1],
-	  frac[IXH2-1],
-	  frac[IXHMIN-1],
-	  frac[IXHE1-1],
-	  frac[IXHE2-1],
-	  frac[IXHE3-1],
-	  frac[IXC1-1],
-	  frac[IXAL1-1],
-	  frac[IXSI1-1],
-	  frac[IXSI2-1],
-	  frac[IXCA1-1],
-	  frac[IXCA2-1],
-	  frac[IXMG1-1],
-	  frac[IXMG2-1],
-	  frac[IXFE1-1],
-	  frac[IXN1-1],
-	  frac[IXO1-1],
-	  nw, nlines, ntotallist);
+  cop(iT, TKEV, TK, HTK, TLOG, (double)na, (double)ne, w, opac, scattering,
+      (double)frac[IXH1-1],
+      (double)frac[IXH2-1],
+      (double)frac[IXHMIN-1],
+      (double)frac[IXHE1-1],
+      (double)frac[IXHE2-1],
+      (double)frac[IXHE3-1],
+      (double)frac[IXC1-1],
+      (double)frac[IXAL1-1],
+      (double)frac[IXSI1-1],
+      (double)frac[IXSI2-1],
+      (double)frac[IXCA1-1],
+      (double)frac[IXCA2-1],
+      (double)frac[IXMG1-1],
+      (double)frac[IXMG2-1],
+      (double)frac[IXFE1-1],
+      (double)frac[IXN1-1],
+      (double)frac[IXO1-1],
+      nw, nlines, ntotallist);
   
   
 }
 
 void ceos::contOpacity_TPg(double T, double Pg, int nw, double *w, double *opac, double *scattering, double Pe){
-
-
+  
+  
   // init pars
-  float TKEV = 8.6171E-5*T;
-  float TK   = 1.38065E-16*T;
-  float HTK  = 6.6256E-27/TK;
-  float TLOG = log(T);
-  float iT = T;
+  double TKEV = 8.6171E-5*T;
+  double TK   = 1.38065E-16*T;
+  double HTK  = 6.6256E-27/TK;
+  double TLOG = log(T);
+  double iT = T;
   double rho = 0.0;
 
 
@@ -563,36 +564,36 @@ void ceos::contOpacity_TPg(double T, double Pg, int nw, double *w, double *opac,
   int nlines = (int)idxspec.size();
   
   
-  contop_(iT, TKEV, TK, HTK, TLOG, xna, xne, w, opac, scattering,
-	  fract[idxspec[IXH1-1]-1],
-	  fract[idxspec[IXH2-1]-1],
-	  fract[idxspec[IXHMIN-1]-1],
-	  fract[idxspec[IXHE1-1]-1],
-	  fract[idxspec[IXHE2-1]-1],
-	  fract[idxspec[IXHE3-1]-1],
-	  fract[idxspec[IXC1-1]-1],
-	  fract[idxspec[IXAL1-1]-1],
-	  fract[idxspec[IXSI1-1]-1],
-	  fract[idxspec[IXSI2-1]-1],
-	  fract[idxspec[IXCA1-1]-1],
-	  fract[idxspec[IXCA2-1]-1],
-	  fract[idxspec[IXMG1-1]-1],
-	  fract[idxspec[IXMG2-1]-1],
-	  fract[idxspec[IXFE1-1]-1],
-	  fract[idxspec[IXN1-1]-1],
-	  fract[idxspec[IXO1-1]-1],
-	  nw, nlines, ntotallist);
-
+  cop(iT, TKEV, TK, HTK, TLOG, (double)xna, (double)xne, w, opac, scattering,
+      (double)fract[idxspec[IXH1-1]-1],
+      (double)fract[idxspec[IXH2-1]-1],
+      (double)fract[idxspec[IXHMIN-1]-1],
+      (double)fract[idxspec[IXHE1-1]-1],
+      (double)fract[idxspec[IXHE2-1]-1],
+      (double)fract[idxspec[IXHE3-1]-1],
+      (double)fract[idxspec[IXC1-1]-1],
+      (double)fract[idxspec[IXAL1-1]-1],
+      (double)fract[idxspec[IXSI1-1]-1],
+      (double)fract[idxspec[IXSI2-1]-1],
+      (double)fract[idxspec[IXCA1-1]-1],
+      (double)fract[idxspec[IXCA2-1]-1],
+      (double)fract[idxspec[IXMG1-1]-1],
+      (double)fract[idxspec[IXMG2-1]-1],
+      (double)fract[idxspec[IXFE1-1]-1],
+      (double)fract[idxspec[IXN1-1]-1],
+      (double)fract[idxspec[IXO1-1]-1],
+      nw, nlines, ntotallist);
+  
 }
 void ceos::contOpacity_TRho(double T, double rho, int nw, double *w, double *opac, double *scattering, double Pe)
 {
-
+  
   // init pars
-  float TKEV = 8.6171E-5*T;
-  float TK   = 1.38065E-16*T;
-  float HTK  = 6.6256E-27/TK;
-  float TLOG = log(T);
-  float iT = T;
+  double TKEV = 8.6171E-5*T;
+  double TK   = 1.38065E-16*T;
+  double HTK  = 6.6256E-27/TK;
+  double TLOG = log(T);
+  double iT = T;
   double Pg = 0.0;
   
   // Solve EOS, given T and Pg
@@ -600,25 +601,25 @@ void ceos::contOpacity_TRho(double T, double rho, int nw, double *w, double *opa
 
   int nlines = idxspec.size();
 
-  contop_(iT, TKEV, TK, HTK, TLOG, xna, xne, w, opac, scattering,
-	  fract[idxspec[IXH1-1]-1],
-	  fract[idxspec[IXH2-1]-1],
-	  fract[idxspec[IXHMIN-1]-1],
-	  fract[idxspec[IXHE1-1]-1],
-	  fract[idxspec[IXHE2-1]-1],
-	  fract[idxspec[IXHE3-1]-1],
-	  fract[idxspec[IXC1-1]-1],
-	  fract[idxspec[IXAL1-1]-1],
-	  fract[idxspec[IXSI1-1]-1],
-	  fract[idxspec[IXSI2-1]-1],
-	  fract[idxspec[IXCA1-1]-1],
-	  fract[idxspec[IXCA2-1]-1],
-	  fract[idxspec[IXMG1-1]-1],
-	  fract[idxspec[IXMG2-1]-1],
-	  fract[idxspec[IXFE1-1]-1],
-	  fract[idxspec[IXN1-1]-1],
-	  fract[idxspec[IXO1-1]-1],
-	  nw, nlines, ntotallist);
+  cop(iT, TKEV, TK, HTK, TLOG, (double)xna, (double)xne, w, opac, scattering,
+      (double)fract[idxspec[IXH1-1]-1],
+      (double)fract[idxspec[IXH2-1]-1],
+      (double)fract[idxspec[IXHMIN-1]-1],
+      (double)fract[idxspec[IXHE1-1]-1],
+      (double)fract[idxspec[IXHE2-1]-1],
+      (double)fract[idxspec[IXHE3-1]-1],
+      (double)fract[idxspec[IXC1-1]-1],
+      (double)fract[idxspec[IXAL1-1]-1],
+      (double)fract[idxspec[IXSI1-1]-1],
+      (double)fract[idxspec[IXSI2-1]-1],
+      (double)fract[idxspec[IXCA1-1]-1],
+      (double)fract[idxspec[IXCA2-1]-1],
+      (double)fract[idxspec[IXMG1-1]-1],
+      (double)fract[idxspec[IXMG2-1]-1],
+      (double)fract[idxspec[IXFE1-1]-1],
+      (double)fract[idxspec[IXN1-1]-1],
+      (double)fract[idxspec[IXO1-1]-1],
+      nw, nlines, ntotallist);
   
   /* 
      contop_(iT, TKEV, TK, HTK, TLOG, xna, xne, w, opac, scattering, &fract[0], &idxspec[0],

@@ -11,8 +11,8 @@ LIBS = $(LIBS_FDENS) -lgfortran -L./ -L$(RHFOLD)/rh_1d/ -lrhf1d -L$(GSLPATH) -lb
 
 
 
-FFILES = eos_math_special.o eos_eqns.o eos.o contop.o contop_3d.o
-OFILES_SPARSE = input.o clm.o ceos.o comm.o depthmodel.o wavelet.o  hinode.o spectral.o atmosphere.o clte.o crh.o io.o slave.o  sparse.o master_sparse.o main_sparse.o 
+FFILES = eos_math_special.o eos_eqns.o eos.o 
+OFILES_SPARSE = input.o clm.o cop.o ceos.o comm.o depthmodel.o wavelet.o hinode.o spectral.o atmosphere.o clte.o crh.o io.o slave.o  sparse.o master_sparse.o main_sparse.o 
 
 FDENS = ceos.o io.o depthmodel.o fillDensities.o
 
