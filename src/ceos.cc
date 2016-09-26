@@ -5,6 +5,7 @@
 #include <algorithm>
 #include "ceos.h"
 #include "input.h"
+#include "cop.h"
 //
 using namespace std;
 

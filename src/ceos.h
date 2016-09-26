@@ -11,7 +11,6 @@
 #include <string>
 #include "input.h"
 #include "cmemt.h"
-#include "cop.h"
 
 /* Interface for Fortran routines */
 extern "C" {
