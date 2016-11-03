@@ -28,8 +28,8 @@ class io{
   std::vector<netCDF::NcDim> dims;
   std::vector<netCDF::NcVar> vars;
   // Constructor
-  io(std::string filename, netCDF::NcFile::FileMode mode = netCDF::NcFile::write){
-    initRead(filename, mode);
+  io(std::string filename, netCDF::NcFile::FileMode mode = netCDF::NcFile::write, bool verbose = true){
+    initRead(filename, mode, verbose);
   }
  io():ifile(NULL){};
  
@@ -44,7 +44,7 @@ class io{
   ////////////////////////////////////////
   // Methods implemented in the .cc file//
   ////////////////////////////////////////
-  void initRead(std::string filename, netCDF::NcFile::FileMode mode = netCDF::NcFile::write);
+  void initRead(std::string filename, netCDF::NcFile::FileMode mode = netCDF::NcFile::write, bool verbose = true);
   void initDim(std::string vname, int size = 0);
   void initDim(std::vector<std::string> vname, std::vector<int> vsize);
   std::vector<int> dimSize(std::string vname);
@@ -59,7 +59,7 @@ class io{
 
   // bool read_Tstep(std::string vname, mat<double> &res,int irec = 0);
   // Read variable assuming double
-  template <class T> bool read_Tstep(std::string vname, mat<T> &res, int irec = 0){
+  template <class T> bool read_Tstep(std::string vname, mat<T> &res, int irec = 0, bool verbose = true){
   
     std::string inam = "io::read_Tstep: ";
     res.d.clear();
@@ -125,16 +125,20 @@ class io{
       }
       vars[idx].getVar(start, count, &res.d[0]);
       //
-      std::cout << inam <<"read "<<vname<<" (t="<<irec<<") ["<<res.size(0);
-      for(int tt=1;tt<res.ndims();tt++) std::cout << ", "<<res.size(tt);
-      std::cout <<"]"<<std::endl;
+      if(verbose){
+	std::cout << inam <<"read "<<vname<<" (t="<<irec<<") ["<<res.size(0);
+	for(int tt=1;tt<res.ndims();tt++) std::cout << ", "<<res.size(tt);
+	std::cout <<"]"<<std::endl;
+      }
 
     }else if((ndim-newdims.size()) == 0){ // All dimensions are limited -> read all
       vars[idx].getVar(&res.d[0]);
       //
-      std::cout << inam <<"read "<<vname<<" ["<<res.size(0);
-      for(int tt=1;tt<res.ndims();tt++) std::cout << ", "<<res.size(tt);
-      std::cout <<"]"<<std::endl;
+      if(verbose){
+	std::cout << inam <<"read "<<vname<<" ["<<res.size(0);
+	for(int tt=1;tt<res.ndims();tt++) std::cout << ", "<<res.size(tt);
+	std::cout <<"]"<<std::endl;
+      }
     }
 
     return true;

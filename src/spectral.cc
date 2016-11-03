@@ -31,8 +31,8 @@ spectral::spectral(region_t &in, int nthreads){
   
   {
     mat<double> tmp;
-    io ifil(file_exists(reg.ifile), NcFile::read);
-    ifil.read_Tstep<double>("iprof", tmp);
+    io ifil(file_exists(reg.ifile), NcFile::read, false);
+    ifil.read_Tstep<double>("iprof", tmp, 0, false);
     ipsf = tmp.d;
   }
   

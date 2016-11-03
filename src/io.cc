@@ -16,7 +16,7 @@
 using namespace std;
 using namespace netCDF;
 //
-void io::initRead(string filename, netCDF::NcFile::FileMode mode){
+void io::initRead(string filename, netCDF::NcFile::FileMode mode, bool verbose){
   //
   string inam = "io::initRead: ";
   file = filename;
@@ -31,9 +31,11 @@ void io::initRead(string filename, netCDF::NcFile::FileMode mode){
     }
     
     // printout info
-    cout << inam << "Found "<<nvar<<" variables"<< " in "<<file<<" ["<<vars[0].getName();
-    for(int vv = 1;vv<nvar;vv++) cout <<", "<< vars[vv].getName();
-    cout<<"]"<<endl;
+    if(verbose){
+      cout << inam << "Found "<<nvar<<" variables"<< " in "<<file<<" ["<<vars[0].getName();
+      for(int vv = 1;vv<nvar;vv++) cout <<", "<< vars[vv].getName();
+      cout<<"]"<<endl;
+    }
 
   } //else{cout << inam <<"Warning, file is empty"<<endl;}
 
