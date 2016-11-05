@@ -27,6 +27,7 @@
 #include <ctype.h>
 #include <stdlib.h>
 #include <math.h>
+#include <stdio.h>
 #include <string.h>
 
 #include "rh.h"
@@ -279,13 +280,16 @@ void readAtom(Atom *atom, char *atom_file, bool_t active)
       line->c_fraction = (double *) malloc(sizeof(double));
       line->c_fraction[0] = 1.0;
     }
-
+    
     if (strstr(vdWstr, "PARAMTR"))
       line->vdWaals = RIDDER_RENSBERGEN;
     else if (strstr(vdWstr, "UNSOLD")) {
       line->vdWaals = UNSOLD;
       line->cvdWaals[3] = line->cvdWaals[1] = 0.0;
-    } else if (strstr(vdWstr, "BARKLEM")) {
+    }  else if(strstr(vdWstr, "BARKLEM2")){
+      line->vdWaals = BARKLEM;
+      setBarklemactivecross(line);
+    }else if (strstr(vdWstr, "BARKLEM")) {
       line->vdWaals = BARKLEM;
       if (!getBarklemactivecross(line)) {
 	sprintf(messageStr,
@@ -295,7 +299,7 @@ void readAtom(Atom *atom, char *atom_file, bool_t active)
 	line->vdWaals = UNSOLD;
 	line->cvdWaals[3] = line->cvdWaals[1] = 0.0;
       }
-    } else {
+    }else {
       sprintf(messageStr, "Invalid value for vd Waals string: %s", vdWstr);
       Error(ERROR_LEVEL_2, routineName, messageStr);
     }

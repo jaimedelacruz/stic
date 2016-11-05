@@ -240,6 +240,7 @@ bool_t writeDamping(Atom *atom);
 bool_t readBarklemTable(enum Barklemtype type, Barklemstruct *bs);
 bool_t getBarklemcross(Barklemstruct *bs, RLK_Line *rlk);
 bool_t getBarklemactivecross(AtomicLine *line);
+bool_t setBarklemactivecross(AtomicLine *line);
 
 
 /* --- Associated function prototypes --               -------------- */

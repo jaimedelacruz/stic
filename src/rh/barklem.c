@@ -181,9 +181,10 @@ bool_t getBarklemcross(Barklemstruct *bs, RLK_Line *rlk)
   rlk->alpha = cubeconvol(bs->N2, bs->N1,
 			  bs->alpha[0], findex2, findex1);
 
+  
   reducedmass  = AMU / (1.0/atmos.H->weight + 1.0/element->weight);
   meanvelocity = sqrt(8.0 * KBOLTZMANN / (PI * reducedmass));
-  crossmean    = SQ(RBOHR) * pow(meanvelocity / 1.0E4, -rlk->alpha);
+  crossmean    = SQ(RBOHR) * pow(meanvelocity / 1.0E4, 1.0-rlk->alpha);
 
   rlk->cross *= 2.0 * pow(4.0/PI, rlk->alpha/2.0) * 
     exp(gammln((4.0 - rlk->alpha)/2.0)) * meanvelocity * crossmean;  
@@ -211,8 +212,8 @@ bool_t getBarklemactivecross(AtomicLine *line)
 
   /* --- ABO tabulations are only valid for neutral atoms -- -------- */
 
-  if (atom->stage[i] > 0)
-    return FALSE;
+   if (atom->stage[i] > 0)
+     return FALSE;
 
   /* --- Get the quantum numbers for orbital angular momentum -- ---- */
 
@@ -272,9 +273,10 @@ bool_t getBarklemactivecross(AtomicLine *line)
   line->cvdWaals[1] = cubeconvol(bs.N2, bs.N1,
 				 bs.alpha[0], findex2, findex1);
 
+   
   reducedmass  = AMU / (1.0/atmos.atoms[0].weight + 1.0/atom->weight);
   meanvelocity = sqrt(8.0 * KBOLTZMANN / (PI * reducedmass));
-  crossmean    = SQ(RBOHR) * pow(meanvelocity / 1.0E4, -line->cvdWaals[1]);
+  crossmean    = SQ(RBOHR) * pow(meanvelocity / 1.0E4, 1.0-line->cvdWaals[1]);
 
   line->cvdWaals[0] *= 2.0 * pow(4.0/PI, line->cvdWaals[1]/2.0) * 
     exp(gammln((4.0 - line->cvdWaals[1])/2.0)) * meanvelocity * crossmean;  
@@ -287,3 +289,28 @@ bool_t getBarklemactivecross(AtomicLine *line)
   return TRUE;
 }
 /* ------- end ---------------------------- getBarklemactivecross.c -- */
+
+
+bool_t setBarklemactivecross(AtomicLine *line)
+{
+  Atom *atom;
+  double reducedmass, meanvelocity, crossmean;
+  
+  atom = line->atom;
+  
+  /* --- Compute the FWHM of the line --- */
+  
+  reducedmass  = AMU / (1.0/atmos.atoms[0].weight + 1.0/atom->weight);
+  meanvelocity = sqrt(8.0 * KBOLTZMANN / (PI * reducedmass));
+  crossmean    = SQ(RBOHR) * pow(meanvelocity / 1.0E4, 1.0-line->cvdWaals[1]);
+  
+  line->cvdWaals[0] *= 2.0 * pow(4.0/PI, line->cvdWaals[1]/2.0) * 
+    exp(gammln((4.0 - line->cvdWaals[1])/2.0)) * meanvelocity * crossmean;  
+  
+  /* --- Use UNSOLD for the contribution of Helium atoms -- ---------- */
+  
+  line->cvdWaals[2] = 1.0;
+  line->cvdWaals[3] = 0.0;
+
+  return TRUE;
+}
