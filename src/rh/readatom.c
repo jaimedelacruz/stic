@@ -286,9 +286,6 @@ void readAtom(Atom *atom, char *atom_file, bool_t active)
     else if (strstr(vdWstr, "UNSOLD")) {
       line->vdWaals = UNSOLD;
       line->cvdWaals[3] = line->cvdWaals[1] = 0.0;
-    }  else if(strstr(vdWstr, "BARKLEM2")){
-      line->vdWaals = BARKLEM;
-      setBarklemactivecross(line);
     }else if (strstr(vdWstr, "BARKLEM")) {
       line->vdWaals = BARKLEM;
       if (!getBarklemactivecross(line)) {
