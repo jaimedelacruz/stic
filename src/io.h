@@ -124,6 +124,12 @@ class io{
 	}
       }
       vars[idx].getVar(start, count, &res.d[0]);
+      if(res.isNaN()){
+	std::cerr << inam << "ERROR, variable ["<<vname<<"] contains NaNs, exiting!"<<std::endl;
+	exit(0);
+      }
+      
+      
       //
       if(verbose){
 	std::cout << inam <<"read "<<vname<<" (t="<<irec<<") ["<<res.size(0);

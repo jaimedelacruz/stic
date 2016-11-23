@@ -21,6 +21,8 @@
 	  2015-04-10, JdlCR: Changed nc to a 'stack' 6 element C array, 
 	                     hopefully much easier to optimize for the compiler
 			     than a C++ dynamic vector class.
+			   
+	  2016-11-23, JdlCR: Check for NaNs.
 
 */
 
@@ -311,6 +313,11 @@ template <class T> class mat {
     return s;
   }
 
+  bool isNaN() const{
+    for(size_t ii=0; ii<nel; ii++) if(isnan(d[ii])) return true;
+    return false;
+  }
+  
 
 };
  
