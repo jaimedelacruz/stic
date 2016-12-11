@@ -123,8 +123,8 @@ namespace mfft{
       double *ppsf   = new double [npad]();
       padded         = new double [npad]();
       //
-      ft  = new std::complex<double> [nft];
-      otf = new std::complex<double> [nft];
+      ft  = new std::complex<double> [nft]();
+      otf = new std::complex<double> [nft]();
 
       
       /* --- shift PSF 1/2 of the elements of the PSF cyclicly. Apply normalizations --- */

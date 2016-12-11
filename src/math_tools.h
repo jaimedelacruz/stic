@@ -98,7 +98,29 @@ namespace mth{
   }
   /* ------------------------------------------------------------------------------- */
   
-
+  template <class T> size_t argmax(size_t n, T *a){
+    T mm = 0;
+    size_t idx = 0;
+    for(size_t ii=1; ii<n; ii++) if(a[ii] > mm){
+	mm = a[ii];
+	idx = ii;
+      }
+    return idx;
+  }
+  /* ------------------------------------------------------------------------------- */
+  
+  template <class T> size_t argmin(size_t n, T *a){
+    T mm = 0;
+    size_t idx = 0;
+    for(size_t ii=1; ii<n; ii++) if(a[ii] < mm){
+	mm = a[ii];
+	idx = ii;
+      }
+    return idx;
+  }
+  /* ------------------------------------------------------------------------------- */
+  
+  
   
 } // namespace
 
