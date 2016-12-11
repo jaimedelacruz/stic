@@ -120,8 +120,42 @@ namespace mth{
   }
   /* ------------------------------------------------------------------------------- */
   
-  
-  
+  template <class T> void convolve1D(size_t n, T *sp, size_t npsf, T *psf){
+    
+    size_t npsf2 = npsf / 2, ii = 0;
+    double *tmp = new double [n];
+    
+    for(size_t ww = 0; ww < n; ww++){
+      
+      /* --- Define limits to integrate with the PSF --- */
+      
+      int w0 = std::max(ww-npsf2, 0), w1 = std::min(ww+npsf2, n-1), ii = w0 - (ww - npsf2);
+      double sum = 0.0;
+
+      /* --- Accumulate both the area of the PSF and the integrated data --- */
+      
+      for(int kk = w0; kk <= w1; kk++){
+	tmp[ww] += psf[ii+kk-w0]*sp[kk];
+	sum += psf[ii+kk-w0];
+      }
+
+      /* --- nomalize by the area of the PSF --- */
+      
+      tmp[ww] /= sum; 
+    }
+
+    
+    /* --- Copy back array, cannot assume same type to use memcpy --- */
+    
+    for(size_t ii=0; ii<n; ii++) sp[ii] = (T)tmp[ii];
+
+    
+    /* --- Clean-up --- */
+    
+    delete [] tmp;
+  }
+  /* ------------------------------------------------------------------------------- */
+
 } // namespace
 
 #endif
