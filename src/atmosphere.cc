@@ -10,10 +10,11 @@
 #include "input.h"
 #include "physical_consts.h"
 #include "clm.h"
+#include "math_tools.h"
 //
 using namespace std;
 //
-const double atmos::maxchange[7] = {2500., 2.0e5, 2.0e5, 600., phyc::PI/5, phyc::PI/5, 0.6};
+const double atmos::maxchange[7] = {2500., 3.0e5, 2.0e5, 500., phyc::PI/5, phyc::PI/5, 0.6};
 
 
 
@@ -62,7 +63,7 @@ void atmos::responseFunction(int npar, mdepth_t &m_in, double *pars, int nd, dou
   double pertu = 0.0;
     
   //
-  if(input.nodes.ntype[pp] == temp_node) pertu = input.dpar * pval * 0.35;
+  if(input.nodes.ntype[pp] == temp_node) pertu = input.dpar * pval * 0.5;
   else                                   pertu = input.dpar * scal[pp];
   
   /* --- Centered derivatives ? --- */
@@ -200,17 +201,17 @@ void atmos::randomizeParameters(nodes_t &n, int npar, double *pars){
     if(n.ntype[pp] == temp_node)
       pertu = 2.0 * (rnum - 0.5) * scal[pp] * 0.1;
     else if(n.ntype[pp] == v_node)
-      pertu =  2.0 * (rnum - 0.5) * scal[pp];
+      pertu =  (rnum - 0.5) * scal[pp];
     else if(n.ntype[pp] == vturb_node)
-      pertu =  2.0 * (rnum - 0.5) * scal[pp];
+      pertu =  (rnum - 0.5) * scal[pp];
     else if(n.ntype[pp] == b_node)
       pertu =  rnum * scal[pp];
     else if(n.ntype[pp] == inc_node)
-      pertu =  rnum * scal[pp];
+      pertu =  rnum * scal[pp]*phyc::PI;
     else if(n.ntype[pp] == azi_node)
-      pertu =  rnum * scal[pp];   
+      pertu =  rnum * scal[pp]*phyc::PI;   
     else if(n.ntype[pp] == pgas_node)
-      pertu = rnum-0.5;
+      pertu = rnum;
       
     pars[pp] = checkParameter(pars[pp] + pertu, pp);
   }
@@ -218,8 +219,53 @@ void atmos::randomizeParameters(nodes_t &n, int npar, double *pars){
   
 }
 
+void getDregul(mdepth &m, int npar, double *dregul, nodes_t &n)
+{
+  const double scale[2] = {0.075, 0.75};
+  double penalty = 0.0, sum = 0.0, total = 0.0;
+  double bla[2] = {0.0,0.0};
+  
+  
+  /* --- Vturb regularization: penalize deviations from zero --- */
+  
+  for(size_t ii=0; ii<m.ndep; ii++) penalty += mth::sqr((m.vturb[ii]-sum)*1.e-5);
+  penalty *= scale[0]/m.ndep;
 
-int getChi2(int npar1, int nd, double *pars1, double *dev, double **derivs, void *tmp1){
+
+  /* --- Now derivative of vturb --- */
+
+  for(size_t ii=0; ii<m.ndep; ii++) bla[0] += 2.0e-5 * (m.vturb[ii]-sum);
+  bla[0] *= scale[0]/m.ndep;
+  
+  
+  
+  /* --- Vlos regularization: penalize deviations from the mean value --- */
+
+  sum = 0.0;
+  total = mth::sum(m.ndep, m.v) / m.ndep;
+  for(size_t ii=0; ii<m.ndep; ii++) sum += mth::sqr((m.v[ii]-total)*1.e-5);
+  penalty +=  sum * scale[1] / m.ndep;
+  
+
+  /* --- Now derivative of Vlos --- */
+
+  for(size_t ii=0; ii<m.ndep; ii++) bla[1] += 2.0e-5 * (m.v[ii]-total);
+  bla[0] *= scale[0]/m.ndep;
+
+    
+  for(size_t ii=0; ii<npar; ii++) {
+    if     (n.ntype[ii] == vturb_node) dregul[ii] = bla[0];
+    else if(n.ntype[ii] == v_node    ) dregul[ii] = bla[1];
+    else                               dregul[ii] = 0.0;
+  }
+  
+
+  /* --- Store the Chi2 penalty in the last element of dregul --- */
+  
+  dregul[npar] = penalty;
+}
+
+int getChi2(int npar1, int nd, double *pars1, double *dev, double **derivs, void *tmp1, double *dregul){
 
   
   /* --- Cast tmp1 into a double --- */
@@ -236,9 +282,6 @@ int getChi2(int npar1, int nd, double *pars1, double *dev, double **derivs, void
   
   m.expand(atm.input.nodes, &ipars[0], atm.input.dint);
   m.getPressureScale(atm.input.boundary, atm.eos);
-  //m.nne_enhance(atm.input.nodes, npar1, &ipars[0], atm.eos);
-  if(atm.input.nodes.toinv[6] == 1 && atm.input.verbose)
-    fprintf(stderr,"   Mult_pgas=%e\n", ipars[npar1-1]);
 
   
   /* --- Compute synthetic spetra --- */
@@ -293,6 +336,12 @@ int getChi2(int npar1, int nd, double *pars1, double *dev, double **derivs, void
     dev[ww] = (atm.obs[ww] - atm.isyn[ww]) / atm.w[ww];
   }
 
+
+  /* ---  compute regularization --- */ 
+
+  if(dregul)
+    getDregul(m, npar1, dregul, atm.input.nodes);
+      
   /* --- clean up --- */
   
   delete [] ipars;
@@ -334,9 +383,10 @@ double atmos::fitModel2(mdepth_t &m, int npar, double *pars, int nobs, double *o
   lm.svd_thres = max(input.svd_thres, 1.e-16);
   lm.chi2_thres = input.chi2_thres;
   lm.lmax = 1.e4;
-  lm.lmin = 1.e-4;
+  lm.lmin = 1.e-5;
   lm.proc = input.myrank;
-
+  lm.regularize = true;
+  
   
   /* ---  Set parameter limits --- */
   

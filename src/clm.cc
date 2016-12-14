@@ -4,7 +4,7 @@
 
    Documentation included in the header file clm.h.
 
-   Dependencies: DGESDD_ from LaPack for the SVD calculation, Eigen3.
+   Dependencies: Eigen3 for SVD decomp.
 
    Modifications: 
            2016-04-08, JdlCR: Added Kahan summation to perform the matrix multiplication,
@@ -12,6 +12,10 @@
 	   
 	   2016-06-26, JdlCR: Changed to Eigen3 routines for SVD, 
 	                      the implementation is much cleaner and faster than LaPack.
+
+	   2016-12-13, JdlCR: added the possibility to add l-2 regulatization. The user 
+	                      must provide a function that computes the regularization 
+			      term for all parameter.
 
 */
 
@@ -114,13 +118,14 @@ clm::clm(int ind, int inpar){
   
   xtol = 1.e-5;       // Controls the minimum relative change to Chi2
   chi2_thres = 1.0;   // Exit inversion if Chi2 is lower than this
-  svd_thres = 1.e-16; // Cut-off "relative" thres. for small singular values
+  svd_thres = 1.e-13; // Cut-off "relative" thres. for small singular values
   lmax = 1.0e4;       // Maximum lambda value
-  lmin = 1.0e-4;      // Minimum lambda value
+  lmin = 1.0e-5;      // Minimum lambda value
   lfac = 10.0;        // Change lambda by this amount
   ilambda = 1.0;      // Initial damping parameter for the Hessian giag.
-  maxreject = 6;      // Max failed evaluations of lambda.
+  maxreject = 7;      // Max failed evaluations of lambda.
   error = false;
+  regularize = false; // Compute regularization terms in fx ?
   proc = 0;           // print-out processor number
 }
 
@@ -221,15 +226,16 @@ void clm::zero(double *res, double **rf)
   
 /* -------------------------------------------------------------------------------- */
 
-double clm::compute_chi2(double *res)
+double clm::compute_chi2(double *res, double penalty)
 {
-  return (double)sumarr2(res,nd)/double(nd);				 
+  // std::cerr<< (double)sumarr2(res,nd)/double(nd)<<" "<<penalty<<std::endl;
+  return (double)sumarr2(res,nd)/double(nd) + penalty;				 
 }
 
 /* -------------------------------------------------------------------------------- */
 
 double clm::getChi2Pars(double *res, double **rf, double lambda,
-			double *x, double *xnew, void *mydat, clm_func fx)
+			double *x, double *xnew, void *mydat, clm_func fx, double *dregul)
 {
 
   double newchi2 = 1.e13;
@@ -237,25 +243,28 @@ double clm::getChi2Pars(double *res, double **rf, double lambda,
   /* --- Get new estimate of the model for the current lambda value --- */
   
   memset(xnew, 0, sizeof(double)*npar);
-  compute_trial2(res, rf, lambda, x, xnew);
+  compute_trial2(res, rf, lambda, x, xnew, dregul);
 
 
   /* --- Evaluate the new model, no response function is needed --- */
 
   double *new_res = new double [nd]();
+  double *new_dregul = NULL;
+  if(dregul) new_dregul = new double [nd]();
   
-  int status = fx(npar, nd, xnew, new_res, NULL, mydat);
+  int status = fx(npar, nd, xnew, new_res, NULL, mydat, new_dregul);
   if(status){
     if(verb)
       fprintf(stderr, "clm::fitdata: [p:%4d] ERROR in the evaluation of FX, aborting inversion\n", proc);
     error = true;
-  }else newchi2 = compute_chi2(new_res);
+  }else newchi2 = compute_chi2(new_res, (dregul)?new_dregul[npar]:0.0);
 
   delete [] new_res;
     
     
   /* --- compute Chi2 --- */
-    
+
+  if(new_dregul) delete [] new_dregul;
   return (double)newchi2;
 }
 
@@ -284,6 +293,10 @@ double clm::fitdata(clm_func fx, double *x, void *mydat, int maxiter)
   string rej = "";
   memset(&diag[0],0,npar*sizeof(double));
   error = false;
+
+  double *dregul = NULL;
+  if(regularize) dregul = new double [npar+1](); // To store derivatives of regularization terms
+  
   
   /* --- Init array for residues and response function --- */
   
@@ -305,7 +318,7 @@ double clm::fitdata(clm_func fx, double *x, void *mydat, int maxiter)
 
   /* --- Evaluate residues and RF, init chi2 --- */
 
-  int status = fx(npar, nd, x, res, rf, mydat);
+  int status = fx(npar, nd, x, res, rf, mydat, dregul);
   if(status){
     if(verb)
       fprintf(stderr, "clm::fitdata: [p:%4d] ERROR in the evaluation of FX, aborting inversion\n", proc);
@@ -316,11 +329,11 @@ double clm::fitdata(clm_func fx, double *x, void *mydat, int maxiter)
     scaleRF(rf);
     memcpy(&bestpars[0], &x[0], npar*sizeof(double));
     //
-    ochi2 = compute_chi2(res);
+    ochi2 = compute_chi2(res, (dregul)?dregul[npar]:0.0);
     bestchi2 = ochi2;
     
     if(verb)
-      fprintf(stdout, "[p:%4d,Init] chi2=%f, lambda=%e\n", proc, ochi2, lambda);
+      fprintf(stdout, "[p:%4d, Init] chi2=%f (%f), lambda=%e\n", proc, ochi2,(dregul)?dregul[npar]:0.0 , lambda);
   }
 
   /* --- Main iterations --- */
@@ -332,7 +345,7 @@ double clm::fitdata(clm_func fx, double *x, void *mydat, int maxiter)
        inside getChi2Pars 
        --- */
     if(error) break;
-    chi2 = getChi2Pars(res, rf, lambda, x, xnew, mydat, fx);
+    chi2 = getChi2Pars(res, rf, lambda, x, xnew, mydat, fx, dregul);
     if(chi2 != chi2) error = true;
     if(error) break;
     
@@ -340,15 +353,17 @@ double clm::fitdata(clm_func fx, double *x, void *mydat, int maxiter)
 
     /* --- Check if we have improved or not --- */
 
-    double reldchi = 2.0 * (chi2 - bestchi2) / (chi2+bestchi2);
+    double reldchi = 2.0 * (chi2 - bestchi2) / (chi2 + bestchi2);
     olambda = lambda;
 
     if(chi2 < bestchi2){
       
-      /* --- Prep lambda for next iter --- */
+      /* --- Prep lambda for next iter. If we have been increasing lambda,
+	 do not decrease it again until next iteration 
+	 --- */
       
-      lambda = checkLambda(lambda / lfac);
-
+      if(nretry == 0) lambda = checkLambda(lambda / lfac);
+      
 
       /* --- is the improvements below our threshold? --- */
 
@@ -364,6 +379,7 @@ double clm::fitdata(clm_func fx, double *x, void *mydat, int maxiter)
       memcpy(&bestpars[0], xnew, npar*sizeof(double));
       memcpy(&x[0],        xnew, npar*sizeof(double));
       nretry = 0;
+
       rej = " ";
       
     }else{
@@ -375,8 +391,8 @@ double clm::fitdata(clm_func fx, double *x, void *mydat, int maxiter)
       
       if(nretry < maxreject){
 	if(verb)
-	  fprintf(stderr,"[p:%4d,i:%4d]  ->  chi2=%f, increasing lambda [%e -> %e]\n",
-		  proc,iter, chi2, olambda, lambda);
+	  fprintf(stderr,"[p:%4d,i:%4d]  ->  chi2=%f (%f), increasing lambda [%e -> %e]\n",
+		  proc,iter, chi2, (dregul)?dregul[npar]:0.0,olambda, lambda);
 	continue;
       }
 	
@@ -387,8 +403,8 @@ double clm::fitdata(clm_func fx, double *x, void *mydat, int maxiter)
     t1 = getTime();
 
     if(verb)
-      fprintf(stderr,"[p:%4d,i:%4d] chi2=%14.5f, dchi2=%e, lambda=%e, elapsed=%5.3fs %s\n",
-	      proc,iter, chi2, chi2-ochi2, olambda, t1-t0,rej.c_str());
+      fprintf(stderr,"[p:%4d,i:%4d] chi2=%14.5f (%f), dchi2=%e, lambda=%e, elapsed=%5.3fs %s\n",
+	      proc,iter, chi2, (dregul)?dregul[npar]:0.0,chi2-ochi2, olambda, t1-t0,rej.c_str());
     
     ochi2 = chi2;
 
@@ -419,7 +435,10 @@ double clm::fitdata(clm_func fx, double *x, void *mydat, int maxiter)
     
     t0 = t1;
     zero(res, rf);
-    status = fx(npar, nd, x, res, rf, mydat);
+    memset(dregul, 0, npar*sizeof(double));
+    //
+    status = fx(npar, nd, x, res, rf, mydat, dregul);
+    //
     if(status){
       if(verb)
 	fprintf(stderr, "clm::fitdata: [p:%4d] ERROR in the evaluation of FX, aborting inversion\n", proc);
@@ -442,18 +461,19 @@ double clm::fitdata(clm_func fx, double *x, void *mydat, int maxiter)
   delete [] res;
   delete [] bestpars;
   delete [] xnew;
-
+  delete [] dregul;
+  
   return (double)bestchi2;
 }
 
 /* -------------------------------------------------------------------------------- */
 
 void clm::compute_trial2(double *res, double **rf, double lambda,
-			double *x, double *xnew)
+			 double *x, double *xnew, double *dregul)
 {
 
   
-  /* --- Init arrays --- */
+  /* --- Init Eigen-3 arrays --- */
   
   MatrixXd A(npar, npar);
   VectorXd B(npar);
@@ -476,6 +496,11 @@ void clm::compute_trial2(double *res, double **rf, double lambda,
       for(int ww = 0; ww<nd; ww++) tmp[ww] = rf[yy][ww] * rf[xx][ww];
       
       A(yy,xx) = sumarr(&tmp[0], nd);
+
+      /* --- Add regularization terms --- */
+      
+      if(dregul) A(yy,xx) += dregul[xx]*dregul[yy];
+      
       A(xx,yy) = A(yy,xx); // Remember that A is symmetric!
       
     }
@@ -489,12 +514,15 @@ void clm::compute_trial2(double *res, double **rf, double lambda,
     
     diag[yy] = max(A(yy,yy), diag[yy]);
     if(diag[yy] == 0.0) diag[yy] = 1.0;
-
+    //
+    double idia = diag[yy], thrfac = 1.0e4;
+    if(idia > A(yy,yy)*thrfac) idia = A(yy,yy)*thrfac;
+    
     
     /* --- Damp the diagonal of A --- */
-
-    A(yy,yy) += lambda * std::min(diag[yy], A(yy,yy) * 10.0);
-
+    
+    A(yy,yy) += lambda * idia;
+    //A(yy,yy) *= (1.0 + lambda);
     
     /* --- Compute J^t * Residue --- */
     
@@ -534,176 +562,3 @@ void clm::compute_trial2(double *res, double **rf, double lambda,
 
  
 }
-
-/* -------------------------------------------------------------------------------- */
-
-// void clm::backsub(double **u, double *w, double **v, int n, double *b, double *x)
-// {
-//   /* --- 
-//      Ax = B -> A^-1 * B = VT W^-1 U *B
-//      JdlCR: Matrices indexes are a bit weird so it works with LAPACK's routines.
-//             In LaPack both U and V are transposed compared to standard C notation.
-//             Added more accurate routine to add the product of rows/columns.
-//   --- */
-  
-//   double *tmp2 = new double [n]();
-//   double *tmp1 = new double [n]();
-  
-//   for(int jj=0;jj<n;jj++){    
-//     if(fabs(w[jj]) == 0.0) continue;
-    
-//     double sum = 0.0;
-//     for(int ii = 0; ii<n; ii++)
-//       tmp1[ii]= u[jj][ii]*b[ii];
-    
-//     tmp2[jj] = sumarr(tmp1,n)/w[jj];
-//   }
-  
-//   for(int j=0;j<n;j++){    
-//     double sum = 0.0;
-//     for(int jj=0;jj<n;jj++)
-//       tmp1[jj]= tmp2[jj]*v[j][jj];
-//     x[j] = sumarr(tmp1,n);
-//   }  
-
-//   delete [] tmp2;
-//   delete [] tmp1;
-// }
-
-/* -------------------------------------------------------------------------------- */
-
-// extern "C"{
-
-//   /* --- Prototypes for the LAPACK routines --- */
-  
-//   void dgesdd_( char *JOBZ, int &M, int &N, double *A, int &LDA, double *S,
-//   		double *U, int &LDU, double *VT, int &LDVT, double *WORK,
-//   		int &lwork, int* iwork, int &info);
-// }
-
-// /* -------------------------------------------------------------------------------- */
-
-// void clm::compute_trial3(double *res, double **rf, double lambda,
-// 			double *x, double *xnew)
-// {
-
-  
-//   /* --- Init arrays --- */
-  
-//   double **A = mat2d(npar, npar);
-//   double **V = mat2d(npar, npar);
-
-//   double *B = new double [npar];
-//   double *w = new double [npar];
-//   int   *iw = new int  [8*npar]();
-  
-//   double *work = NULL;
-
-  
-  
-//   /* --- 
-//      compute the curvature matrix and the right-hand side of eq.: 
-//      A*(dx) = B
-//      where A = J.T # J
-//            B = J.T # res
-// 	   and "dx" is the correction to the current model
-//      --- */
-
-//   for(int yy = 0; yy<npar; yy++){
-    
-//     for(int xx = 0; xx<=yy; xx++){
-      
-//       memset(tmp, 0, nd*sizeof(double));
-//       for(int ww = 0; ww<nd; ww++)
-// 	tmp[ww] = rf[yy][ww] * rf[xx][ww];
-      
-//       A[yy][xx] = sumarr(&tmp[0], nd);
-//       A[xx][yy] = A[yy][xx]; // Remember that A is symmetric!
-//     }
-
-//     /* --- It works better to store the largest diagonal terms
-//        in this cycle and multiply lambda by this value than the 
-//        current estimate. I am setting a cap on how much larger
-//        it can be relative to the current value 
-//        --- */
-    
-//     diag[yy] = max(A[yy][yy], diag[yy]);
-//     if(diag[yy] == 0.0) diag[yy] = 1.0;
-
-    
-//     /* --- Damp the diagonal of A --- */
-
-//     //A[yy][yy] += lambda * std::min(diag[yy], A[yy][yy] * 100.0);
-//     A[yy][yy] *= (1.0 + lambda);
-
-    
-//     /* --- Compute J^t * Residue --- */
-    
-//     memset(tmp, 0, nd*sizeof(double));
-//     for(int ww = 0; ww<nd; ww++) tmp[ww] = rf[yy][ww] * res[ww];
-//     B[yy] = sumarr(&tmp[0], nd);  
-//   } // yy
-  
-  
-//   /* --- Solve a least square fit to A^-1 (using SVD) --- */
-  
-//   char bla[1] = {'O'};
-//   int dummy = 0;
-//   int npp = npar;
-  
-  
-//   /* --- Request size of work array for the LaPack routine in the first iter --- */
-  
-//   if(lwork == -1){
-//     lwork = -1;
-//     double wrkopt=0.0;
-//     dgesdd_(&bla[0], npp, npp, &A[0][0], npp, w, NULL, npp, &V[0][0] ,
-// 	    npp, &wrkopt, lwork, iw, dummy);
-//     lwork = (int)wrkopt;
-//   }
-  
-  
-//   /* --- Call DGESDD --- */
-  
-//   work = new double [lwork];
-//   dummy = 0;
-//   dgesdd_(&bla[0], npp, npp, &A[0][0], npp, w, NULL, npp, &V[0][0] ,
-// 	  npp, work, lwork, iw, dummy);
-  
-  
-//   /* --- Check for too small singular values --- */
-  
-//   double minval = w[0] * svd_thres;
-//   for(int ii = 1; ii < npar; ii++) if(w[ii] < minval) w[ii] = 0.0;
-  
-  
-  
-//   /* --- Solve the system, xnew at this point is the correction to x, 
-//      not the new parameters. We should do xnew += x. --- */
-  
-//   backsub(A,w,V,npar,B,xnew);
-  
-  
-  
-//   /* --- 
-//      New estimate of the parameters, xnew = x + dx.
-//      Check for maximum change, add to current pars and normalize.
-//      --- */
-  
-//   scaleParameters(xnew);
-//   checkMaxChange(xnew, x);
-  
-//   for(int ii = 0; ii<npar; ii++) xnew[ii] += x[ii];
-  
-//   checkParameters(xnew);
-  
-  
-//   /* --- Clean-up mem --- */
-  
-//   del_mat(A);
-//   del_mat(V);
-//   delete [] B;
-//   delete [] w;
-//   delete [] work;
-//   delete [] iw;
-// }

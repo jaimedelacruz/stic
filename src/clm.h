@@ -63,7 +63,9 @@ struct clmf{
    Type for the function that will compute chi2 and the response function 
    --- */
 
-typedef int (*clm_func)(int npar, int nd, double *x, double *res, double **rf, void *mydata);
+typedef int (*clm_func)(int npar, int nd, double *x, double *res,
+			double **rf, void *mydata, double *dregul);
+
 double sumarr(double *arr, size_t n);
 double sumarr2(double *arr, int n);
 
@@ -77,7 +79,7 @@ class clm{
  public:
   std::vector<clmf> fcnt;
   std::vector<double> diag, tmp;
-  bool verb;
+  bool verb, regularize;
   double xtol, chi2_thres, svd_thres, lfac, lmax, lmin, ilambda;
   int maxreject, proc;
 
@@ -96,13 +98,13 @@ class clm{
   void normalizeParameters(double *x);
   void scaleParameters(double *x);
   double fitdata(clm_func ifx, double *x, void *mydat, int maxiter = 50);
-  double compute_chi2(double *res);
+  double compute_chi2(double *res, double penalty);
   double getChi2Pars(double *res, double **rf, double lambda,
-		     double *x, double *xnew, void *mydat, clm_func fx);
+		     double *x, double *xnew, void *mydat, clm_func fx, double *dregul);
   //  void compute_trial3(double *res, double **rf, double lambda,
   //	      double *x, double *xnew);
   void compute_trial2(double *res, double **rf, double lambda,
-		      double *x, double *xnew);
+		      double *x, double *xnew, double *dregul);
   //void backsub(double **u, double *w, double **v, int n,
   //	       double *b, double *x);
   void scaleRF(double **rf);

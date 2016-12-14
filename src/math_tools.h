@@ -16,6 +16,9 @@
 
 namespace mth{
 
+  inline double sqr(double a){return a*a;};
+  inline float sqr(float a){return a*a;};
+
   
   /* --- sqr --- */
   

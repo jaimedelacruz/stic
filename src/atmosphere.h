@@ -40,6 +40,8 @@ class atmos{
   virtual std::vector<double> get_steps(nodes_t &n){return mmin;};
   virtual std::vector<double> get_scaling(nodes_t &n){return scal;};
   virtual void responseFunction(int npar, mdepth_t &m, double *pars, int nd, double *out, int pp, double *syn);
+  //virtual void getArea(int npar, double *pars, int ndep, double *ltau, nodes_t &no, int pp);
+
   //
   virtual double fitModel2( mdepth_t &m, int npar, double *pars, int nobs, double *o, mat<double> &weights);
 
@@ -55,6 +57,8 @@ class atmos{
   virtual std::vector<double> get_max_change(nodes_t &n);
 };
 //
-int getChi2(int nd, int npar1, double *pars1, double *dev, double **derivs, void *tmp1);
+int getChi2(int nd, int npar1, double *pars1, double *dev, double **derivs, void *tmp1, double *dregul);
+void getDregul(mdepth &m, int npar, double *dregul, nodes_t &n);
+
 //
 #endif
