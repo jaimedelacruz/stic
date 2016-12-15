@@ -254,7 +254,6 @@ bool_t getBarklemcross_ac(Barklemstruct *bs, RLK_Line *rlk)
   rlk->alpha = cubeconvol(bs->N2, bs->N1,
 			  bs->alpha[0], findex2, findex1);
 
-  printf("%f %f\n", rlk->cross, rlk->alpha);
   reducedmass  = AMU / (1.0/atmos.H->weight + 1.0/element->weight);
   meanvelocity = sqrt(8.0 * KBOLTZMANN / (PI * reducedmass));
   crossmean    = SQ(RBOHR) * pow(meanvelocity / 1.0E4, -rlk->alpha);
