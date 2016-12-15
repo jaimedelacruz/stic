@@ -97,7 +97,7 @@ iput_t read_input(std::string filename, bool verbose){
   input.keep_nne = 0;
   input.marquardt_damping = -1.0;
   input.svd_thres = 2.0e-16;
-
+  input.regularize = 0;
   
   // Open File and read
   std::ifstream in(filename, std::ios::in | std::ios::binary);
@@ -162,6 +162,10 @@ iput_t read_input(std::string filename, bool verbose){
       }
        else if(key == "depth_interpolation"){
 	input.dint = atoi(field.c_str());
+	set = true;
+      }
+       else if(key == "regularize"){
+	input.regularize = atoi(field.c_str());
 	set = true;
       }
       else if(key == "mode"){

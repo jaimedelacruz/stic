@@ -435,7 +435,7 @@ double clm::fitdata(clm_func fx, double *x, void *mydat, int maxiter)
     
     t0 = t1;
     zero(res, rf);
-    memset(dregul, 0, npar*sizeof(double));
+    if(dregul) memset(dregul, 0, npar*sizeof(double));
     //
     status = fx(npar, nd, x, res, rf, mydat, dregul);
     //

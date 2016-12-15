@@ -385,8 +385,8 @@ double atmos::fitModel2(mdepth_t &m, int npar, double *pars, int nobs, double *o
   lm.lmax = 1.e4;
   lm.lmin = 1.e-5;
   lm.proc = input.myrank;
-  lm.regularize = true;
-  
+  if(input.regularize >= 1) lm.regularize = true;
+  else lm.regularize = false;
   
   /* ---  Set parameter limits --- */
   
