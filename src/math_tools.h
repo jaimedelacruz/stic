@@ -132,7 +132,7 @@ namespace mth{
       
       /* --- Define limits to integrate with the PSF --- */
       
-      int w0 = std::max(ww-npsf2, 0), w1 = std::min(ww+npsf2, n-1), ii = w0 - (ww - npsf2);
+      int w0 = std::max((size_t)(ww-npsf2), (size_t)0), w1 = std::min((size_t)(ww+npsf2), (size_t)(n-1)), ii = w0 - (ww - npsf2);
       double sum = 0.0;
 
       /* --- Accumulate both the area of the PSF and the integrated data --- */
