@@ -160,7 +160,7 @@ struct Molecule {
 typedef struct {
   bool_t polarizable;
   enum vdWaals vdwaals;
-  int    pt_index, stage, isotope, Li, Lj;
+  int    pt_index, stage, isotope, Li, Lj, li, lj;
   double lambda0, gi, gj, Ei, Ej, Bji, Aji, Bij, Si, Sj,
          Grad, GStark, GvdWaals, hyperfine_frac,
          isotope_frac, gL_i, gL_j, hfs_i, hfs_j, iso_dl,
@@ -239,6 +239,7 @@ bool_t writeDamping(Atom *atom);
 
 bool_t readBarklemTable(enum Barklemtype type, Barklemstruct *bs);
 bool_t getBarklemcross(Barklemstruct *bs, RLK_Line *rlk);
+bool_t getBarklemcross_ac(Barklemstruct *bs, RLK_Line *rlk);
 bool_t getBarklemactivecross(AtomicLine *line);
 
 

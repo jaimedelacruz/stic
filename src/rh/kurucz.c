@@ -64,6 +64,7 @@ FORMAT(F11.4,F7.3,F6.2,F12.3,F5.2,1X,A10,F12.3,F5.2,1X,A10,
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
 
 #include "rh.h"
 #include "atom.h"
@@ -73,6 +74,7 @@ FORMAT(F11.4,F7.3,F6.2,F12.3,F5.2,1X,A10,F12.3,F5.2,1X,A10,
 #include "constant.h"
 #include "inputs.h"
 #include "error.h"
+
 
 #define COMMENT_CHAR        "#"
 #define RLK_RECORD_LENGTH   160
@@ -91,6 +93,7 @@ double           RLKProfile(RLK_Line *rlk, int k, int mu, bool_t to_obs,
 ZeemanMultiplet* RLKZeeman(RLK_Line *rlk);
 void             initRLK(RLK_Line *rlk);
 bool_t           RLKdeterminate(char *labeli, char *labelj, RLK_Line *rlk);
+bool_t           RLKdeterminate_ac(char *labeli, char *labelj, RLK_Line *rlk);
 void             getUnsoldcross(RLK_Line *rlk);
 void             free_BS(Barklemstruct *bs);
 
@@ -113,7 +116,7 @@ void readKuruczLines(char *inputFile)
   char   inputLine[RLK_RECORD_LENGTH+1], listName[MAX_LINE_SIZE],
     filename[MAX_LINE_SIZE], Gvalues[18+1], elem_code[7],
          labeli[RLK_LABEL_LENGTH+1], labelj[RLK_LABEL_LENGTH+1],
-        *commentChar = COMMENT_CHAR;
+    *commentChar = COMMENT_CHAR;
   bool_t swap_levels, determined, useBarklem;
   int    Nline, Nread, Nrequired, checkPoint, hfs_i, hfs_j, gL_i, gL_j,
          iso_dl;
@@ -217,6 +220,12 @@ void readKuruczLines(char *inputFile)
         determined = RLKdeterminate(labeli, labelj, rlk);
         rlk->polarizable = (atmos.Stokes && determined);
 
+	
+	/* --- Get "small" l values for Barklem tables --- */
+	
+	determined = RLKdeterminate_ac(labeli, labelj, rlk);
+	
+	
         /* --- Line broadening --                      -------------- */
 
 	strncpy(Gvalues, inputLine+79, 18);
@@ -236,15 +245,15 @@ void readKuruczLines(char *inputFile)
 
 	useBarklem = FALSE;
 	if (determined) {
-	  if ((rlk->Li == S_ORBIT && rlk->Lj == P_ORBIT) ||
-              (rlk->Li == P_ORBIT && rlk->Lj == S_ORBIT)) {
-	    useBarklem = getBarklemcross(&bs_SP, rlk);
-	  } else if ((rlk->Li == P_ORBIT && rlk->Lj == D_ORBIT) ||
-		     (rlk->Li == D_ORBIT && rlk->Lj == P_ORBIT)) {
-	    useBarklem = getBarklemcross(&bs_PD, rlk);
-	  } else if ((rlk->Li == D_ORBIT && rlk->Lj == F_ORBIT) ||
-		     (rlk->Li == F_ORBIT && rlk->Lj == D_ORBIT)) {
-	    useBarklem = getBarklemcross(&bs_DF, rlk);
+	  if ((rlk->li == S_ORBIT && rlk->lj == P_ORBIT) ||
+              (rlk->li == P_ORBIT && rlk->lj == S_ORBIT)) {
+	    useBarklem = getBarklemcross_ac(&bs_SP, rlk);
+	  } else if ((rlk->li == P_ORBIT && rlk->lj == D_ORBIT) ||
+		     (rlk->li == D_ORBIT && rlk->lj == P_ORBIT)) {
+	    useBarklem = getBarklemcross_ac(&bs_PD, rlk);
+	  } else if ((rlk->li == D_ORBIT && rlk->lj == F_ORBIT) ||
+		     (rlk->li == F_ORBIT && rlk->lj == D_ORBIT)) {
+	    useBarklem = getBarklemcross_ac(&bs_DF, rlk);
 	  }
 	}
 	/* --- Else use good old Unsoeld --            -------------- */
@@ -793,6 +802,41 @@ ZeemanMultiplet* RLKZeeman(RLK_Line *rlk)
   return zm;
 }
 /* ------- end ---------------------------- RLKZeeman.c ------------- */
+
+/* ----- JdlCR: Function to get the l values from the atomic 
+   configuration, not from the spectral terms --- */
+
+bool_t RLKdeterminate_ac(char *labeli, char *labelj, RLK_Line *rlk)
+{
+  char **words, orbit[2];
+  int    count, multiplicity, length, Nread;
+
+   /* --- Get spin and orbital quantum numbers from level labels -- -- */
+
+    words  = getWords(labeli, " ", &count);
+    if (words[0]) {
+      length = strlen(words[0]);
+      Nread  = sscanf(words[0] + length-2, "%d%1s", &multiplicity, orbit);
+      free(words);
+      
+      rlk->li = getOrbital(toupper(orbit[0])); 
+    } else return FALSE;
+
+    
+    words  = getWords(labelj, " ", &count);
+    if (words[0]) {
+      length = strlen(words[0]);
+      Nread  = sscanf(words[0] + length-2, "%d%1s", &multiplicity, orbit);
+      free(words);
+      rlk->lj = getOrbital(toupper(orbit[0])); 
+    } else return FALSE;
+
+
+    return TRUE;
+}
+
+/* --------------------------------------------------------------------- */
+
 
 /* ------- begin -------------------------- RLKdeterminate.c -------- */
 
