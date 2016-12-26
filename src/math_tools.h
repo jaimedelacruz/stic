@@ -159,6 +159,44 @@ namespace mth{
   }
   /* ------------------------------------------------------------------------------- */
 
+  template <class T> void cent_der(size_t n, T *x, T *y, T *yp)
+    {
+      double dx = x[1] - x[0], oder = 0, odx = 0;
+      double der = (y[1] - y[0]) / dx;
+
+      /* --- Fill in first point with regular finite difference --- */
+
+      yp[0] = der;
+
+      for(size_t k = 1; k<(n-1); k++){
+
+	/* --- copy derivative from upwind interval --- */
+	
+	odx = dx, oder = der;
+
+	/* --- Compute downwind derivative --- */
+	
+	dx = x[k+1] - x[k];
+	der = (y[k+1] - y[k]) / dx;
+
+	
+	/* --- If not max/min then compute harmonic centered derivative --- */
+	
+	if(der*oder >= 0.0){
+	  double lambda = (1.0 + dx / (dx + odx)) / 3.0;
+	  yp = (der*oder) / ((1.0-lambda)*oder + lambda * der);
+	}else{
+	  yp[k] = 0.0;
+	}
+      } //k
+
+      
+      /* --- Fill in last point with regular finite difference --- */
+      
+      yp[n-1] = der; 
+    }
+  
+  
 } // namespace
 
 #endif
