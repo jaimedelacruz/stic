@@ -11,6 +11,7 @@
 #include <cstdio>
 #include <vector>
 
+/* --------------------------------------------------------------------- */
 
 /*
   Piece-wise linear interpolation, with optinal 
@@ -93,6 +94,7 @@ template <class T, class U> void linpol(size_t ni, T *x, T *y, size_t nni, U *xx
 } // linpol
 
 
+/* --------------------------------------------------------------------- */
 
 
 /*
@@ -229,6 +231,8 @@ template <class T1, class T2> void hermpol(size_t ni, T1 *x, T1 *y, size_t nni, 
   
 } // hermpol
 
+/* --------------------------------------------------------------------- */
+
 template <class T1, class T2> void cpol( T1 y, int nn, T2 *yy){
 
   T2 dum = (T2)y;
@@ -237,10 +241,13 @@ template <class T1, class T2> void cpol( T1 y, int nn, T2 *yy){
   
 }
 
+/* --------------------------------------------------------------------- */
 
 template <class T> T sqr(T var){
   return var*var;
 }
+
+/* --------------------------------------------------------------------- */
 
 template <class T> std::vector<double> parab_fit(T d, T e, T f, T yd, T ye, T yf){
 
@@ -256,6 +263,7 @@ template <class T> std::vector<double> parab_fit(T d, T e, T f, T yd, T ye, T yf
   return cf;
 }
 
+/* --------------------------------------------------------------------- */
 
 template <class T1, class T2> void bezpol2(size_t ni, T1 *x, T1 *y, size_t nni, T2 *xx, T2 *yy, bool extrapolate = false){
 
@@ -400,6 +408,9 @@ template <class T1, class T2> void bezpol2(size_t ni, T1 *x, T1 *y, size_t nni, 
   }
   
 } // bezpol2
+
+
+/* --------------------------------------------------------------------- */
 
 
 

@@ -20,10 +20,10 @@ MPCC = mpicc
 #
 # OPTIMIZATION
 #
-OPTS = -O3 -xCORE-AVX-I -g -static-intel -lifcore
-CXXFLAGS = $(OPTS) -std=c++11 -gxx-name=g++-4.9 #-Wno-literal-suffix
-CFLAGS = $(OPTS) -DHAVE_F90
-FFLAGS = -O3 -axSSSE3 
+OPTS =  -Ofast -xCORE-AVX2 -mkl=sequential -g -lifcore -static-intel 
+CXXFLAGS = $(OPTS) -std=c++11 -gxx-name=g++-4.9 -fPIC #-Wno-literal-suffix
+CFLAGS = $(OPTS) -DHAVE_F90 -fPIC
+FFLAGS = -Ofast -xCORE-AVX-I -mkl=sequencial -g -static-intel
 AR = xiar
 OPENMP = -fopenmp
 
