@@ -126,6 +126,7 @@ clm::clm(int ind, int inpar){
   maxreject = 7;      // Max failed evaluations of lambda.
   error = false;
   regularize = false; // Compute regularization terms in fx ?
+  regul_scal = 1.0;   // scale factor for regularization terms
   proc = 0;           // print-out processor number
 }
 
@@ -229,7 +230,7 @@ void clm::zero(double *res, double **rf)
 double clm::compute_chi2(double *res, double penalty)
 {
   // std::cerr<< (double)sumarr2(res,nd)/double(nd)<<" "<<penalty<<std::endl;
-  return (double)sumarr2(res,nd)/double(nd) + penalty;				 
+  return (double)sumarr2(res,nd)/double(nd) + penalty*regul_scal;				 
 }
 
 /* -------------------------------------------------------------------------------- */
@@ -263,7 +264,7 @@ double clm::getChi2Pars(double *res, double **rf, double lambda,
     
     
   /* --- compute Chi2 --- */
-
+  if(dregul) dregul[npar] = new_dregul[npar]; // The derivatives should not be updated here, only the penalty...
   if(new_dregul) delete [] new_dregul;
   return (double)newchi2;
 }
@@ -329,11 +330,11 @@ double clm::fitdata(clm_func fx, double *x, void *mydat, int maxiter)
     scaleRF(rf);
     memcpy(&bestpars[0], &x[0], npar*sizeof(double));
     //
-    ochi2 = compute_chi2(res, (dregul)?dregul[npar]:0.0);
+    ochi2 = compute_chi2(res, (dregul)?dregul[npar]*regul_scal:0.0);
     bestchi2 = ochi2;
     
     if(verb)
-      fprintf(stdout, "[p:%4d, Init] chi2=%f (%f), lambda=%e\n", proc, ochi2,(dregul)?dregul[npar]:0.0 , lambda);
+      fprintf(stdout, "[p:%4d, Init] chi2=%f (%f), lambda=%e\n", proc, ochi2,(dregul)?dregul[npar]*regul_scal:0.0 , lambda);
   }
 
   /* --- Main iterations --- */
@@ -392,7 +393,7 @@ double clm::fitdata(clm_func fx, double *x, void *mydat, int maxiter)
       if(nretry < maxreject){
 	if(verb)
 	  fprintf(stderr,"[p:%4d,i:%4d]  ->  chi2=%f (%f), increasing lambda [%e -> %e]\n",
-		  proc,iter, chi2, (dregul)?dregul[npar]:0.0,olambda, lambda);
+		  proc,iter, chi2, (dregul)?dregul[npar]*regul_scal:0.0,olambda, lambda);
 	continue;
       }
 	
@@ -404,7 +405,7 @@ double clm::fitdata(clm_func fx, double *x, void *mydat, int maxiter)
 
     if(verb)
       fprintf(stderr,"[p:%4d,i:%4d] chi2=%14.5f (%f), dchi2=%e, lambda=%e, elapsed=%5.3fs %s\n",
-	      proc,iter, chi2, (dregul)?dregul[npar]:0.0,chi2-ochi2, olambda, t1-t0,rej.c_str());
+	      proc,iter, chi2, (dregul)?dregul[npar]*regul_scal:0.0,chi2-ochi2, olambda, t1-t0,rej.c_str());
     
     ochi2 = chi2;
 
@@ -499,7 +500,7 @@ void clm::compute_trial2(double *res, double **rf, double lambda,
 
       /* --- Add regularization terms --- */
       
-      if(dregul) A(yy,xx) += dregul[xx]*dregul[yy];
+      if(dregul) A(yy,xx) += dregul[xx]*dregul[yy]*regul_scal*regul_scal;
       
       A(xx,yy) = A(yy,xx); // Remember that A is symmetric!
       

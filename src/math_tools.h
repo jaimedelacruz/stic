@@ -161,13 +161,19 @@ namespace mth{
 
   template <class T> void cent_der(size_t n, T *x, T *y, T *yp)
     {
+
+      if(n == 1){
+	yp[0] = 0;
+	return;
+      }
+      
       double dx = x[1] - x[0], oder = 0, odx = 0;
       double der = (y[1] - y[0]) / dx;
 
       /* --- Fill in first point with regular finite difference --- */
 
       yp[0] = der;
-
+      
       for(size_t k = 1; k<(n-1); k++){
 
 	/* --- copy derivative from upwind interval --- */
@@ -182,11 +188,11 @@ namespace mth{
 	
 	/* --- If not max/min then compute harmonic centered derivative --- */
 	
-	if(der*oder >= 0.0){
+	if(der*oder > 0.0){
 	  double lambda = (1.0 + dx / (dx + odx)) / 3.0;
-	  yp = (der*oder) / ((1.0-lambda)*oder + lambda * der);
+	  yp[k] = (der*oder) / ((1.0-lambda)*oder + lambda * der);
 	}else{
-	  yp[k] = 0.0;
+	  yp[k] = 0;
 	}
       } //k
 
@@ -196,6 +202,26 @@ namespace mth{
       yp[n-1] = der; 
     }
   
+
+    /* ------------------------------------------------------------------------------- */
+
+  template <class T> void cmul(size_t n, T *arr, T c)
+    {for(size_t ii=0;ii<n;ii++) arr[ii] *= c;};
+      
+  
+    /* ------------------------------------------------------------------------------- */
+
+    template <class T> void csum(size_t n, T *arr, T c)
+    {for(size_t ii=0;ii<n;ii++) arr[ii] += c;};
+    
+    /* ------------------------------------------------------------------------------- */
+
+    template <class T> void cdiv(size_t n, T *arr, T c)
+    {for(size_t ii=0;ii<n;ii++) arr[ii] /= c;};
+
+    /* ------------------------------------------------------------------------------- */
+    template <class T> void csub(size_t n, T *arr, T c)
+    {for(size_t ii=0;ii<n;ii++) arr[ii] -= c;};
   
 } // namespace
 

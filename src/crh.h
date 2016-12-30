@@ -33,6 +33,7 @@ class crh: public atmos{
   bool synth(mdepth &m, double *syn, cprof_solver sol = bez_ltau, bool store_pops = true);
   void cleanup();
   void lambdaIDX(int nw, double *lambda);
+  void checkBounds(mdepth_t &m);
 
 
   

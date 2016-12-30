@@ -34,6 +34,7 @@
 #include <stdlib.h>
 #include <sstream>
 #include <cstring>
+#include <math.h>
 //
 template <class T> std::string formatVect(std::vector<T> &in){
   std::stringstream res;

@@ -17,8 +17,8 @@ extern "C" {
 using namespace std;
 using namespace phyc;
 //
-const double crh::pmax[7]  = {50000., 15.e5, 15.0e5, 5000.0, PI, PI, 15.0};
-const double crh::pmin[7]  = {2700. ,-15.e5,  +0.0,   +0.0,  +0.0,  +0.0, 0.1};
+const double crh::pmax[7]  = {80000., 20.e5, 8e5, 5000.0, PI, PI, 15.0};
+const double crh::pmin[7]  = {2700. ,-20.e5,  +0.0,   +0.0,  +0.0,  +0.0, 0.1};
 const double crh::pscal[7] = {1200. , 5.0e5, 5.0e5, 1000.0, 2*PI, 2*PI, 10.0};
 const double crh::pstep[7] = {1.e-1 , 1.e-1, 1.0e-1, 2.0e-1, 1.0e-1, 1.0e-1, 1.0e-1};
 
@@ -356,5 +356,22 @@ void crh::lambdaIDX(int nw, double *lamb){
     } // ww
     
   } // it
+  
+}
+
+/* ------------------------------------------------------------------- */
+
+void crh::checkBounds(mdepth_t &m)
+{
+  
+    for(size_t ii=0; ii<m.ndep; ii++){
+      m.temp[ii] =  std::max(pmin[0], std::min(m.temp[ii],  pmax[0]));
+      m.v[ii] =     std::max(pmin[1], std::min(m.v[ii],     pmax[1]));
+      m.vturb[ii] = std::max(pmin[2], std::min(m.vturb[ii], pmax[2]));
+      m.b[ii] =     std::max(pmin[3], std::min(m.b[ii],     pmax[3]));
+      m.inc[ii] =   std::max(pmin[4], std::min(m.inc[ii],   pmax[4]));
+      m.azi[ii] =   std::max(pmin[5], std::min(m.azi[ii],   pmax[5]));
+    }
+  
   
 }

@@ -190,8 +190,10 @@ void do_slave(int myrank, int nprocs, char hostname[]){
 	  pars(pixel,pp) = atmos->checkParameter(pars(pixel,pp), pp);
 	
 	/* --- Expand the nodes into a depth stratified atmosphere --- */
-	it.expand(input.nodes, &pars(pixel,0));
 	
+	it.expand(input.nodes, &pars(pixel,0));
+	atmos->checkBounds(it);
+
 	
 	/* --- Log tau to tau --- */
 	for(int kk = 0; kk < input.ndep; kk++)

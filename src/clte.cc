@@ -301,3 +301,20 @@ bool clte::synth(mdepth &m, double *syn, cprof_solver sol, bool store_pops){
 
   return true;
 }
+
+
+void clte::checkBounds(mdepth_t &m)
+{
+  
+  for(size_t ii=0; ii<m.ndep; ii++){
+      m.temp[ii] =  std::max(pmin[0], std::min(m.temp[ii],  pmax[0]));
+      m.v[ii] =     std::max(pmin[1], std::min(m.v[ii],     pmax[1]));
+      m.vturb[ii] = std::max(pmin[2], std::min(m.vturb[ii], pmax[2]));
+      m.b[ii] =     std::max(pmin[3], std::min(m.b[ii],     pmax[3]));
+      m.inc[ii] =   std::max(pmin[4], std::min(m.inc[ii],   pmax[4]));
+      m.azi[ii] =   std::max(pmin[5], std::min(m.azi[ii],   pmax[5]));
+    }
+  
+  
+  
+}

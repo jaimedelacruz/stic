@@ -63,8 +63,10 @@ void atmos::responseFunction(int npar, mdepth_t &m_in, double *pars, int nd, dou
   double pertu = 0.0;
     
   //
-  if(input.nodes.ntype[pp] == temp_node) pertu = input.dpar * pval * 0.5;
+  if(input.nodes.ntype[pp] == temp_node) pertu = input.dpar * pval * 0.4;
   else                                   pertu = input.dpar * scal[pp];
+
+  // if(input.nodes.ntype[pp] == temp_node) cerr<<pertu<<endl;
   
   /* --- Centered derivatives ? --- */
   
@@ -90,6 +92,7 @@ void atmos::responseFunction(int npar, mdepth_t &m_in, double *pars, int nd, dou
     } else{
       ipars[pp] = pval + up;
       m.expand(input.nodes, &ipars[0], input.dint);
+      checkBounds(m);
 
       /* -- recompute Hydro Eq. ? --- */
       
@@ -110,7 +113,8 @@ void atmos::responseFunction(int npar, mdepth_t &m_in, double *pars, int nd, dou
     } else{
       ipars[pp] = pval + down;
       m.expand(input.nodes, &ipars[0], input.dint);
-      
+      checkBounds(m);
+
       // if(input.nodes.ntype[pp] == temp_node && input.thydro == 1)
 	m.getPressureScale(input.boundary, eos);
 	//m.nne_enhance(input.nodes, npar, &ipars[0], eos);
@@ -158,6 +162,8 @@ void atmos::responseFunction(int npar, mdepth_t &m_in, double *pars, int nd, dou
     /* --- Synth --- */
     
     m.expand(input.nodes, &ipars[0],  input.dint);
+    checkBounds(m);
+
     //  if((input.nodes.ntype[pp] == temp_node) && (input.thydro == 1))
     m.getPressureScale(input.boundary, eos);
     //m.nne_enhance(input.nodes, npar, &ipars[0], eos);
@@ -218,46 +224,104 @@ void atmos::randomizeParameters(nodes_t &n, int npar, double *pars){
 
   
 }
+void getDregul2(double *m, int npar, double *dregul, nodes_t &n)
+{
+
+  std::vector<double> tmp;
+  double penalty = 0.0, weights[3] = {0.04,10.0,40.0};
+
+  
+  /* --- Tikhonov's regularization on first derivative for Temp --- */
+  
+  if(n.toinv[0] && true){
+    int nn = (int)n.temp.size();
+    
+    if(nn > 1 && false){
+      tmp.resize(nn, 0.0);
+      mth::cent_der<double>(nn,&n.temp[0], &m[n.temp_off], &tmp[0]);
+      mth::cent_der<double>(nn,&n.temp[0],        &tmp[0], &dregul[n.temp_off]);
+      mth::cmul<double>(nn, &dregul[n.temp_off], 2*weights[0]);
+      penalty += weights[0] * mth::ksum2(nn, &tmp[0]) / nn;
+    }
+  }
+
+  
+  /* --- Tikhonov's regularization on first derivative for vlos --- */
+  
+  if(n.toinv[1] && true){
+    int nn = (int)n.v.size();
+    
+    if(nn > 1){
+      tmp.resize(nn, 0.0);
+      mth::cent_der<double>(nn,&n.v[0], &m[n.v_off], &tmp[0]);
+      mth::cent_der<double>(nn,&n.v[0],        &tmp[0], &dregul[n.v_off]);
+      mth::cmul<double>(nn, &dregul[n.v_off], 2*weights[1]);
+      penalty +=weights[1] * mth::ksum2(nn, &tmp[0]) / nn;
+    }
+  }
+  
+  /* --- Penalize deviations from zero for Vturb --- */
+
+  if(n.toinv[2] && true){
+    int nn = (int)n.vturb.size();          
+    double sum2 = 0.0;
+    for(size_t ii=0; ii<nn; ii++) {
+      dregul[n.vturb_off+ii] = 2.0 * weights[2] * m[n.vturb_off+ii];
+      sum2 =  mth::sqr( m[n.vturb_off+ii]);
+    }
+    penalty +=  weights[2] * sum2 / nn;
+  }
+  
+  
+  dregul[npar] = penalty;
+  
+}
 
 void getDregul(mdepth &m, int npar, double *dregul, nodes_t &n)
 {
-  const double scale[2] = {0.075, 0.75};
+  const double scale[2] = {0.05, 0.05};
   double penalty = 0.0, sum = 0.0, total = 0.0;
   double bla[2] = {0.0,0.0};
   
-  
-  /* --- Vturb regularization: penalize deviations from zero --- */
-  
-  for(size_t ii=0; ii<m.ndep; ii++) penalty += mth::sqr((m.vturb[ii]-sum)*1.e-5);
-  penalty *= scale[0]/m.ndep;
-
-
-  /* --- Now derivative of vturb --- */
-
-  for(size_t ii=0; ii<m.ndep; ii++) bla[0] += 2.0e-5 * (m.vturb[ii]-sum);
-  bla[0] *= scale[0]/m.ndep;
-  
-  
-  
-  /* --- Vlos regularization: penalize deviations from the mean value --- */
-
-  sum = 0.0;
-  total = mth::sum(m.ndep, m.v) / m.ndep;
-  for(size_t ii=0; ii<m.ndep; ii++) sum += mth::sqr((m.v[ii]-total)*1.e-5);
-  penalty +=  sum * scale[1] / m.ndep;
-  
-
-  /* --- Now derivative of Vlos --- */
-
-  for(size_t ii=0; ii<m.ndep; ii++) bla[1] += 2.0e-5 * (m.v[ii]-total);
-  bla[0] *= scale[0]/m.ndep;
-
+  if(n.toinv[2]){
     
-  for(size_t ii=0; ii<npar; ii++) {
-    if     (n.ntype[ii] == vturb_node) dregul[ii] = bla[0];
-    else if(n.ntype[ii] == v_node    ) dregul[ii] = bla[1];
-    else                               dregul[ii] = 0.0;
-  }
+    /* --- Vturb regularization: penalize deviations from zero --- */
+    
+    for(size_t ii=0; ii<m.ndep; ii++) penalty += mth::sqr((m.vturb[ii]-sum)*1.e-5);
+    penalty *= scale[0]/m.ndep;
+    
+    
+    /* --- Now derivative of vturb --- */
+    
+    for(size_t ii=0; ii<m.ndep; ii++) bla[0] += 2.0e-5 * (m.vturb[ii]-sum);
+    bla[0] *= scale[0]/m.ndep;
+    
+  } else bla[0] = 0.0;
+  
+  
+  if(n.toinv[1]){
+    
+    
+    /* --- Vlos regularization: penalize deviations from the mean value --- */
+    
+    sum = 0.0;
+    total = mth::sum(m.ndep, m.v) / m.ndep;
+    for(size_t ii=0; ii<m.ndep; ii++) sum += mth::sqr((m.v[ii]-total)*1.e-5);
+    penalty +=  sum * scale[1] / m.ndep;
+    
+    
+    /* --- Now derivative of Vlos --- */
+    
+    for(size_t ii=0; ii<m.ndep; ii++) bla[1] += 2.0e-5 * (m.v[ii]-total);
+    bla[1] *= scale[1]/m.ndep;
+    
+  }else bla[1] = 0.0;
+    
+    for(size_t ii=0; ii<npar; ii++) {
+      if     (n.ntype[ii] == vturb_node) dregul[ii] = bla[0];
+      else if(n.ntype[ii] == v_node    ) dregul[ii] = bla[1];
+      else                               dregul[ii] = 0.0;
+    }
   
 
   /* --- Store the Chi2 penalty in the last element of dregul --- */
@@ -281,6 +345,7 @@ int getChi2(int npar1, int nd, double *pars1, double *dev, double **derivs, void
     ipars[pp] = pars1[pp] * atm.scal[pp]; 
   
   m.expand(atm.input.nodes, &ipars[0], atm.input.dint);
+  atm.checkBounds(m);
   m.getPressureScale(atm.input.boundary, atm.eos);
 
   
@@ -340,7 +405,7 @@ int getChi2(int npar1, int nd, double *pars1, double *dev, double **derivs, void
   /* ---  compute regularization --- */ 
 
   if(dregul)
-    getDregul(m, npar1, dregul, atm.input.nodes);
+    getDregul2(pars1, npar1, dregul, atm.input.nodes);
       
   /* --- clean up --- */
   
@@ -385,8 +450,10 @@ double atmos::fitModel2(mdepth_t &m, int npar, double *pars, int nobs, double *o
   lm.lmax = 1.e4;
   lm.lmin = 1.e-5;
   lm.proc = input.myrank;
-  if(input.regularize >= 1) lm.regularize = true;
-  else lm.regularize = false;
+  if(input.regularize >= 1.e-5){
+    lm.regularize = true;
+    lm.regul_scal = input.regularize;
+  } else lm.regularize = false;
   
   /* ---  Set parameter limits --- */
   
@@ -466,6 +533,7 @@ double atmos::fitModel2(mdepth_t &m, int npar, double *pars, int nobs, double *o
   
   memset(&isyn[0],0,ndata*sizeof(double));
   m.expand(input.nodes, &pars[0], input.dint);
+  checkBounds(m);
   m.getPressureScale(input.boundary, eos); 
   synth( m , &isyn[0], (cprof_solver)input.solver, false);
   spectralDegrade(input.ns, (int)1, input.nw_tot, &isyn[0]);

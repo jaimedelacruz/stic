@@ -80,7 +80,7 @@ class clm{
   std::vector<clmf> fcnt;
   std::vector<double> diag, tmp;
   bool verb, regularize;
-  double xtol, chi2_thres, svd_thres, lfac, lmax, lmin, ilambda;
+  double xtol, chi2_thres, svd_thres, lfac, lmax, lmin, ilambda, regul_scal;
   int maxreject, proc;
 
   

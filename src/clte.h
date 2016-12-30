@@ -53,6 +53,7 @@ class clte: public atmos{
  std::vector<double> get_scaling(nodes_t &n);
  std::vector<double> get_steps(nodes_t &n);
  void cleanup(void){};
+ void checkBounds(mdepth_t &m);
 
  
 };

@@ -41,6 +41,7 @@ class atmos{
   virtual std::vector<double> get_scaling(nodes_t &n){return scal;};
   virtual void responseFunction(int npar, mdepth_t &m, double *pars, int nd, double *out, int pp, double *syn);
   //virtual void getArea(int npar, double *pars, int ndep, double *ltau, nodes_t &no, int pp);
+  virtual void checkBounds(mdepth_t &m) = 0;
 
   //
   virtual double fitModel2( mdepth_t &m, int npar, double *pars, int nobs, double *o, mat<double> &weights);
