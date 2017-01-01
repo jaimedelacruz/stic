@@ -18,6 +18,7 @@ namespace mth{
 
   inline double sqr(double a){return a*a;};
   inline float sqr(float a){return a*a;};
+  inline int sqr(int a){return a*a;};
 
   
   /* --- sqr --- */
@@ -203,24 +204,24 @@ namespace mth{
     }
   
 
-    /* ------------------------------------------------------------------------------- */
+  /* ------------------------------------------------------------------------------- */
 
   template <class T> void cmul(size_t n, T *arr, T c)
     {for(size_t ii=0;ii<n;ii++) arr[ii] *= c;};
-      
   
-    /* ------------------------------------------------------------------------------- */
-
-    template <class T> void csum(size_t n, T *arr, T c)
+  
+  /* ------------------------------------------------------------------------------- */
+  
+  template <class T> void csum(size_t n, T *arr, T c)
     {for(size_t ii=0;ii<n;ii++) arr[ii] += c;};
-    
-    /* ------------------------------------------------------------------------------- */
-
-    template <class T> void cdiv(size_t n, T *arr, T c)
+  
+  /* ------------------------------------------------------------------------------- */
+  
+  template <class T> void cdiv(size_t n, T *arr, T c)
     {for(size_t ii=0;ii<n;ii++) arr[ii] /= c;};
-
-    /* ------------------------------------------------------------------------------- */
-    template <class T> void csub(size_t n, T *arr, T c)
+  
+  /* ------------------------------------------------------------------------------- */
+  template <class T> void csub(size_t n, T *arr, T c)
     {for(size_t ii=0;ii<n;ii++) arr[ii] -= c;};
   
 } // namespace
