@@ -11,11 +11,10 @@
 
 #include <cmath>
 #include <algorithm>
-#include <complex>
 #include <cstring>
+#include <complex>
 #include <fftw3.h>
 #include <cstdio>
-#include "math_tools.h"
 
 namespace mfft{
   
@@ -205,7 +204,7 @@ namespace mfft{
     void convolve(size_t n_in, T *d){
       
       if(n_in != n){
-	fprintf(stderr, "error: mth::fftconvol1D::convolve: n_in [%d] != n [%d], not convolving!\n", n_in, n);
+	fprintf(stderr, "error: fftconvol1D::convolve: n_in [%d] != n [%d], not convolving!\n", n_in, n);
 	return;
       }
 
@@ -250,21 +249,32 @@ namespace mfft{
       
       double **ppsf = mat2d<double>(npy, npx, true);
       T **psf = var2dim<T>(psf_in, ny1, nx1);
-      double sum = 1.0 / ((double)mth::sum<T>(nx1*ny1, psf_in) * npx * npy);
-
+      //
+      double sum = 0.0;
+      for(size_t ii=0;ii<(nx1*ny1);ii++) sum+=psf_in[ii];
+      if(sum > 0.0) sum = 1.0 / (sum * npx*npy);
+      else sum = 1.0;
+      
       
       /* --- copy PSF to padded array and shift it 1/2 of the domain in X and Y --- */
       
-      size_t n2 = ny1/2, n22=npy-n2+1;
-      for(size_t yy=0;yy<ny1;yy++)
-	if(yy<n2){
-	  for(size_t xx=0;xx<nx1;xx++) ppsf[n22-yy][xx] = psf[yy][xx] * sum;
-	  std::rotate(ppsf[n22-yy], &ppsf[n22-yy][nx1/2], &ppsf[n22-yy][npx]);
-	}else{
-	  for(size_t xx=0;xx<nx1;xx++) ppsf[yy-n2][xx] = psf[yy][xx] * sum;
-	  std::rotate(ppsf[yy-n2], &ppsf[yy-n2][nx1/2], &ppsf[yy-n2][npx]);
-	}
-
+      // size_t xoff = ((nx1/2)*2 == nx1) ? 2 : 2;
+      // size_t yoff = ((ny1/2)*2 == ny1) ? 2 : 2;
+      
+      size_t n2 = ny1/2, n22 = npy-n2+2;//yoff;
+      size_t n1 = nx1/2, n11 = npx-n1+2;//xoff;
+      //
+      for(size_t yy=0;yy<n2;yy++){
+	for(size_t xx=0;xx<n1;xx++)   ppsf[n22-n2+yy][n11-n1+xx] = psf[yy][xx] * sum;
+	for(size_t xx=n1;xx<nx1;xx++) ppsf[n22-n2+yy][xx-n1]  = psf[yy][xx] * sum;
+      }
+      
+      for(size_t yy=n2;yy<ny1;yy++){
+	for(size_t xx=0;xx<n1;xx++)   ppsf[yy-n2][n11-n1+xx] = psf[yy][xx] * sum;
+	for(size_t xx=n1;xx<nx1;xx++) ppsf[yy-n2][xx-n1]  = psf[yy][xx] * sum;
+      }
+      
+      
       /* --- Clean-up --- */
       
       delete [] psf;
@@ -274,41 +284,15 @@ namespace mfft{
   
   /* ------------------------------------------------------------------------------- */
 
-  template <class T> void convolve2D_fft(size_t ny, size_t nx, T *img_in, size_t ny1,
-				    size_t nx1, T *psf_in)
-    {
-      /* --- define dimensions --- */
-      
-      size_t npx = ((nx1/2) * 2 == nx1) ? nx+nx1 : nx+nx1-1,
-	npy = ((ny1/2) * 2 == ny1) ? ny+ny1 : ny+ny1-1;
-      size_t nftx = npx, nfty = npy / 2 + 1;
-      size_t nft = nftx*nfty;
-
-
-      /* --- compute mean --- */
-      
-      double me = mth::sum<T>(nx*ny, img_in)/(double)(nx*ny);
-      
-      
-      /* --- map input image and psf pointers to 2d arrays --- */
-
-      T **img = var2dim<T>(img_in, ny, nx), **psf = var2dim<T>(psf_in, ny1, nx1);
-
-      
-      /* --- init temporary arrays --- */
-
-      double **pad = mat2d<double>(npy, npx, true);
-
-      
-      /* --- Copy image to padded array. 
-	 The padding is done my mirroring the image --- */
-
+  template <class T> void pad_image_mirror(size_t ny, size_t nx, T **img,
+					   size_t npy, size_t npx, double **pad)
+    {      
       size_t np = npx - nx;
       size_t np2= np-np/2+1;
       for(size_t yy = 0; yy<ny; yy++){
 	
 	for(size_t xx = 0; xx<nx; xx++)
-	  pad[yy][xx] = ((double)img[yy][xx] - me); // copy image
+	  pad[yy][xx] = (double)img[yy][xx]; // copy image
 	  
 	
 	for(size_t xx = 0; xx<np/2; xx++)
@@ -328,7 +312,32 @@ namespace mfft{
       for(size_t yy=np/2; yy<np; yy++) {
 	memcpy(pad[yy+ny], pad[np2-yy], npx*sizeof(double));
       }
+            
+    }
+  
+  /* ------------------------------------------------------------------------------- */
+  
+  template <class T> void convolve2D_fft(size_t ny, size_t nx, T *img_in, size_t ny1,
+				    size_t nx1, T *psf_in)
+    {
+      /* --- define dimensions --- */
+      
+      size_t npx = ((nx1/2) * 2 == nx1) ? nx+nx1 : nx+nx1-1,
+	npy = ((ny1/2) * 2 == ny1) ? ny+ny1 : ny+ny1-1;
+      size_t nftx = npx, nfty = npy / 2 + 1;
+      size_t nft = nftx*nfty;
 
+      
+      /* --- map input image and psf pointers to 2d arrays --- */
+
+      T **img = var2dim<T>(img_in, ny, nx);
+      
+      
+      /* --- Copy image to padded array. 
+	 The padding is done my mirroring the image --- */
+
+      double **pad = mat2d<double>(npy, npx, true);
+      pad_image_mirror<T>(ny, nx, img, npy, npx, pad);
 
 
       /* --- shift and pad psf --- */
@@ -373,7 +382,7 @@ namespace mfft{
 
       for(size_t yy=0; yy<ny; yy++)
 	for(size_t xx=0;xx<nx;xx++)
-	  img[yy][xx] = (T)(pad[yy][xx] + me);
+	  img[yy][xx] = (T)pad[yy][xx];
       
 
       
@@ -381,14 +390,129 @@ namespace mfft{
       
       del_mat<double>(pad);
       del_mat<double>(ppsf);
-      delete [] psf;
       delete [] img;
     }
   
   /* ------------------------------------------------------------------------------- */
 
+  template <class T> class fftconv2D {
+  private:
+    fftw_plan fplan, bplan;
+    size_t nx, ny, npx, npy, nft, nftx, nfty;
+    std::complex<double> *otf, *ft;
+    double **pad;
+    bool started_plans;
+  public:
+
+  fftconv2D(size_t ny_in, size_t nx_in, size_t ny1, size_t nx1, T *psf_in): 
+    ny(ny_in), nx(nx_in), npx(0), npy(0), nft(0), nftx(0), nfty(0), otf(NULL), ft(NULL),
+      started_plans(false), pad(NULL)
+	{
+	  
+	  /* --- Init dimensions --- */
+	  
+	  npx = ((nx1/2) * 2 == nx1) ? nx+nx1 : nx+nx1-1;
+	  npy = ((ny1/2) * 2 == ny1) ? ny+ny1 : ny+ny1-1;
+	  nftx = npx, nfty = npy / 2 + 2;
+	  nft = nftx*nfty;
+		
+
+	  /* --- shift and pad psf --- */
+	  
+	  double **ppsf = reorder_psf_2D<T>(ny1, nx1, psf_in, npy, npx);
 
 
+	  /* --- Init arrays --- */
+	  
+	  pad = mat2d<double>(npy, npx, true);
+	  ft  = new std::complex<double> [nft];
+	  otf = new std::complex<double> [nft];
+
+	  
+	  /* --- Init plans --- */
+	  
+	  fplan = fftw_plan_dft_r2c_2d(npy, npx, &pad[0][0],
+				       (fftw_complex*)ft, FFTW_ESTIMATE);
+	  bplan = fftw_plan_dft_c2r_2d(npy, npx, (fftw_complex*)ft,
+				       &pad[0][0], FFTW_ESTIMATE);
+	  started_plans = true;
+	  
+
+	  /* --- Transform PSF and save it --- */
+	  
+	  fftw_execute_dft_r2c(fplan, &ppsf[0][0],  (fftw_complex*)otf);
+
+
+	  
+	  /* --- Clean up --- */
+	  
+	  del_mat<double>(ppsf);
+	}
+
+
+    ~fftconv2D()
+      {
+	if(started_plans){
+	  fftw_destroy_plan(bplan);
+	  fftw_destroy_plan(fplan);
+	}
+
+	if(otf) delete [] otf;
+	if(ft)  delete [] ft;
+	if(pad) delete [] pad;
+      }
+      
+      
+    void convolve(size_t ny_in, size_t nx_in, T *img_in)
+    {
+      
+      if((ny_in != ny)|| (nx_in != nx)){
+	fprintf(stderr,"info: fftconv2D::convolve: image dims [%d, %d] and init dims [%d, %d] must be equal, not convolving!\n", ny_in, nx_in, ny, nx);
+	return;
+      }
+
+      /* --- map input image and psf pointers to 2d arrays --- */
+
+      T **img = var2dim<T>(img_in, ny, nx);
+      
+      
+      /* --- Copy image to padded array. 
+	 The padding is done my mirroring the image --- */
+      
+      pad_image_mirror<T>(ny, nx, img, npy, npx, pad);
+
+      
+      /* --- Forward FFT --- */
+      
+      fftw_execute_dft_r2c(fplan, &pad[0][0],  (fftw_complex*)ft);
+
+      
+      /* --- perform convolution --- */
+
+      for(size_t ii=0; ii<nft; ii++) ft[ii] *= otf[ii];
+
+
+      /* --- Convert back --- */
+      
+      fftw_execute_dft_c2r(bplan, (fftw_complex*)ft, &pad[0][0]);
+
+
+      /* --- Copy in place from padded array --- */
+
+      for(size_t yy=0; yy<ny;yy++)
+	for(size_t xx=0;xx<nx;xx++)
+	  img[yy][xx] = pad[yy][xx];
+      
+
+      /* --- Clean-up --- */
+
+      delete [] img;
+    }
+  };
+  
+  
+  
+  
   
 }//namespace
 
