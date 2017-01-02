@@ -245,26 +245,28 @@ namespace mfft{
   template <class T> double **reorder_psf_2D(size_t ny1, size_t nx1, T *psf_in,
 					   size_t npy, size_t npx)
     {
+
+      /* --- Init output array and map psf to a 2D array --- */
+      
       double **ppsf = mat2d<double>(npy, npx, true);
-      double **tpsf = mat2d<double>(npx, npy, true);
-      //
       T **psf = var2dim<T>(psf_in, ny1, nx1);
-      
       double sum = 1.0 / ((double)mth::sum<T>(nx1*ny1, psf_in) * npx * npy);
-            
-      for(size_t yy=0;yy<ny1;yy++){
-	for(size_t xx=0;xx<nx1;xx++) ppsf[yy][xx] = psf[yy][xx] * sum;
-	std::rotate(ppsf[yy], &ppsf[yy][nx1/2], &ppsf[yy][npx]);
-	for(size_t xx=0;xx<npx;xx++) tpsf[xx][yy] = ppsf[yy][xx];
-      }
-
-      for(size_t xx=0;xx<npx;xx++){
-	std::rotate(tpsf[xx], &tpsf[xx][ny1/2], &tpsf[xx][npy]);
-	for(size_t yy=0;yy<npy;yy++) ppsf[yy][xx] = tpsf[xx][yy];
-      }
 
       
-      del_mat<double>(tpsf);
+      /* --- copy PSF to padded array and shift it 1/2 of the domain in X and Y --- */
+      
+      size_t n2 = ny1/2, n22=npy-n2+1;
+      for(size_t yy=0;yy<ny1;yy++)
+	if(yy<n2){
+	  for(size_t xx=0;xx<nx1;xx++) ppsf[n22-yy][xx] = psf[yy][xx] * sum;
+	  std::rotate(ppsf[n22-yy], &ppsf[n22-yy][nx1/2], &ppsf[n22-yy][npx]);
+	}else{
+	  for(size_t xx=0;xx<nx1;xx++) ppsf[yy-n2][xx] = psf[yy][xx] * sum;
+	  std::rotate(ppsf[yy-n2], &ppsf[yy-n2][nx1/2], &ppsf[yy-n2][npx]);
+	}
+
+      /* --- Clean-up --- */
+      
       delete [] psf;
 
       return ppsf;
@@ -283,10 +285,9 @@ namespace mfft{
       size_t nft = nftx*nfty;
 
 
-      /* --- compute median and stdev --- */
+      /* --- compute mean --- */
       
-      double me = mth::sum<T>(nx*ny, img_in)/(double)(nx*ny), st = mth::stdev<T>(nx*ny, img_in);
-      st = (st < 1.0e-5) ? st = 1.0 : 1.0/st;
+      double me = mth::sum<T>(nx*ny, img_in)/(double)(nx*ny);
       
       
       /* --- map input image and psf pointers to 2d arrays --- */
@@ -307,7 +308,7 @@ namespace mfft{
       for(size_t yy = 0; yy<ny; yy++){
 	
 	for(size_t xx = 0; xx<nx; xx++)
-	  pad[yy][xx] = ((double)img[yy][xx] - me) * st; // copy image
+	  pad[yy][xx] = ((double)img[yy][xx] - me); // copy image
 	  
 	
 	for(size_t xx = 0; xx<np/2; xx++)
@@ -322,13 +323,12 @@ namespace mfft{
       np2= np-np/2+1;
       //
       for(size_t yy=0; yy<np/2; yy++){
-	//	fprintf(stderr," %d %d %d %d\n",yy, yy+ny, ny-yy, npy);
-	memcpy(pad[yy+ny], pad[ny-yy], npx*sizeof(double));	
+	memcpy(pad[yy+ny], pad[ny-yy-1], npx*sizeof(double));	
       }
       for(size_t yy=np/2; yy<np; yy++) {
-	//    	fprintf(stderr," %d %d %d %d\n",yy, yy+ny, np2-yy, npy);
 	memcpy(pad[yy+ny], pad[np2-yy], npx*sizeof(double));
       }
+
 
 
       /* --- shift and pad psf --- */
@@ -373,7 +373,7 @@ namespace mfft{
 
       for(size_t yy=0; yy<ny; yy++)
 	for(size_t xx=0;xx<nx;xx++)
-	  img[yy][xx] = (T)(pad[yy][xx] / st + me);
+	  img[yy][xx] = (T)(pad[yy][xx] + me);
       
 
       
