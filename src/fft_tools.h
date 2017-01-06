@@ -26,7 +26,7 @@ namespace mfft{
     T **p = new T* [nx1];
     //
     if(zero) p[0] = new T [nx1 * nx2]();
-    else p[0] = new T [nx1 * nx2];
+    else     p[0] = new T [nx1 * nx2];
     //
     for(size_t x1=1;x1<nx1;++x1) p[x1] = p[x1-1] + nx2;
     return p;
@@ -404,6 +404,8 @@ namespace mfft{
     bool started_plans;
   public:
 
+    /* ------------------------------------------------------------------------------- */
+
   fftconv2D(size_t ny_in, size_t nx_in, size_t ny1, size_t nx1, T *psf_in): 
     ny(ny_in), nx(nx_in), npx(0), npy(0), nft(0), nftx(0), nfty(0), otf(NULL), ft(NULL),
       started_plans(false), pad(NULL)
@@ -449,20 +451,22 @@ namespace mfft{
 	  del_mat<double>(ppsf);
 	}
 
-
+    /* ------------------------------------------------------------------------------- */
+    
     ~fftconv2D()
       {
 	if(started_plans){
 	  fftw_destroy_plan(bplan);
 	  fftw_destroy_plan(fplan);
 	}
-
+	
 	if(otf) delete [] otf;
 	if(ft)  delete [] ft;
 	if(pad) delete [] pad;
       }
-      
-      
+    
+    /* ------------------------------------------------------------------------------- */
+    
     void convolve(size_t ny_in, size_t nx_in, T *img_in)
     {
       
@@ -511,7 +515,8 @@ namespace mfft{
   };
   
   
-  
+  /* ------------------------------------------------------------------------------- */
+
   
   
 }//namespace
