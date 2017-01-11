@@ -91,6 +91,75 @@ inline double sumarr2(double *arr, int n){
   return (double)sum;
 }
 
+inline double sumarr2_4(double *arr, int n){
+
+  bool stokes = false;
+  int n4 = n/4;
+  if(n4*4 == n) stokes = true;
+  
+  if(stokes){
+    long double ichi[4] = {0.0L, 0.0L, 0.0L, 0.0L};
+    for(int ss=0;ss<4;ss++){
+      long double sum = 0.0, c = 0.0;
+      for(int kk=0;kk<n4;kk++){
+	long double y = arr[kk*4+ss]*arr[kk*4+ss] - c;
+	long double t = sum + y;
+	c = (t - sum) - y;
+	sum = t;
+      }
+      ichi[ss] = sum;
+      //  cerr<<"ichi2["<<ss<<"]="<<ichi[ss]<<endl;
+    }
+    return (double)(ichi[0] + ichi[1] + ichi[2] + ichi[3]);
+  }else{
+    long double sum = 0.0, c = 0.0;
+    
+    for(int kk = 0; kk<n; kk++){
+      long double y = arr[kk]*arr[kk] - c;
+      long double t = sum + y;
+      c = (t - sum) - y;
+      sum = t;
+    }
+    
+    return (double)sum;
+  }
+}
+
+inline double sumarr_4(double *arr, int n){
+
+  bool stokes = false;
+  int n4 = n/4;
+  if(n4*4 == n) stokes = true;
+  
+  if(stokes){
+    long double ichi[4] = {0.0L, 0.0L, 0.0L, 0.0L};
+    for(int ss=0;ss<4;ss++){
+      long double sum = 0.0L, c = 0.0L;
+      for(int kk=0;kk<n4;kk++){
+	long double y = arr[kk*4+ss] - c;
+	long double t = sum + y;
+	c = (t - sum) - y;
+	sum = t;
+      }
+      ichi[ss] = sum;
+      //  cerr<<"ichi["<<ss<<"]="<<ichi[ss]<<endl;
+
+    }
+    return (double)(ichi[0] + ichi[1] + ichi[2] + ichi[3]);
+  }else{
+    long double sum = 0.0, c = 0.0;
+    
+    for(int kk = 0; kk<n; kk++){
+      long double y = arr[kk] - c;
+      long double t = sum + y;
+      c = (t - sum) - y;
+      sum = t;
+    }
+    
+    return (double)sum;
+  }
+}
+
 
 /* -------------------------------------------------------------------------------- */
 
@@ -230,7 +299,7 @@ void clm::zero(double *res, double **rf)
 double clm::compute_chi2(double *res, double penalty)
 {
   // std::cerr<< (double)sumarr2(res,nd)/double(nd)<<" "<<penalty<<std::endl;
-  return (double)sumarr2(res,nd)/double(nd) + penalty*regul_scal;				 
+  return (double)sumarr2_4(res,nd)/double(nd) + penalty*regul_scal;				 
 }
 
 /* -------------------------------------------------------------------------------- */
@@ -496,7 +565,7 @@ void clm::compute_trial2(double *res, double **rf, double lambda,
     for(int xx = 0; xx<=yy; xx++){
       for(int ww = 0; ww<nd; ww++) tmp[ww] = rf[yy][ww] * rf[xx][ww];
       
-      A(yy,xx) = sumarr(&tmp[0], nd);
+      A(yy,xx) = sumarr_4(&tmp[0], nd);
 
       /* --- Add regularization terms --- */
       
@@ -528,7 +597,7 @@ void clm::compute_trial2(double *res, double **rf, double lambda,
     /* --- Compute J^t * Residue --- */
     
     for(int ww = 0; ww<nd; ww++) tmp[ww] = rf[yy][ww] * res[ww];
-    B[yy] = sumarr(&tmp[0], nd);
+    B[yy] = sumarr_4(&tmp[0], nd);
     
   } // yy
 
