@@ -6,7 +6,7 @@
 #ifndef INTERPOL_H
 #define INTERPOL_H
 //
-#include <cmath>
+#include <math.h>
 #include <algorithm>
 #include <cstdio>
 #include <vector>
@@ -412,7 +412,65 @@ template <class T1, class T2> void bezpol2(size_t ni, T1 *x, T1 *y, size_t nni, 
 
 /* --------------------------------------------------------------------- */
 
+template <class T1, class T2> void vlint(size_t n, T1 *x, T1 *y, size_t n1, T2 *xx, T2 *yy)
+{
+
+  double x0=0.0, y0=0.0, x1=0.0, y1=0.0, dxu=0.0, dxd=0.0,
+    r=0.0, phi=0.0, der=0.0, u = 0.0;
+  size_t off = 0, off0 = 0, off1 = 0;
+  
+  for(size_t ii=1;ii<(n-1); ii++){
+
+    /* --- Compute the derivative --- */
+    
+    dxu = (x[ii]-x[ii-1])*0.5;
+    dxd = (x[ii+1]-x[ii])*0.5;
+    //
+    r   = (y[ii]-y[ii-1])/(y[ii+1]-y[ii]);
+    if(!isfinite(r)) r = 0.0;
+    //
+    phi = (r + fabs(r)) / (1.0 + fabs(r));
+    der = phi * (y[ii+1]-y[ii]) / (dxd+dxu);
+
+    /* --- Now check if there are points in this interval --- */
+
+    bool first = true;
+    for(size_t jj=off; jj<n1; jj++){
+      if( (xx[jj] <= (x[ii]+dxd)) && (xx[jj] > (x[ii]-dxu)) ){
+	yy[jj] = der * (xx[jj]-x[ii]) + y[ii];
+
+	if((ii==1) && first) x0 = xx[jj], y0 = yy[jj];
+	x1 = xx[jj], y1 = yy[jj];
+	
+	first = false;
+	off++;
+      } // if
+    }// jj
+    
+  }// ii
 
 
+    /* --- Second interval ---*/
+  
+  dxu = (x[n-1] - x[n-2]) * 0.5;
+  for(size_t jj=off;jj<n1; jj++){
+    if(xx[jj] >= (x[n-1]-dxu)) yy[jj] = (y[n-1]-y1)/(x[n-1]-x1) * (xx[jj]-x[n-1]) + y[n-1];
+  }
+  
+  
+  /* --- first interval --- */
+
+  dxd = (x[1] - x[0]) * 0.5;
+  der = (y[0]-y0)/(x[0]-x0);
+  for(size_t jj=0;jj<n1; jj++){
+    if(xx[jj] <= (x[0]+dxd)) yy[jj] =  der * (xx[jj]-x[0]) + y[0];
+    else break;
+  }
+
+
+
+  
+  
+}
 
 #endif
