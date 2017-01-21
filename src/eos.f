@@ -966,14 +966,14 @@ C     compute by the EOS.
 C   NITER  [integer] Number of iterations needed for the EOS.
 C
       subroutine eqstat_rho(mode,temp,Pg,Pe,abund,elemen,amass,
-     &                  ELESIZ,spindx,splist,xfract,poti,atwght,
+     &                  ELESIZ,spindx,splist,xfract,pfunc,poti,atwght,
      &                  nlines,nlist,xne,xna,rho,niter)
       IMPLICIT NONE
       INCLUDE 'SIZES.EOS'
 
       integer mode,ELESIZ,niter
-      integer nlines,nlist
-      real temp,Tk,Pg,Pe,Pgas,Pelec,xna,xne,rho,xntot
+      integer nlines,nlist, idir
+      real temp,Tk,Pg,Pe,Pgas,Pelec,xna,xne,rho,xntot,fac, ifrac, iscale
 c      real xnatom,xnelec,xne_old,xna_old
       real Pg_old,Pe_old,rho_new
       character*(SPCHAR) splist(nlist)
@@ -1003,11 +1003,13 @@ c     close(87)
       TOL=1.E-5
       TOL1=1.E-3
       Pelec=Pe
+      Pgas=Pg
       PSI=2.d0/(1.d0+SQRT(5.d0))
       DO ISPEC=1,NLIST
         IF(SPLIST(ISPEC).EQ.'H  ') IH1 =ISPEC
         IF(SPLIST(ISPEC).EQ.'He ') IHE1=ISPEC
         XNPF(ISPEC)=-1.
+        pfunc(ispec)=1.
       END DO
       Tk=temp*kBol
       mmode=mod(mode,10)
@@ -1015,7 +1017,7 @@ C
 C================================================
 C Hot gas: ignore molecules and solve ionization equilibrium only
 C
-      if(temp.gt.10000.) then
+      if(temp.gt.9000.) then
 C
 C Hot gas: assume no molecules and use Saha equation
 C
@@ -1034,29 +1036,37 @@ C
 C Iterate to find gas/electron pressures consistent with the given density
 C
         niter=0
-        xna=xntot*0.5
-  1     niter=niter+1
-        Pgas=xna*Tk
+        fac = 1.0
+        Pgas = 2.0 * xntot * tk
+
+        
+ 1      niter=niter+1
+        if(niter .gt. 200) stop
         Pg=Pgas
+        
 C
 C Get number density of free electrons
-C
+C     
         call Nelect(temp,Pgas,abund,amass,ELESIZ,
-     *              xna,xne,wtmol)
-        if(mode.ge.10) then
-          Pelec=xne*Tk
+     *       xna,xne,wtmol)
+        
+        if(mode.lt.10) then
+           Pelec=xne*Tk
         else
-          xne=Pelec/Tk
+           xne=Pelec/Tk
         endif
+C     
+C     If the total number of particles derived from the density and the Nelect
+C     are significantly discrepant recompute Pgas and iterate
 C
-C If the total number of particles derived from the density and the Nelect
-C are significantly discrepant scale xna and iterate
-C
-        if(abs(xna+xne-xntot)/(xna+xne).gt.TOL) then
-          xna=xna*xntot/(xna+xne)
-          go to 1
+        fac =  (xna + xne) * tk
+        ifrac = (xntot-xna) / xntot
+        
+        if(abs(ifrac) .gt. TOL) then
+           Pgas = Pgas + (xntot-xna)*tk*1.5
+           goto 1
         endif
-C
+C     
 C We found consistent values of Pgas and Pelec. Proceed with the EOS.
 C
         xna=(Pgas-Pelec)/Tk
@@ -1069,7 +1079,14 @@ C
 C
 C Get the number of ionization stages available in XSAHA
 C
-          call xsaha(Anum(1),temp,xne,xna,maxion,potion,fract,5)
+           call xsaha(Anum(1),temp,xne,xna,maxion,potion,fract,5)
+           
+C
+C Get the partition function for a given species
+C     
+          call xsaha(Anum(1),temp,xne,xna,maxion,potion,fract,3)
+          pfunc(ispec)=fract(icharge)
+           
 C
 C Atom. Parser returns atomic number in Anum(1)
 C
@@ -1107,9 +1124,15 @@ C
 C
 C Ignore molecules
 C
-          poti(ispec)  =1.
-          atwght(ispec)=1.
-          xfract(ispec)=0.
+C          poti(ispec)  =1.
+C          atwght(ispec)=1.
+C          xfract(ispec)=0.
+          if(poti(ispec).lt.0.) then
+             poti(ispec)=100.
+             atwght(ispec)=10.
+          endif
+          pfunc(ispec)=1.
+          xfract(ispec)=1.e-30
         endif
   2     continue
 C
@@ -1141,20 +1164,27 @@ C
 C
 C Gas pressure as if no molecules are present
 C
-        Pg_old=rho/sum
+        Pg_old=rho/sum*tk
+      
         niter=0
   3     continue
 c        write(*,*) NLINES,NLIST,temp,Pgas,Pelec,mmode
-c        write(*,'(10f8.3)') log10(abund)
-        if(temp.gt.4000.) then
-          Pe_old=Pg_old*0.1
-        else if(temp.gt.2000.) then
-          Pe_old=Pg_old*0.01
+c     write(*,'(10f8.3)') log10(abund)
+        if(mode.lt.10) then
+
+           if(temp.gt.4000.) then
+              Pe_old=Pg_old*0.1
+           else if(temp.gt.2000.) then
+              Pe_old=Pg_old*0.01
+           else
+              Pe_old=Pg_old*0.001
+           endif
         else
-          Pe_old=Pg_old*0.001
+           Pe_old=Pelec
         endif
+
   4     continue
-        if(temp.lt.1500.) then
+        if(temp.lt.2000.) then
           call lnGAS(temp,Pg_old,Pe_old,abund,elemen,amass,
      *             ELESIZ,tol,splist,nlist,
      *             xne,xna,rho_new,Pgas,xnpf,pfunc,poti,xtotal,
@@ -1166,31 +1196,38 @@ c        write(*,'(10f8.3)') log10(abund)
      *             awt,iter,FAILED)
         endif
         niter=niter+iter
+        Pelec=xne*Tk
+
         IF(niter.ge.MAXITER) THEN
-          Pelec=xne*Tk
 c          WRITE(*,*) 'T,Pgas,Pnew,Pelec,Pe_in,Pe_out,NITER=',
 c     *                Temp,Pgas,Pg,Pe,Pe_old,Pelec,niter,FAILED
 c          WRITE(*,*) 'T,Pgas,Pnew,XNA_in,XNA_out,XNE_in,XNE_out=',
 c     *                Temp,Pgas,Pnew,xna_old,xna,xne_old,xne,niter,
 c     *                FAILED
-          IF(niter.gt.MAXITER*20) STOP
+          IF(niter.gt.10) STOP
         END IF
 C
 C Adjust pressure according to the discrepancy in density 
 C
-        IF(abs(Pgas -Pg_old)/max(1.E-20,Pgas ).gt.tol1.or.
+C        If(abs(rho-rho_new)/rho .gt.tol1) then
+           
+        
+        
+        IF( abs(Pgas -Pg_old)/max(1.E-20,Pgas ).gt.tol1.or.
      *     abs(Pelec-Pe_old)/max(1.E-20,Pelec).gt.tol1) THEN
           Pe_old=Pelec
-          Pg_old=Pg
+          Pg_old=Pgas ! Changed by Jaime so it converges! 
           GOTO 4
-        END IF
+       END IF
 C
 C The convergence for a given value of rho is achieved.
 C Iterate Pg to match the density
 C
-        if(abs(rho-rho_new)/rho.gt.tol) then
-          Pe_old=xne*Tk*rho/rho_new
-          Pg_old=Pgas*rho/rho_new
+
+       if(abs(rho-rho_new)/rho.gt.tol) then
+                 
+           Pe_old=xne!*Tk*rho/rho_new
+           Pg_old=Pgas*rho/rho_new
           go to 3
         endif
         Pg=Pgas
@@ -8213,10 +8250,12 @@ C     2 112718911,335853801,742987841,895879721,626944081, 1389900,71,01,Sne Lu 
      1 209530092,450866762, 96613623,186524763,318839893,  600000,99,00,FAK Es 1
      2 209530092,450866762, 96613623,186524763,318839893, 1200000,99,01,FAK Es 2
      3 209530092,450866762, 96613623,186524763,318839893, 2000000,99,02/FAK Es 3
-      DATA SCALE/0.001,0.01,0.1,1.0/,FIRST/.TRUE./
+      DATA SCALE/0.001,0.01,0.1,1.0/
+C     DATA FIRST/.TRUE./
 C
 C  First time XSAHA is called find the starting locations for each element
 C
+      FIRST = .TRUE.
       IF(FIRST) THEN
         FIRST=.FALSE.
         IZ=0

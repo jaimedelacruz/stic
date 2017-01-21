@@ -22,6 +22,16 @@ extern "C" {
   void eqstat_(int &, float &, float &, float &, float *, const char [][3],
 	       const float *, int &, int *, char *, float *, float *, float *,
 	       float *, int &, int &, float &, float &, float &, int &);
+  void eqstat_rho_(int &, float &, float &, float &, float *, const char [][3],
+	       const float *, int &, int *, char *, float *, float *, float *,
+	       float *, int &, int &, float &, float &, float &, int &);
+  //     subroutine eqstat_rho(mode,temp,Pg,Pe,abund,elemen,amass,
+  //   &                  ELESIZ,spindx,splist,xfract,poti,atwght,
+  //   &                  nlines,nlist,xne,xna,rho,niter)
+  //     subroutine     eqstat(mode,temp,Pg,Pe,abund,elemen,amass,
+  //   &                  ELESIZ,spindx,splist,xfract,pfunc,poti,atwght,
+  //   &                  nlines,nlist,xne,xna,rho,niter)
+  
   void check_(const char [][3], char [][8], int *, int &, int &, int &);
 
   /*
@@ -132,7 +142,9 @@ class ceos{
   void unique(void);
   void fill_densities(int ndep, double *t, double *pgas, double *rho, double *pel,
 		      double *nne, int touse, int keep_nne = 0, float tol = 1.0e-5);
-  
+
+  float test_pgas_from_rho(float T, float rho,  float &nne);
+
 };
 
 

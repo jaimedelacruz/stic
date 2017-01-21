@@ -3012,6 +3012,7 @@ c
 *     ..
 *     .. Executable Statements ..
 *
+C      FIRST = .TRUE.
       IF( FIRST ) THEN
          FIRST = .FALSE.
          CALL myDLAMC2( BETA, IT, LRND, EPS, IMIN, RMIN, IMAX, RMAX )
@@ -3138,6 +3139,7 @@ c
 *     ..
 *     .. Executable Statements ..
 *
+C      FIRST = .TRUE.
       IF( FIRST ) THEN
          FIRST = .FALSE.
          ONE = 1
@@ -3343,10 +3345,12 @@ c
      $                   LRMIN, LT
 *     ..
 *     .. Data statements ..
-      DATA               FIRST / .TRUE. / , IWARN / .FALSE. /
+      DATA               IWARN / .FALSE. /
+      DATA FIRST / .TRUE. /
 *     ..
 *     .. Executable Statements ..
 *
+C      FIRST = .TRUE.
       IF( FIRST ) THEN
          FIRST = .FALSE.
          ZERO = 0
