@@ -1063,7 +1063,7 @@ C
         ifrac = (xntot-xna) / xntot
         
         if(abs(ifrac) .gt. TOL) then
-           Pgas = Pgas + (xntot-xna)*tk*1.5
+           Pgas = Pgas * xntot/xna
            goto 1
         endif
 C     
@@ -1204,7 +1204,7 @@ c     *                Temp,Pgas,Pg,Pe,Pe_old,Pelec,niter,FAILED
 c          WRITE(*,*) 'T,Pgas,Pnew,XNA_in,XNA_out,XNE_in,XNE_out=',
 c     *                Temp,Pgas,Pnew,xna_old,xna,xne_old,xne,niter,
 c     *                FAILED
-          IF(niter.gt.10) STOP
+          IF(niter.gt.MAXITER*10) STOP
         END IF
 C
 C Adjust pressure according to the discrepancy in density 
@@ -1225,8 +1225,7 @@ C Iterate Pg to match the density
 C
 
        if(abs(rho-rho_new)/rho.gt.tol) then
-                 
-           Pe_old=xne!*Tk*rho/rho_new
+           Pe_old=xne*Tk*rho/rho_new
            Pg_old=Pgas*rho/rho_new
           go to 3
         endif
@@ -1836,7 +1835,7 @@ C
 C  Neutral or ionized molecule
 C
         TYPE(ISPEC)=2
-C
+C     go[83ite JSDHJKN-L7LJ GPTPKDEE?SWW
 C  Calculate mass ratio (RATIOM) and partition function product (QPRD)
 C  needed by MOLCON. See MOLCON header for decription of these quantities.
 C  While we are at it, calculate the atomic weight (AWT) of the molecule
