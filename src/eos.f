@@ -1037,9 +1037,7 @@ C Iterate to find gas/electron pressures consistent with the given density
 C
         niter=0
         fac = 1.0
-        Pgas = 2.0 * xntot * tk
-
-        
+        Pgas = 2.0 * xntot * tk    
  1      niter=niter+1
         if(niter .gt. 200) stop
         Pg=Pgas
@@ -1059,11 +1057,9 @@ C
 C     If the total number of particles derived from the density and the Nelect
 C     are significantly discrepant recompute Pgas and iterate
 C
-        fac =  (xna + xne) * tk
-        ifrac = (xntot-xna) / xntot
-        
-        if(abs(ifrac) .gt. TOL) then
-           Pgas = Pgas * xntot/xna
+
+        if(abs((xntot-xna) / xntot) .gt. TOL) then
+           Pgas = Pgas + (xntot-xna)*tk
            goto 1
         endif
 C     
