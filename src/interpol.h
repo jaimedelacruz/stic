@@ -466,11 +466,35 @@ template <class T1, class T2> void vlint(size_t n, T1 *x, T1 *y, size_t n1, T2 *
     if(xx[jj] <= (x[0]+dxd)) yy[jj] =  der * (xx[jj]-x[0]) + y[0];
     else break;
   }
-
-
-
-  
   
 }
+
+/* --------------------------------------------------------------------- */
+
+template <class T> void cent_der(size_t n, T *x, T *y, T *yp)
+{
+
+  double odx = x[1]-x[0], dx = 0;
+  double oder = (y[1]-y[0])/odx, der = 0;
+  yp[0] = oder;
+
+  for(size_t ii=1;ii<(n-1); ii++){
+    dx = x[ii+1] - x[ii];
+    der = (y[ii+1] - y[ii]) / dx;
+
+    if(der*oder > 0.0){
+      double lambda = (1.0 + dx / (dx + odx)) / 3.0;
+      yp[ii] = (oder / (lambda * der + (1.0 - lambda) * oder)) * der;
+    } else yp[ii] = 0.0; // Set der to zero at extrema;
+
+    /* --- Save values --- */
+    
+    oder = der, odx = dx;
+  }
+
+  yp[n-1] = oder;
+}
+
+
 
 #endif
