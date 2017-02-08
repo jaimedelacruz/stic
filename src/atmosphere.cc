@@ -52,9 +52,10 @@ void atmos::responseFunction(int npar, mdepth_t &m_in, double *pars, int nd, dou
   bool store_pops = false;
   int centder = input.centder; 
   if(input.nodes.ntype[pp] == v_node) centder = 1;
-  //  if(input.nodes.ntype[pp] == vturb_node) centder = 1;
 
+  
   /* --- Init perturbation --- */
+  
   double *ipars = new double [npar];
   memcpy(&ipars[0], &pars[0], npar*sizeof(double));
   memset(&out[0], 0, nd*sizeof(double));
@@ -227,8 +228,8 @@ void atmos::randomizeParameters(nodes_t &n, int npar, double *pars){
 void getDregul2(double *m, int npar, double *dregul, nodes_t &n)
 {
 
-  std::vector<double> tmp;
-  double penalty = 0.0, weights[3] = {0.04,10.0,40.0};
+  std::vector<double> tmp, tmp1;
+  double penalty = 0.0, weights[3] = {0.15,10.0,5.0};
 
   
   /* --- Tikhonov's regularization on first derivative for Temp --- */
@@ -236,12 +237,15 @@ void getDregul2(double *m, int npar, double *dregul, nodes_t &n)
   if(n.toinv[0] && true){
     int nn = (int)n.temp.size();
     
-    if(nn > 1 && false){
+    if(nn > 1){
       tmp.resize(nn, 0.0);
+      tmp1.resize(nn, 0.0);
+
       mth::cent_der<double>(nn,&n.temp[0], &m[n.temp_off], &tmp[0]);
-      mth::cent_der<double>(nn,&n.temp[0],        &tmp[0], &dregul[n.temp_off]);
-      mth::cmul<double>(nn, &dregul[n.temp_off], 2*weights[0]);
-      penalty += weights[0] * mth::ksum2(nn, &tmp[0]) / nn;
+      mth::cent_der<double>(nn,&n.temp[0], &tmp[0], &tmp1[0]);
+      mth::cent_der<double>(nn,&n.temp[0], &tmp1[0], &dregul[n.temp_off]);
+      mth::cmul<double>(nn, &dregul[n.temp_off], 2*weights[0]/nn);
+      penalty += weights[0] * mth::ksum2(nn, &tmp1[0]) / nn;
     }
   }
 
@@ -255,7 +259,7 @@ void getDregul2(double *m, int npar, double *dregul, nodes_t &n)
       tmp.resize(nn, 0.0);
       mth::cent_der<double>(nn,&n.v[0], &m[n.v_off], &tmp[0]);
       mth::cent_der<double>(nn,&n.v[0],        &tmp[0], &dregul[n.v_off]);
-      mth::cmul<double>(nn, &dregul[n.v_off], 2*weights[1]);
+      mth::cmul<double>(nn, &dregul[n.v_off], 2*weights[1]/nn);
       penalty +=weights[1] * mth::ksum2(nn, &tmp[0]) / nn;
     }
   }
@@ -266,8 +270,8 @@ void getDregul2(double *m, int npar, double *dregul, nodes_t &n)
     int nn = (int)n.vturb.size();          
     double sum2 = 0.0;
     for(size_t ii=0; ii<nn; ii++) {
-      dregul[n.vturb_off+ii] = 2.0 * weights[2] * m[n.vturb_off+ii];
-      sum2 =  mth::sqr( m[n.vturb_off+ii]);
+      dregul[n.vturb_off+ii] = 2.0 * weights[2] * m[n.vturb_off+ii] / nn;
+      sum2 +=  mth::sqr( m[n.vturb_off+ii]);
     }
     penalty +=  weights[2] * sum2 / nn;
   }

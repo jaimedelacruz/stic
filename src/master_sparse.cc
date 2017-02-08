@@ -11,6 +11,7 @@
 #include "depthmodel.h"
 #include "clte.h"
 #include "crh.h"
+#include "fpi.h"
 //
 using namespace netCDF;
 using namespace std;
@@ -96,8 +97,8 @@ void master_inverter(mdepthall_t &model, mat<double> &pars, mat<double> &obs, ma
   inst.resize(nreg);
   
   for(int kk = 0; kk<nreg; kk++){
-    if(atm->input.regions[kk].inst == "spectral")
-      inst[kk] = new spectral(atm->input.regions[kk], 1);
+    if(atm->input.regions[kk].inst == "spectral") inst[kk] = new spectral(atm->input.regions[kk], 1);
+    else if(atm->input.regions[kk].inst == "fpi") inst[kk] = new     sfpi(atm->input.regions[kk], 1);
     else inst[kk] = new instrument();
   }
   atm->inst = &inst[0];
@@ -267,7 +268,7 @@ void do_master_sparse(int myrank, int nprocs,  char hostname[]){
       vector<double> itau;
       itau.resize(input.ndep);
       for(int ii=0;ii<input.ndep;ii++) itau[ii] = im.cub(0,0,9,ii);
-      input.npar = set_nodes(input.nodes, itau, input.verbose);
+      input.npar = set_nodes(input.nodes, itau, input.dint, input.verbose);
     }
     
   } // if inversion

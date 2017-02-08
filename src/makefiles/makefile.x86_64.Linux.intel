@@ -16,17 +16,20 @@ MPCXX = mpicxx
 MPFC = mpif90
 MPCC = mpicc
 
+LINKER = $(MPFC)
+
 
 #
 # OPTIMIZATION
 #
-OPTS =  -Ofast -xCORE-AVX2 -mkl=sequential -g -lifcore -static-intel 
+OPTS =  -Ofast -xCORE-AVX2 -mkl=sequential -g  
 CXXFLAGS = $(OPTS) -std=c++11 -gxx-name=g++-4.9 -fPIC #-Wno-literal-suffix
 CFLAGS = $(OPTS) -DHAVE_F90 -fPIC
 FFLAGS = -Ofast -xCORE-AVX-I -mkl=sequencial -g -static-intel
 AR = xiar
 OPENMP = -fopenmp
 
+LINKEROPTS =  -static-intel -nofor-main
 
 #
 # GSL, FFTW3 libs.

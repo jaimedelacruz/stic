@@ -24,6 +24,7 @@
 #include "crh.h"
 #include "instruments.h"
 #include "spectral.h"
+#include "fpi.h"
 
 using namespace std;
 //
@@ -69,8 +70,8 @@ void do_slave(int myrank, int nprocs, char hostname[]){
   inst.resize(nreg);
   
   for(int kk = 0; kk<nreg; kk++){
-    if(atmos->input.regions[kk].inst == "spectral")
-      inst[kk] = new spectral(atmos->input.regions[kk], 1);
+    if(atmos->input.regions[kk].inst == "spectral") inst[kk] = new spectral(atmos->input.regions[kk], 1);
+    else if(atmos->input.regions[kk].inst == "fpi") inst[kk] = new     sfpi(atmos->input.regions[kk], 1);
     else inst[kk] = new instrument();
   }
   atmos->inst = &inst[0];

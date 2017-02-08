@@ -93,10 +93,10 @@ std::vector<double> fill_lambdas(iput_t &input, bool air = false);
 
 
 void equidist(std::vector<double> &var, double min, double max);
-void equidist(std::vector<double> &var, std::vector<double> &itau);
+void equidist(std::vector<double> &var, std::vector<double> &itau, bool cent_grid = false);
 double nodeLocation(std::vector<double> &itau, double iloc);
 int set_nodes(nodes_t &n, double min, double max, bool verbose = false);
-int set_nodes(nodes_t &n, std::vector<double> &itau, bool verbose = false);
+int set_nodes(nodes_t &n, std::vector<double> &itau, int dint, bool verbose = false);
 
 /*--- Convert from air -> vacuum and viceversa --- */
 double convl(double lambda);

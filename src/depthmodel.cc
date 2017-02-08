@@ -58,9 +58,11 @@ void mdepth::nodes2depth(int n, double *x, double *y, int nn, double *xx, double
     if     (interpol == 0)   linpol<double,double>(n, x, y, nn, xx, yy, true);
     else if(interpol == 1)  bezpol2<double,double>(n, x, y, nn, xx, yy, true);
     else if(interpol == 2)  hermpol<double,double>(n, x, y, nn, xx, yy, true);
-    else if(interpol == 3)    vlint<double,double>(n, x, y, nn, xx, yy);
+    else if(interpol == 3){
+      if(n > 3) vlint<double,double>(n, x, y, nn, xx, yy);
+      else      linpol<double,double>(n, x, y, nn, xx, yy, true);
+    }
   }
-
 }
 
 void mdepth::nne_enhance(nodes_t &nodes, int n, double *pars, ceos &eos){
@@ -665,7 +667,10 @@ void mdepthall::expand(int n, double *x, double *y, int nn, double *xx, double *
     if(interpolation == 0)       linpol<double,double>(n, x, y, nn, xx, yy, true);
     else if(interpolation == 1) bezpol2<double,double>(n, x, y, nn, xx, yy, true);
     else if(interpolation == 2) hermpol<double,double>(n, x, y, nn, xx, yy, true);
-    else if(interpolation == 3)   vlint<double,double>(n, x, y, nn, xx, yy);
+    else if(interpolation == 3){
+      if(n > 3) vlint<double,double>(n, x, y, nn, xx, yy);
+      else     linpol<double,double>(n, x, y, nn, xx, yy, true);
+    }
   }
   else return;
 }

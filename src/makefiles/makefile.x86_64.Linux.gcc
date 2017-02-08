@@ -15,17 +15,20 @@ OMPI_CC = $(CC)
 MPCXX = mpicxx
 MPFC = mpif90
 
+LINKER = $(MPCXX)
+
 
 #
 # OPTIMIZATION
 #
-OPTS = -O3 -g -march=native -ffast-math -lm -lpthread -lgfortran
+OPTS = -O3 -g -march=native -ffast-math 
 CXXFLAGS = $(OPTS) -fPIC -std=c++11 -Wno-literal-suffix
 CFLAGS = $(OPTS) -ffast-math -DHAVE_F90 -fPIC
 FFLAGS = -O3 -march=native
 AR = gcc-ar-4.9
-OPENMP = -fopenmp
+OPENMP = -fopenmp 
 
+LINKEROPTS = -lgfortran -lm -lpthread 
 
 #
 # GSL, FFTW3 libs.

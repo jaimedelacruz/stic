@@ -17,6 +17,8 @@
 	                      must provide a function that computes the regularization 
 			      term for all parameter.
 
+	   2017-01-11, JdlCR: added Kahan sumation but operating on each stokes parameter 
+	                      first and then adding each contribution.
 */
 
 #include <algorithm>
@@ -93,10 +95,9 @@ inline double sumarr2(double *arr, int n){
 
 inline double sumarr2_4(double *arr, int n){
 
-  bool stokes = false;
   int n4 = n/4;
-  if(n4*4 == n) stokes = true;
-  
+  bool stokes = ((n4*4) == n) ? true : false;
+
   if(stokes){
     long double ichi[4] = {0.0L, 0.0L, 0.0L, 0.0L};
     for(int ss=0;ss<4;ss++){
@@ -108,7 +109,6 @@ inline double sumarr2_4(double *arr, int n){
 	sum = t;
       }
       ichi[ss] = sum;
-      //  cerr<<"ichi2["<<ss<<"]="<<ichi[ss]<<endl;
     }
     return (double)(ichi[0] + ichi[1] + ichi[2] + ichi[3]);
   }else{
@@ -127,9 +127,8 @@ inline double sumarr2_4(double *arr, int n){
 
 inline double sumarr_4(double *arr, int n){
 
-  bool stokes = false;
   int n4 = n/4;
-  if(n4*4 == n) stokes = true;
+  bool stokes = ((n4*4) == n) ? true : false;
   
   if(stokes){
     long double ichi[4] = {0.0L, 0.0L, 0.0L, 0.0L};
@@ -142,7 +141,6 @@ inline double sumarr_4(double *arr, int n){
 	sum = t;
       }
       ichi[ss] = sum;
-      //  cerr<<"ichi["<<ss<<"]="<<ichi[ss]<<endl;
 
     }
     return (double)(ichi[0] + ichi[1] + ichi[2] + ichi[3]);
@@ -410,6 +408,7 @@ double clm::fitdata(clm_func fx, double *x, void *mydat, int maxiter)
 
   while(iter <= maxiter){
 
+    
     /* --- Get new estimate of the model and Chi2 for a given lambda parameter.
        The new parameters are already checked for limits and too large corrections 
        inside getChi2Pars 
@@ -432,7 +431,7 @@ double clm::fitdata(clm_func fx, double *x, void *mydat, int maxiter)
 	 do not decrease it again until next iteration 
 	 --- */
       
-      if(nretry == 0) lambda = checkLambda(lambda / lfac);
+      if(nretry == 0 || lambda >= 1.0) lambda = checkLambda(lambda / lfac);
       
 
       /* --- is the improvements below our threshold? --- */
@@ -565,14 +564,7 @@ void clm::compute_trial2(double *res, double **rf, double lambda,
     for(int xx = 0; xx<=yy; xx++){
       for(int ww = 0; ww<nd; ww++) tmp[ww] = rf[yy][ww] * rf[xx][ww];
       
-      A(yy,xx) = sumarr_4(&tmp[0], nd);
-
-      /* --- Add regularization terms --- */
-      
-      if(dregul) A(yy,xx) += dregul[xx]*dregul[yy]*regul_scal*regul_scal;
-      
-      A(xx,yy) = A(yy,xx); // Remember that A is symmetric!
-      
+      A(yy,xx) = sumarr_4(&tmp[0], nd);            
     }
 
     
@@ -582,11 +574,19 @@ void clm::compute_trial2(double *res, double **rf, double lambda,
        it can be relative to the current value 
        --- */
     
-    diag[yy] = max(A(yy,yy), diag[yy]);
-    if(diag[yy] == 0.0) diag[yy] = 1.0;
+    diag[yy] = max(A(yy,yy), diag[yy]*0.6);
+    if(diag[yy] == 0.0 || diag[yy] < 1.e-6) diag[yy] = 1.0; 
     //
-    double idia = diag[yy], thrfac = 1.0e4;
+    double idia = diag[yy] , thrfac = 1.0e4;
     if(idia > A(yy,yy)*thrfac) idia = A(yy,yy)*thrfac;
+
+    
+    /* --- Add regularization terms --- */
+
+    for(int xx = 0; xx<=yy; xx++){
+      if(dregul) A(yy,xx) += dregul[xx]*dregul[yy]*regul_scal*regul_scal;
+      A(xx,yy) = A(yy,xx); // Remember that A is symmetric!
+    }
     
     
     /* --- Damp the diagonal of A --- */
@@ -601,17 +601,17 @@ void clm::compute_trial2(double *res, double **rf, double lambda,
     
   } // yy
 
-
+  
   
   /* --- 
      Solve linear system with SVD decomposition and singular value thresholding.
      The SVD is computed with Eigen3 instead of LaPack.
      --- */
   
-  JacobiSVD<MatrixXd,ColPivHouseholderQRPreconditioner> svd(A, ComputeThinU | ComputeThinV);
+  JacobiSVD<MatrixXd,FullPivHouseholderQRPreconditioner> svd(A, ComputeFullU | ComputeFullV);
   svd.setThreshold(svd_thres);
   RES = svd.solve(B);
-
+  
   
   /* --- 
      New estimate of the parameters, xnew = x + dx.
