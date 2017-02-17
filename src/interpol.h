@@ -427,7 +427,7 @@ template <class T1, class T2> void vlint(size_t n, T1 *x, T1 *y, size_t n1, T2 *
     dxd = (x[ii+1]-x[ii])*0.5;
     //
     r   = (y[ii]-y[ii-1])/(y[ii+1]-y[ii]);
-    if(!isfinite(r)) r = 0.0;
+    if(!std::isfinite(r)) r = 0.0;
     //
     phi = (r + fabs(r)) / (1.0 + fabs(r));
     der = phi * (y[ii+1]-y[ii]) / (dxd+dxu);

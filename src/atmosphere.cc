@@ -14,7 +14,7 @@
 //
 using namespace std;
 //
-const double atmos::maxchange[7] = {2500., 3.0e5, 2.0e5, 500., phyc::PI/5, phyc::PI/5, 0.6};
+const double atmos::maxchange[7] = {2500., 5.0e5, 2.0e5, 500., phyc::PI/5, phyc::PI/5, 0.6};
 
 
 
@@ -67,7 +67,6 @@ void atmos::responseFunction(int npar, mdepth_t &m_in, double *pars, int nd, dou
   if(input.nodes.ntype[pp] == temp_node) pertu = input.dpar * pval * 0.4;
   else                                   pertu = input.dpar * scal[pp];
 
-  // if(input.nodes.ntype[pp] == temp_node) cerr<<pertu<<endl;
   
   /* --- Centered derivatives ? --- */
   
