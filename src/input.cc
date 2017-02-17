@@ -656,6 +656,7 @@ int set_nodes(nodes_t &n, vector<double> &itau,  int dint, bool verbose){
   string inam = "set_nodes: ";
 
   /* --- resize array for the node type --- */
+  
   n.ntype.resize(nn, none_node);
   int k = 0;
   n.tosend = 0;
@@ -668,7 +669,7 @@ int set_nodes(nodes_t &n, vector<double> &itau,  int dint, bool verbose){
   if(nn == 1){
     nn = n.temp[0];
     n.temp.resize(nn);
-    equidist(n.temp, itau, ((nn >3) && (dint == 3)));
+    equidist(n.temp, itau, ((nn > 3) && (dint == 3))?true:false);
   }else if(nn > 1) for(int ii = 0; ii<nn; ii++) n.temp[ii] = nodeLocation(itau, n.temp[ii]);
  
   for(int ii = 0; ii<nn; ii++) n.ntype[k++] = temp_node;
@@ -688,7 +689,7 @@ int set_nodes(nodes_t &n, vector<double> &itau,  int dint, bool verbose){
   if(nn == 1){
     nn = n.v[0];
     n.v.resize(nn);
-    equidist(n.v, itau, ((nn >3) && (dint == 3)));
+    equidist(n.v, itau, ((nn >3) && (dint == 3))?true:false);
   }else if(nn > 1) for(int ii = 0; ii<nn; ii++) n.v[ii] = nodeLocation(itau, n.v[ii]);
   
   for(int ii = 0; ii<nn; ii++) n.ntype[k++] = v_node;
@@ -707,7 +708,7 @@ int set_nodes(nodes_t &n, vector<double> &itau,  int dint, bool verbose){
   if(nn == 1){
     nn = n.vturb[0];
     n.vturb.resize(nn);
-    equidist(n.vturb, itau, ((nn >3) && (dint == 3)));
+    equidist(n.vturb, itau, ((nn >3) && (dint == 3))?true:false);
   }else if(nn > 1) for(int ii = 0; ii<nn; ii++) n.vturb[ii] = nodeLocation(itau, n.vturb[ii]);
   
   for(int ii = 0; ii<nn; ii++) n.ntype[k++] = vturb_node;
@@ -726,7 +727,7 @@ int set_nodes(nodes_t &n, vector<double> &itau,  int dint, bool verbose){
   if(nn == 1){
     nn = n.b[0];
     n.b.resize(nn);
-    equidist(n.b, itau, ((nn >3) && (dint == 3)));
+    equidist(n.b, itau, ((nn >3) && (dint == 3))?true:false);
   }else if(nn > 1) for(int ii = 0; ii<nn; ii++) n.b[ii] = nodeLocation(itau, n.b[ii]);
   
   for(int ii = 0; ii<nn; ii++) n.ntype[k++] = b_node;
@@ -745,7 +746,7 @@ int set_nodes(nodes_t &n, vector<double> &itau,  int dint, bool verbose){
   if(nn == 1){
     nn = n.inc[0];
     n.inc.resize(nn);
-    equidist(n.inc, itau, ((nn >3) && (dint == 3)));
+    equidist(n.inc, itau, ((nn >3) && (dint == 3))?true:false);
   }else if(nn > 1) for(int ii = 0; ii<nn; ii++) n.inc[ii] = nodeLocation(itau, n.inc[ii]);
 
   
@@ -765,7 +766,7 @@ int set_nodes(nodes_t &n, vector<double> &itau,  int dint, bool verbose){
   if(nn == 1){
     nn = n.azi[0];
     n.azi.resize(nn);
-    equidist(n.azi, itau, ((nn >3) && (dint == 3)));
+    equidist(n.azi, itau, ((nn >3) && (dint == 3))?true:false);
   }else if(nn > 1) for(int ii = 0; ii<nn; ii++) n.azi[ii] = nodeLocation(itau, n.azi[ii]);
   
   for(int ii = 0; ii<nn; ii++) n.ntype[k++] = azi_node;
@@ -804,17 +805,17 @@ void equidist(vector<double> &var, double min, double max){
 void equidist(vector<double> &var, vector<double> &itau, bool cent_grid){
   int n = (int)var.size();
   int n1 = (int)itau.size();
-  
   double mmi = itau[0];
   double mma = itau[0];
+  
   for(auto &it: itau){
     if(it > mma) mma = it;
     if(it < mmi) mmi = it;
   }
   
+
   if(n == 1) var[0] = 0.0;
   else{
-
     double dx = (mma-mmi) / (n-1.0);
     if(cent_grid){
       double ddx = 1.e10, odx = 0.0;
