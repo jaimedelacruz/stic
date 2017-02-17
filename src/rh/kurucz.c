@@ -809,16 +809,14 @@ ZeemanMultiplet* RLKZeeman(RLK_Line *rlk)
 bool_t RLKdeterminate_ac(char *labeli, char *labelj, RLK_Line *rlk)
 {
   char **words, orbit[2];
-  int    count, multiplicity, length, Nread;
+  int    count, length, Nread;
 
    /* --- Get spin and orbital quantum numbers from level labels -- -- */
-
     words  = getWords(labeli, " ", &count);
     if (words[0]) {
       length = strlen(words[0]);
-      Nread  = sscanf(words[0] + length-2, "%d%1s", &multiplicity, orbit);
+      Nread  = sscanf(words[0] + length-1, "%1s", orbit);
       free(words);
-      
       rlk->li = getOrbital(toupper(orbit[0])); 
     } else return FALSE;
 
@@ -826,11 +824,10 @@ bool_t RLKdeterminate_ac(char *labeli, char *labelj, RLK_Line *rlk)
     words  = getWords(labelj, " ", &count);
     if (words[0]) {
       length = strlen(words[0]);
-      Nread  = sscanf(words[0] + length-2, "%d%1s", &multiplicity, orbit);
+      Nread  = sscanf(words[0] + length-1, "%1s", orbit);
       free(words);
       rlk->lj = getOrbital(toupper(orbit[0])); 
     } else return FALSE;
-
 
     return TRUE;
 }
