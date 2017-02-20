@@ -668,7 +668,7 @@ void mdepthall::expand(int n, double *x, double *y, int nn, double *xx, double *
     else if(interpolation == 1) bezpol2<double,double>(n, x, y, nn, xx, yy, true);
     else if(interpolation == 2) hermpol<double,double>(n, x, y, nn, xx, yy, true);
     else if(interpolation == 3){
-      if(n > 3) vlint<double,double>(n, x, y, nn, xx, yy);
+      if(n >= 3) vlint<double,double>(n, x, y, nn, xx, yy);
       else     linpol<double,double>(n, x, y, nn, xx, yy, true);
     }
   }
