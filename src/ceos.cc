@@ -423,11 +423,12 @@ double ceos::nne_from_T_Pg(double T, double Pg,  double &rho, double Pe){
   // Estimate Pelect from Pgas, assuming ionization fraction
   //
   if(Pe<0.0L){
-    if(T > 8000) Pe = 0.5;
-    else if(T > 4000) Pe = 0.1;
-    else if(T > 2000) Pe = 0.01;
-    else Pe = 0.001;
-    Pe *= Pg;
+    // if(T > 8000) Pe = 0.5;
+    // else if(T > 4000) Pe = 0.1;
+    // else if(T > 2000) Pe = 0.01;
+    // else Pe = 0.001;
+    // Pe *= Pg;
+    Pe = (double)init_pe_from_T_pg((float)T, (float)Pg);
   }
 
   //
@@ -446,21 +447,20 @@ double ceos::nne_from_T_Pg(double T, double Pg,  double &rho, double Pe){
   
   return (double)xne;
 }
-double ceos::nne_from_T_rho(double T, double &iPg, double rho, float tol){
+float ceos::nne_from_T_rho_old(float T, float &iPg, float rho, float tol){
   
   //
   // Estimate Pelect from Pgas, assuming ionization fraction
   //
-  float Pe;
 
   float Pg = rho * bk * T / (avmol * mp); // Init approximate gas pressure
-  
-  if(T > 8000) Pe = 0.5;
-  else if(T > 4000) Pe = 0.1;
-  else if(T > 2000) Pe = 0.01;
-  else Pe = 0.001;
+  float Pe = init_pe_from_T_pg(T, Pg);
 
-  Pe *= Pg;
+  // if(T > 8000) Pe = 0.5;
+  // else if(T > 4000) Pe = 0.1;
+  // else if(T > 2000) Pe = 0.01;
+  // else Pe = 0.001;
+  // Pe *= Pg;
 
   //
   // Call EQSTAT and iterate to get consistent rho with Pg
@@ -897,7 +897,7 @@ void ceos::fill_densities(int ndep, double *t, double *pgas, double *rho, double
       }
     }else if(touse == 1){
       for(int k = 0; k<ndep; k++){
-	nne[k] = nne_from_T_rho(t[k], pgas[k], rho[k], tol);
+	nne[k] = nne_from_T_rho(t[k], pgas[k], rho[k]);
 	pel[k] = bk*nne[k]*t[k];
 	store_partial_pressures(ndep, k, xna, xne);	    
       }
@@ -914,7 +914,7 @@ void ceos::fill_densities(int ndep, double *t, double *pgas, double *rho, double
       }
     }else if(touse == 1){
       for(int k = 0; k<ndep; k++){
-	nne_from_T_rho_nne(t[k], pgas[k], rho[k], nne[k],tol);
+	nne_from_T_rho_nne(t[k], pgas[k], rho[k], nne[k]);
 	pel[k] = bk*nne[k]*t[k];
 	store_partial_pressures(ndep, k, xna, xne);	    
       }
@@ -1065,11 +1065,14 @@ float ceos::nne_from_T_Pg(float T, float Pg,  float &rho, float Pe){
   // Estimate Pelect from Pgas, assuming ionization fraction
   //
   if(Pe<0.0L){
+    /*
     if(T > 8000) Pe = 0.5;
     else if(T > 4000) Pe = 0.1;
     else if(T > 2000) Pe = 0.01;
     else Pe = 0.001;
     Pe *= Pg;
+    */
+    Pe = init_pe_from_T_pg(T,Pg);
   }
 
   //
@@ -1088,21 +1091,15 @@ float ceos::nne_from_T_Pg(float T, float Pg,  float &rho, float Pe){
   
   return (float)xne;
 }
-float ceos::nne_from_T_rho(float T, float &Pg, float rho, float tol){
+double ceos::nne_from_T_rho_old(double iT, double &iPg, double irho, float tol){
   
   //
   // Estimate Pelect from Pgas, assuming ionization fraction
   //
-  float Pe = 0;
+  float T = (float)iT, rho = (float)irho;
+  float Pg = rho * bk * T / (avmol * mp); // Init approximate gas pressure
+  float Pe = init_pe_from_T_pg(T, Pg);
 
-  Pg = rho * bk * T / (avmol * mp); // Init approximate gas pressure
-  
-  if(T > 8000) Pe = 0.5;
-  else if(T > 4000) Pe = 0.1;
-  else if(T > 2000) Pe = 0.01;
-  else Pe = 0.001;
-
-  Pe *= Pg;
 
   //
   // Call EQSTAT and iterate to get consistent rho with Pg
@@ -1145,7 +1142,7 @@ float ceos::nne_from_T_rho(float T, float &Pg, float rho, float tol){
 
   }
 
-  //iPg = Pg;
+  iPg = Pg;
   
   return (float)xne;
 }
@@ -1270,7 +1267,7 @@ float ceos::rho_from_T_pel(float T, float &Pg, float Pe, float tol){
   return (float)rho_est;
 }
 
-double ceos::nne_from_T_rho_nne(double T, double &iPg, double rho, double nne, float tol){
+double ceos::nne_from_T_rho_nne_old(double T, double &iPg, double rho, double nne, float tol){
   
   //
   // Estimate Pelect from Pgas, assuming ionization fraction
@@ -1325,7 +1322,7 @@ double ceos::nne_from_T_rho_nne(double T, double &iPg, double rho, double nne, f
   return (double)xne;
 }
 
-double ceos::nne_from_T_Pg_nne(double T, double Pg,  double &rho, double nne, double Pe){
+double ceos::nne_from_T_Pg_nne(double T, double Pg,  double &rho, double nne){
 
   //
   // Estimate Pelect from Pgas, assuming ionization fraction
@@ -1350,19 +1347,22 @@ double ceos::nne_from_T_Pg_nne(double T, double Pg,  double &rho, double nne, do
   return (double)xne;
 }
 
-float ceos::test_pgas_from_rho(float T, float rho,  float &nne){
+float ceos::nne_from_T_rho(float T, float &Pg, float rho){
 
   //
   // Estimate Pelect from Pgas, assuming ionization fraction
   //
 
-  float Pg = rho * bk * T / (avmol * mp); // Init approximate gas pressure
-  float Pe = Pg;
-
-  if(T > 8000) Pe *= 0.5;
-  else if(T > 4000) Pe *= 0.1;
-  else if(T > 2000) Pe *= 0.01;
-  else Pe *= 0.001;
+  Pg = rho * bk * T / (avmol * mp); // Init approximate gas pressure
+  float Pe = init_pe_from_T_pg(T, Pg);
+  
+  /*
+  if(T > 8000) Pe *= 0.5 * Pg;
+  else if(T > 4000) Pe *= 0.1 *Pg;
+  else if(T > 2000) Pe *= 0.01 * Pg;
+  else Pe *= 0.001 * Pg;
+  */
+  
   //
   // Call EQSTAT_RHO
   //
@@ -1374,8 +1374,131 @@ float ceos::test_pgas_from_rho(float T, float rho,  float &nne){
 	      dum, &idxspec[0], &totallist[0], &fract[0], &pf[0], &potion[0], &xamass[0],
 	      NLINES, NLIST, xne, xna, rho, niter);
 
-  nne = xne;
-  return (float)Pg;
-  
-  
+  return (float)xne;
 }
+double ceos::nne_from_T_rho(double iT, double &iPg, double irho){
+
+  //
+  // Estimate Pelect from Pgas, assuming ionization fraction
+  //
+
+  float T = (float)iT, rho = (float)irho;
+  float Pg = rho * bk * T / (avmol * mp); // Init approximate gas pressure
+  float Pe = init_pe_from_T_pg(T, Pg);
+  /*
+  if(T > 8000) Pe *= 0.5 * Pg;
+  else if(T > 4000) Pe *= 0.1 *Pg;
+  else if(T > 2000) Pe *= 0.01 * Pg;
+  else Pe *= 0.001 * Pg;
+  */
+  
+  //
+  // Call EQSTAT_RHO
+  //
+  int niter;
+  int dum = MAX_ELEM;
+  int mode = 0;
+
+  eqstat_rho_(mode, T, Pg, Pe, &ABUND[0], ELEMEN, &AMASS[0],
+	      dum, &idxspec[0], &totallist[0], &fract[0], &pf[0], &potion[0], &xamass[0],
+	      NLINES, NLIST, xne, xna, rho, niter);
+
+  iPg = (double)Pg;
+  
+  return (double)xne;
+}
+double ceos::nne_from_T_rho_nne(double iT, double &iPg, double irho, double nne){
+
+  //
+  // Estimate Pelect from Pgas, assuming ionization fraction
+  //
+
+  float T = (float)iT, rho = (float)irho;
+  float Pg = rho * bk * T / (avmol * mp); // Init approximate gas pressure
+  float Pe = init_pe_from_T_pg(T, Pg);
+  xne = (float)nne, xna = 0.0;
+  /*
+  if(T > 8000) Pe *= 0.5 * Pg;
+  else if(T > 4000) Pe *= 0.1 *Pg;
+  else if(T > 2000) Pe *= 0.01 * Pg;
+  else Pe *= 0.001 * Pg;
+  */
+  
+  //
+  // Call EQSTAT_RHO
+  //
+  int niter;
+  int dum = MAX_ELEM;
+  int mode = 10;
+
+  eqstat_rho_(mode, T, Pg, Pe, &ABUND[0], ELEMEN, &AMASS[0],
+	      dum, &idxspec[0], &totallist[0], &fract[0], &pf[0], &potion[0], &xamass[0],
+	      NLINES, NLIST, xne, xna, rho, niter);
+
+  iPg = (double)Pg;
+  
+  return (double)xne;
+}
+
+float ceos::nne_from_T_rho_nne(float T, float &Pg, float rho, float nne){
+
+  //
+  // Estimate Pelect from Pgas, assuming ionization fraction
+  //
+
+  Pg = rho * bk * T / (avmol * mp); // Init approximate gas pressure
+  float Pe = nne * bk * T;
+  xne = (float)nne, xna = 0.0;
+
+  //
+  // Call EQSTAT_RHO
+  //
+  int niter;
+  int dum = MAX_ELEM;
+  int mode = 10;
+
+  eqstat_rho_(mode, T, Pg, Pe, &ABUND[0], ELEMEN, &AMASS[0],
+	      dum, &idxspec[0], &totallist[0], &fract[0], &pf[0], &potion[0], &xamass[0],
+	      NLINES, NLIST, xne, xna, rho, niter);
+  return (float)xne;
+}
+
+float ceos::nne_from_T_Pg_nne(float T, float Pg,  float &rho, float nne){
+
+  //
+  // Estimate Pelect from Pgas, assuming ionization fraction
+  //
+  
+  xne = (float)nne;
+  
+  //
+  // Call EQSTAT
+  //
+  int niter;
+  int dum = MAX_ELEM;
+  int mode = 10;
+  float Pe = nne * bk * T;
+
+
+  eqstat_(mode, T, Pg, Pe, &ABUND[0], ELEMEN, &AMASS[0], dum, &idxspec[0],
+	  &totallist[0], &fract[0], &pf[0], &potion[0], &xamass[0],
+	  NLINES, NLIST, xne, xna, RHOest, niter);
+  rho = RHOest;
+  
+  return (float)xne;
+}
+
+
+float ceos::init_pe_from_T_pg(float t, float pg)
+{
+  /* --- Init Pe assuming everything is Hydrogen --- */
+      	
+  float nu=0.9091;//       ! assume that only Hydrogen is ionized
+  float saha=pow(10.0,-0.4771+2.5*log10(t)-log10(pg)-(13.6*5040./t));
+  float aaa=1.0+saha;
+  float bbb=-(nu-1.)*saha;
+  float ccc=-saha*nu;
+  float ybh=(-bbb+sqrt(bbb*bbb-4.*aaa*ccc))/(2.*aaa); //! ionization fraction
+  return (float)(pg*ybh/(1.+ybh));
+}
+

@@ -105,18 +105,25 @@ class ceos{
   }
 
   double nne_from_T_Pg    (double T,  double Pg,  double &rho, double iPe = -1.0);
-  double nne_from_T_rho   (double T, double &iPg,  double rho, float tol = 1.0e-5);
+  double nne_from_T_rho   (double T, double &iPg,  double rho);
   double rho_from_T_pel   (double T, double &iPg,   double Pe, float tol = 1.0e-5);
   double rho_from_T_nne   (double T, double &iPg,  double nne, float tol = 1.0e-5);
 
-  double nne_from_T_Pg_nne (double T,  double Pg,  double &rho, double nne, double iPe = -1.0);
-  double nne_from_T_rho_nne(double T, double &iPg,  double rho, double nne, float tol = 1.0e-5);
+  double nne_from_T_Pg_nne (double T,  double Pg,  double &rho, double nne);
+  double nne_from_T_rho_nne(double T, double &iPg,  double rho, double nne);
+  double nne_from_T_rho_nne_old(double T, double &iPg,  double rho, double nne, float tol=1.e-5);
+  float nne_from_T_rho_old   (float  T, float  &iPg,   float rho, float tol = 1.e-5);
+  double nne_from_T_rho_old  (double T, double &iPg,  double rho, float tol = 1.e-5);
 
   
   float nne_from_T_Pg    (float T, float Pg,  float &rho, float Pe = -1.0);
-  float nne_from_T_rho   (float T, float &Pg,  float rho, float tol = 1.0e-5);
+  float nne_from_T_rho   (float T, float &Pg,  float rho);
   float rho_from_T_pel   (float T, float &Pg,   float Pe, float tol = 1.0e-5);
   float rho_from_T_nne   (float T, float &Pg,  float nne, float tol = 1.0e-5);
+
+  float nne_from_T_Pg_nne (float T,  float Pg,  float &rho, float nne);
+  float nne_from_T_rho_nne(float T, float &iPg,  float rho, float nne);
+
   
   void  contOpacity_TPg  (double T, double Pg, int nw, double *w, double *opac,
 			  double *scattering, double Pe=-1.0);
@@ -143,7 +150,8 @@ class ceos{
   void fill_densities(int ndep, double *t, double *pgas, double *rho, double *pel,
 		      double *nne, int touse, int keep_nne = 0, float tol = 1.0e-5);
 
-  float test_pgas_from_rho(float T, float rho,  float &nne);
+  // float test_pgas_from_rho(float T, float &Pg, float rho,  float &nne);
+  float init_pe_from_T_pg(float t, float pg);
 
 };
 

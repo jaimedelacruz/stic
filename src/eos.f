@@ -780,7 +780,13 @@ C
 C
 C Check if we reached the maximum iterations
 C
-        Pelec=xne*Tk
+        if(mode .lt. 10) then
+           Pe=xne*Tk
+        else
+           Pe = Pelec
+           xne = Pelec/tk
+        end if
+           
         IF(niter.ge.MAXITER) THEN
           WRITE(*,*) 'T,Pg,Pgas,Pelec,Pe_in,Pe_out,NITER=',
      *                Temp,Pg,Pgas,Pe,Pe_old,Pelec,niter,FAILED
@@ -795,11 +801,19 @@ C required to reach self-consistency.
 C
         IF(mode.lt.10.and.
      *    (abs(Pgas -Pg_old)/max(1.E-20,Pgas ).gt.tol1.or.
-     *     abs(Pelec-Pe_old)/max(1.E-20,Pelec).gt.tol1)) THEN
-          Pe_old=Pelec
+     *     abs(Pe-Pe_old)/max(1.E-20,Pe).gt.tol1)) THEN
+          Pe_old=Pe
           Pg_old=Pg
           GOTO 3
-        END IF
+       END IF
+
+       if(mode .lt. 10) then
+          Pe=xne*Tk
+        else
+           Pe = Pelec
+           xne = Pelec / tk
+        endif
+       
 c        write(*,*) Temp,splist(169),xnpf(169),pfunc(169),poti(169)
 c        if(Temp.gt.7950.) then
 c          do ispec=1,nlist-1
@@ -1047,12 +1061,8 @@ C Get number density of free electrons
 C     
         call Nelect(temp,Pgas,abund,amass,ELESIZ,
      *       xna,xne,wtmol)
-        
-        if(mode.lt.10) then
-           Pelec=xne*Tk
-        else
-           xne=Pelec/Tk
-        endif
+
+
 C     
 C     If the total number of particles derived from the density and the Nelect
 C     are significantly discrepant recompute Pgas and iterate
@@ -1062,6 +1072,14 @@ C
            Pgas = Pgas + (xntot-xna)*tk
            goto 1
         endif
+
+        
+        if(mode.lt.10) then
+           Pelec=xne*Tk
+        else
+           xne=Pelec/Tk
+        endif
+        
 C     
 C We found consistent values of Pgas and Pelec. Proceed with the EOS.
 C
@@ -1192,8 +1210,14 @@ c     write(*,'(10f8.3)') log10(abund)
      *             awt,iter,FAILED)
         endif
         niter=niter+iter
-        Pelec=xne*Tk
 
+        if(mode .lt. 10) then
+           Pe=xne*Tk
+        else
+           Pe = Pelec
+        end if
+        
+                
         IF(niter.ge.MAXITER) THEN
 c          WRITE(*,*) 'T,Pgas,Pnew,Pelec,Pe_in,Pe_out,NITER=',
 c     *                Temp,Pgas,Pg,Pe,Pe_old,Pelec,niter,FAILED
@@ -1209,24 +1233,30 @@ C        If(abs(rho-rho_new)/rho .gt.tol1) then
            
         
         
-        IF( abs(Pgas -Pg_old)/max(1.E-20,Pgas ).gt.tol1.or.
-     *     abs(Pelec-Pe_old)/max(1.E-20,Pelec).gt.tol1) THEN
-          Pe_old=Pelec
-          Pg_old=Pgas ! Changed by Jaime so it converges! 
-          GOTO 4
+        IF(abs(Pgas -Pg_old)/max(1.E-20,Pgas ).gt.tol1.or.
+     *       abs(Pe-Pe_old)/max(1.E-20,Pe).gt.tol1) THEN
+           Pe_old=Pe
+           Pg_old=Pgas          ! Changed by Jaime so it converges! 
+           GOTO 4
        END IF
 C
 C The convergence for a given value of rho is achieved.
 C Iterate Pg to match the density
 C
 
-       if(abs(rho-rho_new)/rho.gt.tol) then
+       if(abs(rho-rho_new)/(rho).gt.tol1) then
            Pe_old=xne*Tk*rho/rho_new
            Pg_old=Pgas*rho/rho_new
           go to 3
         endif
         Pg=Pgas
-        Pe=xne*Tk
+
+        if(mode .lt. 10) then
+           Pe=xne*Tk
+        else
+           Pe = Pelec
+           xne = Pelec / tk
+        endif
 c        write(*,*) 'T, P', Temp, Pg
 c        do ispec=1,nlist-1
 c          write(*,*) ispec,splist(ispec),xnpf(ispec)
