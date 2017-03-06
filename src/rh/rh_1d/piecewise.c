@@ -198,7 +198,10 @@ void PieceBezier_1D(int nspect, int mu, bool_t to_obs,
     k_start = 0;
     k_end   = Ndep-1;
   }
-
+  dtau_uw = zmu * (chi[k_start] + chi[k_start+dk]) *
+    fabs(geometry.height[k_start] - geometry.height[k_start+dk]);
+  dS_uw = (S[k_start] - S[k_start+dk]) / dtau_uw;
+  
   /* --- Boundary conditions --                        -------------- */
 
   if (to_obs) {
