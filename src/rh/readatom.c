@@ -651,6 +651,10 @@ void initAtomicLine(AtomicLine *line)
   line->Ng_prd = NULL;
   line->atom = NULL;
   line->xrd = NULL;
+  line->frac = NULL;
+  line->id0 = NULL;
+  line->id1 = NULL;
+  line->gII = NULL;
 }
 /* ------- end ---------------------------- initAtomicLine.c -------- */
 

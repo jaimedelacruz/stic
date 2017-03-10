@@ -60,179 +60,6 @@ extern char messageStr[];
 extern enum Topology topology;
 
 
-void initSolution_j( int myrank)
-{
-  const char routineName[] = "initSolution_j";
-  register int k, i, ij, nspect, n, nact;
-  int     la, j, status;
-  double  gijk, wla, twohnu3_c2, hc_k, twoc, fourPI;
-  ActiveSet  *as;
-  Molecule   *molecule;
-  Atom       *atom;
-  AtomicLine *line;
-  AtomicContinuum *continuum;
-  getCPU(2, TIME_START, NULL);
-
-
-  /* --- Allocate arrays, taken fro T. Pereira's 
-     version to not mess up with the PRD business --- */
-  
-  initSolution_alloc2(myrank);
-  
-
-  /* --- Fill matrix J with old values from previous run ----- -- */
-  if (input.startJ == OLD_J){
-    fprintf(stderr,"initSolution_j: OLD_J not supported for inversions, exiting!");
-    exit(0);
-  }
-
-  
-  for (nact = 0;  nact < atmos.Nactiveatom;  nact++) {
-    atom = atmos.activeatoms[nact];
-
-    /* --- Initialize the mutex lock for the operator Gamma if there
-           are more than one threads --                -------------- */
-
-    if (input.Nthreads > 0) {
-      if ((status = pthread_mutex_init(&atom->Gamma_lock, NULL))) {
-	sprintf(messageStr, "Unable to initialize mutex_lock, status = %d",
-		status);
-	Error(ERROR_LEVEL_2, routineName, messageStr);
-      }
-    }
-
-    switch(atom->initial_solution) {
-    case LTE_POPULATIONS:
-      for (i = 0;  i < atom->Nlevel;  i++) {
-	for (k = 0;  k < atmos.Nspace;  k++)
-	  atom->n[i][k] = atom->nstar[i][k];
-      }
-      break;
-
-    case ZERO_RADIATION:
-      hc_k   = (HPLANCK * CLIGHT) / (KBOLTZMANN * NM_TO_M);
-      twoc   = 2.0*CLIGHT / CUBE(NM_TO_M);
-      fourPI = 4.0 * PI;
-
-      initGammaAtom(atom, 1.0);
-
-      /* --- Then add radiative contributions of active transitions --  */
-
-      for (nspect = 0;  nspect < spectrum.Nspect;  nspect++) {
-	as = spectrum.as + nspect;
-
-	for (n = 0;  n < as->Nactiveatomrt[nact];  n++) {
-	  switch (as->art[nact][n].type) {
-	  case ATOMIC_LINE:
-	    line = as->art[nact][n].ptype.line;
-	    la = nspect - line->Nblue;
-	    i  = line->i;
-	    j  = line->j;
-	    ij = i*atom->Nlevel + j;
-	    
-	    if (la == 0) {
-	      for (k = 0;  k < atmos.Nspace;  k++)
-		atom->Gamma[ij][k] += line->Aji;
-	    }
-	    break;
-
-	  case ATOMIC_CONTINUUM:
-	    continuum = as->art[nact][n].ptype.continuum;
-	    la = nspect - continuum->Nblue;
-	    i  = continuum->i;
-	    j  = continuum->j;
-	    ij = i*atom->Nlevel + j;
-
-	    wla = fourPI * getwlambda_cont(continuum, la) /
-	      continuum->lambda[la];
-	    twohnu3_c2 = twoc / CUBE(continuum->lambda[la]);
-	    for (k = 0;  k < atmos.Nspace;  k++) {
-	      gijk = atom->nstar[i][k]/atom->nstar[j][k] *
-		exp(-hc_k/(continuum->lambda[la] * atmos.T[k]));
-	      atom->Gamma[ij][k] += gijk * twohnu3_c2 *
-		continuum->alpha[la]*wla;
-	    }
-	    break;
-	  default:
-	    break;
-	  }
-	}
-      }
-      /* --- Solve statistical equilibrium equations --  ------------ */
-
-      statEquil(atom, (input.isum == -1) ? 0 : input.isum);
-      break;
-
-    case OLD_POPULATIONS:
-      //readPopulations(atom);
-      break;
-
-    default:;
-    break;
-    }
-  }
-  /* --- Now the molecules that are active --          -------------- */
-  
-  for (nact = 0;  nact < atmos.Nactivemol;  nact++) {
-    molecule = atmos.activemols[nact];
-
-    /* --- Calculate the LTE vibration level populations here. They
-           cannot be calculated yet in readMolecule since chemical
-           equilibrium has to be established first --  -------------- */
-
-    for (i = 0;  i < molecule->Nv;  i++) {
-      for (k = 0;  k < atmos.Nspace;  k++)
-	molecule->nvstar[i][k] = molecule->n[k] *
-	  molecule->pfv[i][k] / molecule->pf[k];
-    }
-
-
-    /* --- Initialize the mutex lock for the operator Gamma if there
-           are more than one thread --                 -------------- */
-
-    if (input.Nthreads > 0) {
-      if ((status = pthread_mutex_init(&molecule->Gamma_lock, NULL))) {
-	sprintf(messageStr, "Unable to initialize mutex_lock, status = %d",
-		status);
-	Error(ERROR_LEVEL_2, routineName, messageStr);
-      }
-    }
-
-    switch(molecule->initial_solution) {
-
-    case LTE_POPULATIONS:
-      for (i = 0;  i < molecule->Nv;  i++) {
-	for (k = 0;  k < atmos.Nspace;  k++)
-	  molecule->nv[i][k] = molecule->nvstar[i][k];
-      }
-      break;
-      
-    case OLD_POPULATIONS:
-      //readMolPops(molecule);
-      break;
-
-    default:;
-    }
-
-    /* --- Calculate collisions for molecule (must be done here because
-           rotation-vibration transitions are dominated by hydrogen and
-           H2 collisions for which chemical equilibrium needs to be
-           established first --                        -------------- */
-
-    if (strstr(molecule->ID, "CO"))
-      COcollisions(molecule);
-    else if (strstr(molecule->ID, "H2"))
-      H2collisions(molecule);
-    else {
-      sprintf(messageStr, "Collisions for molecule %s not implemented\n",
-	      molecule->ID);
-      Error(ERROR_LEVEL_2, routineName, messageStr);
-    }
-  }
-}
-/* ------- end ---------------------------- initSolution.c ---------- */
-
-
 void initSolution_alloc2(int myrank) {
   const char routineName[] = "initSolution_p";
   register int nspect, nact,k,kr,mu;
@@ -244,7 +71,7 @@ void initSolution_alloc2(int myrank) {
   AtomicLine *line;
   long int idx, lc,lak;
   double *lambda,fac,lambda_prv,lambda_gas,lambda_nxt,dl,frac,lag;
-  double q0,q_emit,qN;
+  double q0,q_emit,qN, waveratio=1.0;
   static bool_t firsttime = true;
 
 
@@ -291,19 +118,19 @@ void initSolution_alloc2(int myrank) {
 	line = &atom->line[kr];
 	
 	if (line->PRD) {
+	  /*
 	  
-	  /*	  line->gII  = (double **) malloc(atmos.Nrays * sizeof(double *));
-	  
+	  //line->gII  = (double **) malloc(atmos.Nrays * sizeof(double *));
 	  for (k = 0;  k < atmos.Nspace;  k++) {
 	    for (la = 0 ;  la < line->Nlambda;  la++) {
 	      
 	      // second index in line.gII array
 	      lak= k * line->Nlambda + line->Nlambda;
-
+	      
 	      q_emit = (line->lambda[la] - line->lambda0) * CLIGHT /
 		(line->lambda0 * atom->vbroad[k]);
-	 
-
+	      
+	      
 	      if (fabs(q_emit) < PRD_QCORE) {
 		q0 = -PRD_QWING;
 		qN =  PRD_QWING;
@@ -311,9 +138,9 @@ void initSolution_alloc2(int myrank) {
 		if (fabs(q_emit) < PRD_QWING) {
 		  if (q_emit > 0.0) {
 		    q0 = -PRD_QWING;
-		    qN = q_emit + PRD_QSPREAD;
+		    qN = waveratio * (q_emit + PRD_QSPREAD);
 		  } else {
-		    q0 = q_emit - PRD_QSPREAD;
+		    q0 = waveratio * (q_emit - PRD_QSPREAD);
 		    qN = PRD_QWING;
 		  }
 		} else {
@@ -321,21 +148,23 @@ void initSolution_alloc2(int myrank) {
 		  qN = q_emit + PRD_QSPREAD;
 		}
 	      }
-	      Np = (int) ((qN - q0) / PRD_DQ) + 1;
+	      Nsr = MAX((int) ((qN - q0) / PRD_DQ) + 1, Np);
 	      
-	      line->gII[lak]= (double *) malloc(Np*sizeof(double));
-
-	    }
-	    }*/
-
-	  Nsr=MAX(3*PRD_QWING,2*PRD_QSPREAD)/PRD_DQ+1;
+	      
+	      //line->gII[lak]= (double *) malloc(Np*sizeof(double));
+	      
+	    }//la
+	  }//k
+	*/
+	  
+	  Nsr=3*MAX(3*PRD_QWING,2*PRD_QSPREAD)/PRD_DQ+1;
 	  if (line->gII != NULL) freeMatrix((void **) line->gII);
 	  line->gII  = matrix_double(atmos.Nspace*line->Nlambda,Nsr);
 	  line->gII[0][0] = -1.0;
 	}
       }
     }
-
+    
    /* precompute prd_rho interpolation coefficients if requested */
     
     if (!input.prdh_limit_mem) {
@@ -687,3 +516,179 @@ void initSolution_alloc2(int myrank) {
 
   return;
 }
+
+
+
+void initSolution_j( int myrank)
+{
+  const char routineName[] = "initSolution_j";
+  register int k, i, ij, nspect, n, nact;
+  int     la, j, status;
+  double  gijk, wla, twohnu3_c2, hc_k, twoc, fourPI;
+  ActiveSet  *as;
+  Molecule   *molecule;
+  Atom       *atom;
+  AtomicLine *line;
+  AtomicContinuum *continuum;
+  getCPU(2, TIME_START, NULL);
+
+
+  /* --- Allocate arrays, taken fro T. Pereira's 
+     version to not mess up with the PRD business --- */
+  
+  initSolution_alloc2(myrank);
+  
+
+  /* --- Fill matrix J with old values from previous run ----- -- */
+  if (input.startJ == OLD_J){
+    fprintf(stderr,"initSolution_j: OLD_J not supported for inversions, exiting!");
+    exit(0);
+  }
+
+  
+  for (nact = 0;  nact < atmos.Nactiveatom;  nact++) {
+    atom = atmos.activeatoms[nact];
+
+    /* --- Initialize the mutex lock for the operator Gamma if there
+           are more than one threads --                -------------- */
+
+    if (input.Nthreads > 0) {
+      if ((status = pthread_mutex_init(&atom->Gamma_lock, NULL))) {
+	sprintf(messageStr, "Unable to initialize mutex_lock, status = %d",
+		status);
+	Error(ERROR_LEVEL_2, routineName, messageStr);
+      }
+    }
+
+    switch(atom->initial_solution) {
+    case LTE_POPULATIONS:
+      for (i = 0;  i < atom->Nlevel;  i++) {
+	for (k = 0;  k < atmos.Nspace;  k++)
+	  atom->n[i][k] = atom->nstar[i][k];
+      }
+      break;
+
+    case ZERO_RADIATION:
+      hc_k   = (HPLANCK * CLIGHT) / (KBOLTZMANN * NM_TO_M);
+      twoc   = 2.0*CLIGHT / CUBE(NM_TO_M);
+      fourPI = 4.0 * PI;
+
+      initGammaAtom(atom, 1.0);
+
+      /* --- Then add radiative contributions of active transitions --  */
+
+      for (nspect = 0;  nspect < spectrum.Nspect;  nspect++) {
+	as = spectrum.as + nspect;
+
+	for (n = 0;  n < as->Nactiveatomrt[nact];  n++) {
+	  switch (as->art[nact][n].type) {
+	  case ATOMIC_LINE:
+	    line = as->art[nact][n].ptype.line;
+	    la = nspect - line->Nblue;
+	    i  = line->i;
+	    j  = line->j;
+	    ij = i*atom->Nlevel + j;
+	    
+	    if (la == 0) {
+	      for (k = 0;  k < atmos.Nspace;  k++)
+		atom->Gamma[ij][k] += line->Aji;
+	    }
+	    break;
+
+	  case ATOMIC_CONTINUUM:
+	    continuum = as->art[nact][n].ptype.continuum;
+	    la = nspect - continuum->Nblue;
+	    i  = continuum->i;
+	    j  = continuum->j;
+	    ij = i*atom->Nlevel + j;
+
+	    wla = fourPI * getwlambda_cont(continuum, la) /
+	      continuum->lambda[la];
+	    twohnu3_c2 = twoc / CUBE(continuum->lambda[la]);
+	    for (k = 0;  k < atmos.Nspace;  k++) {
+	      gijk = atom->nstar[i][k]/atom->nstar[j][k] *
+		exp(-hc_k/(continuum->lambda[la] * atmos.T[k]));
+	      atom->Gamma[ij][k] += gijk * twohnu3_c2 *
+		continuum->alpha[la]*wla;
+	    }
+	    break;
+	  default:
+	    break;
+	  }
+	}
+      }
+      /* --- Solve statistical equilibrium equations --  ------------ */
+
+      statEquil(atom, (input.isum == -1) ? 0 : input.isum);
+      break;
+
+    case OLD_POPULATIONS:
+      //readPopulations(atom);
+      break;
+
+    default:;
+    break;
+    }
+  }
+  /* --- Now the molecules that are active --          -------------- */
+  
+  for (nact = 0;  nact < atmos.Nactivemol;  nact++) {
+    molecule = atmos.activemols[nact];
+
+    /* --- Calculate the LTE vibration level populations here. They
+           cannot be calculated yet in readMolecule since chemical
+           equilibrium has to be established first --  -------------- */
+
+    for (i = 0;  i < molecule->Nv;  i++) {
+      for (k = 0;  k < atmos.Nspace;  k++)
+	molecule->nvstar[i][k] = molecule->n[k] *
+	  molecule->pfv[i][k] / molecule->pf[k];
+    }
+
+
+    /* --- Initialize the mutex lock for the operator Gamma if there
+           are more than one thread --                 -------------- */
+
+    if (input.Nthreads > 0) {
+      if ((status = pthread_mutex_init(&molecule->Gamma_lock, NULL))) {
+	sprintf(messageStr, "Unable to initialize mutex_lock, status = %d",
+		status);
+	Error(ERROR_LEVEL_2, routineName, messageStr);
+      }
+    }
+
+    switch(molecule->initial_solution) {
+
+    case LTE_POPULATIONS:
+      for (i = 0;  i < molecule->Nv;  i++) {
+	for (k = 0;  k < atmos.Nspace;  k++)
+	  molecule->nv[i][k] = molecule->nvstar[i][k];
+      }
+      break;
+      
+    case OLD_POPULATIONS:
+      //readMolPops(molecule);
+      break;
+
+    default:;
+    }
+
+    /* --- Calculate collisions for molecule (must be done here because
+           rotation-vibration transitions are dominated by hydrogen and
+           H2 collisions for which chemical equilibrium needs to be
+           established first --                        -------------- */
+
+    if (strstr(molecule->ID, "CO"))
+      COcollisions(molecule);
+    else if (strstr(molecule->ID, "H2"))
+      H2collisions(molecule);
+    else {
+      sprintf(messageStr, "Collisions for molecule %s not implemented\n",
+	      molecule->ID);
+      Error(ERROR_LEVEL_2, routineName, messageStr);
+    }
+  }
+}
+/* ------- end ---------------------------- initSolution.c ---------- */
+
+

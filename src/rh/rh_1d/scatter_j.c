@@ -451,7 +451,7 @@ void PRDAngleApproxScatter(AtomicLine *PRDline,
 
 	/* --- Interpolate mean intensity onto fine grid. Choose linear,
 	       spline or exponential spline interpolation -- -------- */
-
+	
 	J = (double *) realloc(J,  Np * sizeof(double));
 	switch (representation) {
 	case LINEAR:
@@ -479,7 +479,6 @@ void PRDAngleApproxScatter(AtomicLine *PRDline,
 	  for (lap = 2;  lap < Np-2;  lap++) wq[lap] = PRD_DQ;
 	  wq[Np-1] = 5.0/12.0  * PRD_DQ;
 	  wq[Np-2] = 13.0/12.0 * PRD_DQ;
-
 	  for (lap = 0;  lap < Np;  lap++)
 	    PRDline->gII[lak][lap] = GII(adamp[k], waveratio, q_emit, qp[lap]) * wq[lap];
 	  for (lap = 0;  lap < Np;  lap++)
