@@ -362,7 +362,7 @@ void setInterpolate_3D(char *value, void *pointer)
 
 void set_S_Interpolation(char *value, void *pointer)
 {
-  const char routineName[] = "setInterpolate_3D";
+  const char routineName[] = "set_S_Interpolation";
 
   enum S_interpol interpolation;
 
@@ -380,7 +380,23 @@ void set_S_Interpolation(char *value, void *pointer)
   memcpy(pointer, &interpolation, sizeof(enum S_interpol));
 }
 /* ------- end ---------------------------- set_S_Interpolation.c --- */
+void set_S_Interpolation_stokes(char *value, void *pointer)
+{
+  const char routineName[] = "set_S_Interpolation_stokes";
 
+  enum S_interpol_stokes interpolation;
+
+  if (!strcmp(value, "DELOLIN"))
+    interpolation = PARABOLIC;
+  else if (!strcmp(value, "CUBIC_BEZIER"))
+    interpolation = BEZIER;
+  else {
+    sprintf(messageStr,
+	    "\n  Invalid value for keyword S_INTERPOLATION: %s", value);
+    Error(ERROR_LEVEL_2, routineName, messageStr);
+  }
+  memcpy(pointer, &interpolation, sizeof(enum S_interpol_stokes));
+}
 /* ------- begin -------------------------- setstartValue.c --------- */
 
 void setstartValue(char *value, void *pointer)

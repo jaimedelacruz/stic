@@ -194,8 +194,11 @@ double Formal(int nspect, bool_t eval_operator, bool_t redistribute)
 	    for (k = 0;  k < Nspace;  k++)
 	      Spol[n][k] /= chi[k];
 	  }
-	  PiecewiseStokes(nspect, mu, to_obs, chi, Spol, Ipol, Psi);
-
+	  if(input.S_interpolation_stokes == CUBIC_BEZIER)
+	    PiecewiseStokesBezier3(nspect, mu, to_obs, chi, Spol, Ipol, Psi);
+	  else
+	    PiecewiseStokes(nspect, mu, to_obs, chi, Spol, Ipol, Psi);
+	  
 	} else {
 	  for (k = 0;  k < Nspace;  k++)
 	    S[k] /= chi[k];
