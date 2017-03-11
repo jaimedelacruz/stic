@@ -190,8 +190,8 @@ void PiecewiseStokes(int nspect, int mu, bool_t to_obs,
 }
 /* ------- end ---------------------------- PiecewiseStokes.c ------- */
 
-double cent_deriv(double dsup,double dsdn, 
-		  double chiup,double chic,double chidn)
+inline double cent_deriv(double dsup,double dsdn, 
+			 double chiup,double chic,double chidn)
 {
   /* --- Derivative Fritsch & Butland (1984), reused J. Leenaarts
      implementation in this same code for unpolarized light --- */
@@ -212,9 +212,7 @@ double cent_deriv(double dsup,double dsdn,
 }
 /* -------------------------------------------------------------------------- */
 
-
-
-void cent_deriv_mat(mat wprime, double dsup,double dsdn,
+inline void cent_deriv_mat(mat wprime, double dsup,double dsdn,
 		    mat chiup, mat chic, mat chidn)
 {
   register int i,j;
@@ -227,7 +225,7 @@ void cent_deriv_mat(mat wprime, double dsup,double dsdn,
 
 /* -------------------------------------------------------------------------- */
 
-void cent_deriv_vec(vec wprime, double dsup,double dsdn,
+inline void cent_deriv_vec(vec wprime, double dsup,double dsdn,
 		    vec chiup, vec chic, vec chidn)
 {
   register int i;
@@ -239,7 +237,8 @@ void cent_deriv_vec(vec wprime, double dsup,double dsdn,
 /* -------------------------------------------------------------------------- */
 
   /* --- matrix multiplication --- */
-  void m4m(mat a, mat b, mat c){
+
+inline void m4m(mat a, mat b, mat c){
     register int i, j, k;
     memset(&c[0][0],0,sizeof(double)*16);
     
@@ -252,7 +251,8 @@ void cent_deriv_vec(vec wprime, double dsup,double dsdn,
 /* -------------------------------------------------------------------------- */
 
 /* --- matrix/vector multiplication --- */
-void m4v(mat a, vec b, vec c){
+
+inline void m4v(mat a, vec b, vec c){
   register int k, i;
   
     memset(&c[0],0,sizeof(double)*4);
