@@ -150,7 +150,7 @@ void PiecewiseStokes(int nspect, int mu, bool_t to_obs,
       /* --- Piecewise linear integration at end of ray -- ---------- */
 
       for (n = 0;  n < 4;  n++)	P[n] = w[0]*S[n][k] + w[1]*dS_uw[n];
-      if (Psi) Psi[k] = w[0] - w[1] / dtau_uw;
+      if (Psi) Psi[k] = w[1] / dtau_uw; //w[0] - w[1] / dtau_uw;
     }
 
     for (n = 0;  n < 4;  n++) {
@@ -193,7 +193,8 @@ void PiecewiseStokes(int nspect, int mu, bool_t to_obs,
 double cent_deriv(double dsup,double dsdn, 
 		  double chiup,double chic,double chidn)
 {
-    /* --- Derivative Fritsch & Butland (1984) --- */
+  /* --- Derivative Fritsch & Butland (1984), reused J. Leenaarts
+     implementation in this same code for unpolarized light --- */
 
   double fim1, fi, alpha, wprime;
   static const double onethird = 1.0/3.0;
@@ -283,6 +284,8 @@ void PiecewiseStokesBezier3(int nspect, int mu, bool_t to_obs,
 
      Reference:
      J. de la Cruz Rodriguez & N. Piskunov (2013)
+
+     Comments: 
      
      --- */
   
@@ -355,10 +358,10 @@ void PiecewiseStokesBezier3(int nspect, int mu, bool_t to_obs,
   
   for (n = 0;  n < 4;  n++)
     dSu[n] = (S[n][k_start] - S[n][k_start+dk]) / dtau_uw;
-
+  
   for (n = 0;  n < 4;  n++) I[n][k_start] = I_upw[n];
   if (Psi) Psi[k_start] = 0.0;
-
+  
   k=k_start+dk;
   dsup = fabs(z[k] - z[k-dk]) * imu;
   dsdn = fabs(z[k+dk] - z[k]) * imu;
@@ -389,25 +392,19 @@ void PiecewiseStokesBezier3(int nspect, int mu, bool_t to_obs,
   for(n=0;n<4;n++)
     for(m=0;m<4;m++) dKu[n][m] = (K0[n][m] - Ku[n][m]) / dtau_uw;
   
+  /* --- Solve transfer along ray --                   -------------- */
 
-  
-  /* --- dS/dtau at upwind point --- */
-    
-  for (k = k_start+dk;  k > k_end;  k += dk) {
+  for (k = k_start+dk;  k != k_end;  k += dk) {
 
-    
-    /* downwind path length */
-    
-    dsdn = fabs(z[k+dk] - z[k]) * imu;
-    
-    
     /* ---  dchi/ds at downwind point --- */
-    
+
+    dsdn = fabs(z[k+dk] - z[k]   ) * imu;
+
     if(fabs(k-k_end)>1){
       dsdn2=fabs(z[k+2*dk] - z[k+dk]) * imu;
       dchi_dn = cent_deriv(dsdn,dsdn2,chi[k],chi[k+dk],chi[k+2*dk]);       
     } else dchi_dn=(chi[k+dk]-chi[k])/dsdn;
-
+    
     
     /* --- Make sure that c1 and c2 don't do below zero --- */
     
@@ -506,19 +503,20 @@ void PiecewiseStokesBezier3(int nspect, int mu, bool_t to_obs,
     dsup=dsdn;
     dchi_up=dchi_c;
     dchi_c=dchi_dn;
-  }
+}
+    
 
   
-  /* --- Linear integration in the final interval --- */
+/* --- Linear integration in the final interval --- */
 
-  k = k_end;
-  w3(dtau_uw, w);
-  
-  for (n = 0;  n < 4;  n++) V0[n] = w[0]*S[n][k] + w[1] * dSu[n];
-  if (Psi) Psi[k] = w[0] - w[1] / dtau_uw;
+k = k_end;
+w3(dtau_uw, w);
 
-  for (n = 0;  n < 4;  n++) {
-    for (m = 0;  m < 4;  m++) {
+for (n = 0;  n < 4;  n++) V0[n] = w[0]*S[n][k] + w[1] * dSu[n];
+if (Psi) Psi[k] = w[1]/dtau_uw; //w[0] - w[1] / dtau_uw;
+
+for (n = 0;  n < 4;  n++) {
+  for (m = 0;  m < 4;  m++) {
       A[n][m] = -w[1]/dtau_uw * Ku[n][m];
       Md[n][m] = (w[0] - w[1]/dtau_uw) * K0[n][m];
     }
