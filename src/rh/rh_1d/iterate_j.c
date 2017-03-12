@@ -154,7 +154,8 @@ void Iterate_j(int NmaxIter, double iterLimit, double *dpopmax_out)
       Hydrostatic(N_MAX_HSE_ITER, HSE_ITER_LIMIT);
     }
   }
-
+  printf("niter -> %d\n",niter);
+  
   *(dpopmax_out) = dpopsmax; 
   
   for (nact = 0;  nact < atmos.Nactiveatom;  nact++) {

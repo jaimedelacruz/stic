@@ -206,7 +206,8 @@ double Formal(int nspect, bool_t eval_operator, bool_t redistribute, int iter)
 	    S[k] /= chi[k];
 
 	  if (input.S_interpolation == BEZIER)
-	    PieceBezier_1D(nspect, mu, to_obs, chi, S, I, Psi);
+	    //PieceBezier_1D(nspect, mu, to_obs, chi, S, I, Psi);
+	    Piecewise_Bezier3(nspect, mu, to_obs, chi, S, I, Psi);
 	  else if(input.S_interpolation == S_CUBIC_HERMITE){
 	    Piecewise_Hermite_1D(nspect, mu, to_obs, chi, S, I, Psi);
           }else

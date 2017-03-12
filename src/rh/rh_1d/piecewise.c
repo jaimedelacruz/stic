@@ -30,6 +30,8 @@
 
 /* --- Function prototypes --                          -------------- */
 
+#define min(a,b) (((a)<(b))?(a):(b))
+#define max(a,b) (((a)>(b))?(a):(b))
 
 /* --- Global variables --                             -------------- */
 
@@ -414,6 +416,7 @@ void Piecewise_Hermite_1D(int nspect, int mu, bool_t to_obs,
       } 
           
       /* dS/dt at central point */
+      
       har_mean_deriv(&dS_c,dtau_uw,dtau_dw,S[k-dk],S[k],S[k+dk]);
       
       I[k]= I_upw*ex + alpha*S[k-dk] + beta*S[k] + alphaprim*dS_up + betaprim*dS_c;
@@ -443,3 +446,350 @@ void Piecewise_Hermite_1D(int nspect, int mu, bool_t to_obs,
   }
 }
 /* ------- end -------------------- Piecewise_Hermite_1D.c ---------- */
+
+void Piecewise_Bezier2(int nspect, int mu, bool_t to_obs,
+		  double *chi, double *S, double *I, double *Psi)
+{
+  register int k;
+  const char routineName[] = "Piecewise_Bezier2";
+
+  int    k_start, k_end, dk, Ndep = geometry.Ndep;
+  double dtau_uw, dtau_dw, dS_uw, I_upw, c1, c2, w[3],
+         zmu, Bnu[2];
+  double dsup,dsdn,dt,dt2,dt3,dt4,eps,alpha,beta,gamma;
+  double dS_up,dS_c,dchi_up,dchi_c,dchi_dn,dsdn2;
+
+  zmu = 0.5 / geometry.muz[mu];
+
+  /* --- Distinguish between rays going from BOTTOM to TOP
+         (to_obs == TRUE), and vice versa --      -------------- */
+
+  if (to_obs) {
+    dk      = -1;
+    k_start = Ndep-1;
+    k_end   = 0;
+  } else {
+    dk      = 1;
+    k_start = 0;
+    k_end   = Ndep-1;
+  }
+  dtau_uw = zmu * (chi[k_start] + chi[k_start+dk]) *
+    fabs(geometry.height[k_start] - geometry.height[k_start+dk]);
+  dS_uw = (S[k_start] - S[k_start+dk]) / dtau_uw;
+
+  /* --- Boundary conditions --                        -------------- */
+
+  if (to_obs) {
+    switch (geometry.vboundary[BOTTOM]) {
+    case ZERO:
+      I_upw = 0.0;
+      break;
+    case THERMALIZED:
+      Planck(2, &atmos.T[Ndep-2], spectrum.lambda[nspect], Bnu);
+      I_upw = Bnu[1] - (Bnu[0] - Bnu[1]) / dtau_uw;
+      break;
+    case IRRADIATED:
+      I_upw = geometry.Ibottom[nspect][mu];
+    case REFLECTIVE:
+      sprintf(messageStr, "Boundary condition not implemented: %d",
+	      geometry.vboundary[BOTTOM]);
+      Error(ERROR_LEVEL_2, routineName, messageStr);
+    }
+  } else {
+    switch (geometry.vboundary[TOP]) {
+    case ZERO:
+      I_upw = 0.0;
+      break;
+    case THERMALIZED:
+      Planck(2, &atmos.T[0], spectrum.lambda[nspect], Bnu);
+      I_upw = Bnu[0] - (Bnu[1] - Bnu[0]) / dtau_uw;
+      break;
+    case IRRADIATED:
+      I_upw = geometry.Itop[nspect][mu];
+    case REFLECTIVE:
+      sprintf(messageStr, "Boundary condition not implemented: %d",
+	      geometry.vboundary[BOTTOM]);
+      Error(ERROR_LEVEL_2, routineName, messageStr);
+    }
+  }
+  I[k_start] = I_upw;
+  if (Psi) Psi[k_start] = 0.0;
+  
+  /* set variables for first iteration to allow simple 
+     shift for all next iterations */
+  k=k_start+dk;
+  dsup = fabs(geometry.height[k] - geometry.height[k-dk]) / geometry.muz[mu];
+  dsdn = fabs(geometry.height[k+dk] - geometry.height[k]) / geometry.muz[mu];
+  dchi_up= (chi[k] - chi[k-dk])/dsup;
+  /*  dchi/ds at central point */
+  har_mean_deriv(&dchi_c,dsup,dsdn,chi[k-dk],chi[k],chi[k+dk]);
+
+  
+  /* --- upwind path_length (BEzier2 integration) --- */
+
+  c1 = max(chi[k] - (dsup*0.5) * dchi_c + chi[k-dk] + (dsup*0.5) * dchi_up,  0.0);
+  dtau_uw =  dsup * (chi[k] + chi[k-dk] + c1*0.5) / 3.0;
+
+  
+  /* dS/dtau at upwind point */
+  dS_up=(S[k]-S[k-dk])/dtau_uw;
+
+  /* --- Solve transfer along ray --                   -------------- */
+
+  for (k = k_start+dk;  k != k_end+dk;  k += dk) {
+    
+    if (k != k_end) {
+
+      /* downwind path length */
+       dsdn = fabs(geometry.height[k+dk] - geometry.height[k]   ) / geometry.muz[mu];
+       
+      /* dchi/ds at downwind point */
+       if (fabs(k-k_end)>1) {
+	 dsdn2=fabs(geometry.height[k+2*dk] - geometry.height[k+dk])/geometry.muz[mu];
+	 har_mean_deriv(&dchi_dn,dsdn,dsdn2,chi[k],chi[k+dk],chi[k+2*dk]);       
+       } else {
+	 dchi_dn=(chi[k+dk]-chi[k])/dsdn;
+       }
+       
+       /* --- Make sure that c1 and c2 don't do below zero --- */
+    
+       c1 = max((chi[k] + (dsdn*0.5) * dchi_c + chi[k+dk] -
+		 (dsdn*0.5) * dchi_dn ) * 0.5, 0.0);
+
+       /* downwind optical path length */
+
+       dtau_dw =  dsdn * (chi[k] + chi[k+dk] + c1) / 3.0;
+
+       
+       dt=dtau_uw;
+       dt2=dt*dt;
+       dt3=dt2*dt; 
+       dt4=dt2*dt2;
+       
+      /* compute interpolation parameters */
+       
+       if(dt < 0.01){
+	 //eps = 1.0 - dt + 0.5 * dt2 - dt3 / 6.0 + dt4 / 24.0;
+	 eps = 1.0 - dt + 0.5 * dt2 - dt3 / 6.0 + dt4 / 24.0
+	   - dt3*dt2/120.0 + dt3*dt3/720.0;
+
+	 alpha = -dt * (-120.0 + 30.0*dt - 6.0*dt2 + dt3 + 2.0*dt4) / 360.0;
+	 beta  = -dt * (-60.0 + 45.0*dt - 18.0*dt2 + 5.0*dt3)       / 180.0;
+	 gamma = dt*(120.0 + (-2.0 + dt)*dt*(30.0 + dt*(6.0 + 5.0*dt))) / 360.0;
+       }else{
+	 
+	 eps = (dt >= 100) ? 0.0 : exp(-dt);
+	 
+	 alpha = 1.0 - 2.0 * (dt + eps - 1.0)      / dt2;
+	 beta  = (2.0 - (2.0 + 2.0*dt + dt2)*eps)  / dt2;
+	 gamma = 2.0*(dt - 2.0 + (dt + 2.0)*eps)   / dt2;
+       }
+
+       gamma *= 0.5;
+       
+       /* dS/dt at central point */
+       
+       har_mean_deriv(&dS_c,dtau_uw,dtau_dw,S[k-dk],S[k],S[k+dk]);
+       
+       c1 = max(S[k] - dt*0.5 * dS_c + S[k-dk] + dt*0.5 * dS_up, 0.0);       
+       
+       I[k]= I_upw*eps + alpha*S[k] + beta*S[k-dk] + gamma * c1; 
+       
+       if (Psi) Psi[k] = alpha + gamma;
+       
+    } else { 
+      
+      /* --- Piecewise linear integration at end of ray -- ---------- */
+      
+      dtau_uw = zmu * (chi[k] + chi[k-dk]) *
+	fabs(geometry.height[k] - geometry.height[k-dk]);
+      dS_uw = (S[k] - S[k-dk]) / dtau_uw;
+      w3(dtau_uw, w);
+      I[k] = (1.0 - w[0])*I_upw + w[0]*S[k] + w[1]*dS_uw;
+      if (Psi) Psi[k] = w[0] - w[1] / dtau_uw;
+    }
+    I_upw = I[k];
+    
+    /* --- Re-use downwind quantities for next upwind position -- --- */
+    dsup=dsdn;
+    dchi_up=dchi_c;
+    dchi_c=dchi_dn;
+    dtau_uw=dtau_dw;
+    dS_up = dS_c;
+    
+  }
+}
+
+void Piecewise_Bezier3(int nspect, int mu, bool_t to_obs,
+		  double *chi, double *S, double *I, double *Psi)
+{
+  register int k;
+  const char routineName[] = "Piecewise_Bezier3";
+
+  int    k_start, k_end, dk, Ndep = geometry.Ndep;
+  double dtau_uw, dtau_dw, dS_uw, I_upw, c1, c2, w[3],
+         zmu, Bnu[2];
+  double dsup,dsdn,dt,dt2,dt3,dt4,eps,alpha,beta,gamma, theta;
+  double dS_up,dS_c,dchi_up,dchi_c,dchi_dn,dsdn2;
+
+  zmu = 0.5 / geometry.muz[mu];
+
+  /* --- Distinguish between rays going from BOTTOM to TOP
+         (to_obs == TRUE), and vice versa --      -------------- */
+
+  if (to_obs) {
+    dk      = -1;
+    k_start = Ndep-1;
+    k_end   = 0;
+  } else {
+    dk      = 1;
+    k_start = 0;
+    k_end   = Ndep-1;
+  }
+  dtau_uw = zmu * (chi[k_start] + chi[k_start+dk]) *
+    fabs(geometry.height[k_start] - geometry.height[k_start+dk]);
+  dS_uw = (S[k_start] - S[k_start+dk]) / dtau_uw;
+
+  /* --- Boundary conditions --                        -------------- */
+
+  if (to_obs) {
+    switch (geometry.vboundary[BOTTOM]) {
+    case ZERO:
+      I_upw = 0.0;
+      break;
+    case THERMALIZED:
+      Planck(2, &atmos.T[Ndep-2], spectrum.lambda[nspect], Bnu);
+      I_upw = Bnu[1] - (Bnu[0] - Bnu[1]) / dtau_uw;
+      break;
+    case IRRADIATED:
+      I_upw = geometry.Ibottom[nspect][mu];
+    case REFLECTIVE:
+      sprintf(messageStr, "Boundary condition not implemented: %d",
+	      geometry.vboundary[BOTTOM]);
+      Error(ERROR_LEVEL_2, routineName, messageStr);
+    }
+  } else {
+    switch (geometry.vboundary[TOP]) {
+    case ZERO:
+      I_upw = 0.0;
+      break;
+    case THERMALIZED:
+      Planck(2, &atmos.T[0], spectrum.lambda[nspect], Bnu);
+      I_upw = Bnu[0] - (Bnu[1] - Bnu[0]) / dtau_uw;
+      break;
+    case IRRADIATED:
+      I_upw = geometry.Itop[nspect][mu];
+    case REFLECTIVE:
+      sprintf(messageStr, "Boundary condition not implemented: %d",
+	      geometry.vboundary[BOTTOM]);
+      Error(ERROR_LEVEL_2, routineName, messageStr);
+    }
+  }
+  I[k_start] = I_upw;
+  if (Psi) Psi[k_start] = 0.0;
+  
+  /* set variables for first iteration to allow simple 
+     shift for all next iterations */
+  k=k_start+dk;
+  dsup = fabs(geometry.height[k] - geometry.height[k-dk]) / geometry.muz[mu];
+  dsdn = fabs(geometry.height[k+dk] - geometry.height[k]) / geometry.muz[mu];
+  dchi_up= (chi[k] - chi[k-dk])/dsup;
+  /*  dchi/ds at central point */
+  har_mean_deriv(&dchi_c,dsup,dsdn,chi[k-dk],chi[k],chi[k+dk]);
+
+  
+  /* --- upwind path_length (BEzier2 integration) --- */
+
+  c1 = max(chi[k] - (dsup/3.0) * dchi_c, 0.0);
+  c2 = max(chi[k-dk] + (dsup/3.0) * dchi_up,  0.0);
+  dtau_uw =  dsup * (chi[k] + chi[k-dk] + c1 + c2) * 0.25;
+
+  
+  /* dS/dtau at upwind point */
+  dS_up=(S[k]-S[k-dk])/dtau_uw;
+
+  /* --- Solve transfer along ray --                   -------------- */
+
+  for (k = k_start+dk;  k != k_end+dk;  k += dk) {
+    
+    if (k != k_end) {
+
+      /* downwind path length */
+       dsdn = fabs(geometry.height[k+dk] - geometry.height[k]   ) / geometry.muz[mu];
+       
+      /* dchi/ds at downwind point */
+       if (fabs(k-k_end)>1) {
+	 dsdn2=fabs(geometry.height[k+2*dk] - geometry.height[k+dk])/geometry.muz[mu];
+	 har_mean_deriv(&dchi_dn,dsdn,dsdn2,chi[k],chi[k+dk],chi[k+2*dk]);       
+       } else {
+	 dchi_dn=(chi[k+dk]-chi[k])/dsdn;
+       }
+       
+       /* --- Make sure that c1 and c2 don't do below zero --- */
+    
+       c1 = max(chi[k]    + (dsdn*0.5) * dchi_c,  0.0);
+       c2 = max(chi[k+dk] - (dsdn*0.5) * dchi_dn, 0.0);
+
+       
+       /* downwind optical path length */
+
+       dtau_dw =  dsdn * (chi[k] + chi[k+dk] + c1 + c2) * 0.25;
+
+       
+       dt=dtau_uw;
+       dt2=dt*dt;
+       dt3=dt2*dt; 
+       dt4=dt2*dt2;
+       
+      /* compute interpolation parameters */
+       
+       if(dt >= 1.e-3){
+	 eps = exp(-dt);
+	 alpha = (-6.0 + 6.0 * dt - 3.0 * dt2 + dt3 + 6.0 * eps)        / dt3;
+	 beta  = (6.0 + (-6.0 - dt * (6.0 + dt * (3.0 + dt))) * eps)    / dt3;
+	 gamma = 3.0 * (6.0 + (-4.0 + dt)*dt - 2.0 * (3.0 + dt) * eps)  / dt3;
+	 theta = 3.0 * ( eps * (6.0 + dt2 + 4.0 * dt) + 2.0 * dt - 6.0) / dt3;
+       }else{
+	 eps = 1.0 - dt + 0.5 * dt2 - dt3 / 6.0 + dt4 / 24.0;
+	 //
+	 alpha = 0.25 * dt - 0.05 * dt2 + dt3 / 120.0 - dt4 / 840.0;
+	 beta  = 0.25 * dt - 0.20 * dt2 + dt3 / 12.0  - dt4 / 42.0; 
+	 gamma = 0.25 * dt - 0.10 * dt2 + dt3 * 0.025 - dt4 / 210.0; 
+	 theta = 0.25 * dt - 0.15 * dt2 + dt3 * 0.05  - dt4 / 84.0; 
+       }
+
+       
+       /* dS/dt at central point */
+       
+       har_mean_deriv(&dS_c,dtau_uw,dtau_dw,S[k-dk],S[k],S[k+dk]);
+       
+       c1 = max(S[k] - dt*0.5 * dS_c, 0.0);
+       c2 = max(S[k-dk] + dt*0.5 * dS_up, 0.0);       
+       
+       I[k]= I_upw*eps + alpha*S[k] + beta*S[k-dk] + gamma * c1 + theta * c2; 
+       
+       if (Psi) Psi[k] = alpha + gamma;
+       
+    } else { 
+      
+      /* --- Piecewise linear integration at end of ray -- ---------- */
+      
+      dtau_uw = zmu * (chi[k] + chi[k-dk]) *
+	fabs(geometry.height[k] - geometry.height[k-dk]);
+      dS_uw = (S[k] - S[k-dk]) / dtau_uw;
+      w3(dtau_uw, w);
+      I[k] = (1.0 - w[0])*I_upw + w[0]*S[k] + w[1]*dS_uw;
+      if (Psi) Psi[k] = w[0] - w[1] / dtau_uw;
+    }
+    I_upw = I[k];
+    
+    /* --- Re-use downwind quantities for next upwind position -- --- */
+    dsup=dsdn;
+    dchi_up=dchi_c;
+    dchi_c=dchi_dn;
+    dtau_uw=dtau_dw;
+    dS_up = dS_c;
+    
+  }
+}
+

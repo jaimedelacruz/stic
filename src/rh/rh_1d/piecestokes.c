@@ -298,8 +298,8 @@ void PiecewiseStokesBezier3(int nspect, int mu, bool_t to_obs,
     I_upw[4], Bnu[2];
   double dchi_up,dchi_c,dt03;
   double dsup,dsdn,dt,dt2,dt3,dt4,eps,alpha,beta,gamma,theta;
-  double Ku[4][4], K0[4][4], Kd[4][4], dKu[4][4], dK0[4][4], dKd[4][4];
-  double Su[4], S0[4], Sd[4], dSu[4], dS0[4], dSd[4];
+  double Ku[4][4], K0[4][4], Kd[4][4], dKu[4][4], dK0[4][4];
+  double Su[4], S0[4], Sd[4], dSu[4], dS0[4];
   double A[4][4], Ma[4][4], Mb[4][4], Mc[4][4], V0[4];
   double imu = 1.0 / geometry.muz[mu];
   double **Md = matrix_double(4, 4);
@@ -393,34 +393,34 @@ void PiecewiseStokesBezier3(int nspect, int mu, bool_t to_obs,
   
   /* --- Solve transfer along ray --                   -------------- */
 
-  for (k = k_start+dk;  k != k_end;  k += dk) {
-
+  for (k = k_start+dk;  k != k_end;  k += dk) {      
+      
     /* ---  dchi/ds at downwind point --- */
-
+      
     dsdn = fabs(z[k+dk] - z[k]   ) * imu;
-
+      
     if(fabs(k-k_end)>1){
       dsdn2=fabs(z[k+2*dk] - z[k+dk]) * imu;
       dchi_dn = cent_deriv(dsdn,dsdn2,chi[k],chi[k+dk],chi[k+2*dk]);       
     } else dchi_dn=(chi[k+dk]-chi[k])/dsdn;
-    
-    
+      
+      
     /* --- Make sure that c1 and c2 don't do below zero --- */
-    
+      
     c2 = max(chi[k]    + (dsdn/3.0) * dchi_c , 0.0);
     c1 = max(chi[k+dk] - (dsdn/3.0) * dchi_dn, 0.0);
-
-    
+      
+      
     /* --- Bezier3 integrated dtau --- */
-    
+      
     dtau_dw = 0.25 * dsdn * (chi[k] + chi[k+dk] + c1 + c2);
     dt = dtau_uw;
-
-    
+      
+      
     /* --- Bezier3 coeffs. ---- */
-
+      
     dt2 = dt * dt, dt3 = dt2 * dt, dt4 = dt2 * dt2, dt03 = dt / 3.0;
-    
+      
     if(dt >= 1.e-3){
       eps = exp(-dt);
       alpha = (-6.0 + 6.0 * dt - 3.0 * dt2 + dt3 + 6.0 * eps)        / dt3;
@@ -435,40 +435,40 @@ void PiecewiseStokesBezier3(int nspect, int mu, bool_t to_obs,
       gamma = 0.25 * dt - 0.10 * dt2 + dt3 * 0.025 - dt4 / 210.0; 
       theta = 0.25 * dt - 0.15 * dt2 + dt3 * 0.05  - dt4 / 84.0; 
     }
-
+      
     /* --- Diagonal operator --- */
-
+      
     if(Psi) Psi[k] = alpha + gamma;
-    
-    
+      
+      
     /* ---- get algebra in place --- */
-    
+      
     StokesK(nspect, k+dk, chi[k+dk], Kd);
     Svec(k+dk, S, Sd);
-    cent_deriv_mat(dKd, dtau_uw, dtau_dw, Ku, K0, Kd);
-    cent_deriv_vec(dSd, dtau_uw, dtau_dw, Su, S0, Sd);
-    
+    cent_deriv_mat(dK0, dtau_uw, dtau_dw, Ku, K0, Kd);
+    cent_deriv_vec(dS0, dtau_uw, dtau_dw, Su, S0, Sd);
+      
     m4m(Ku, Ku, Ma); // Ku # Ku
     m4m(K0, K0, A ); // K0 # K0
-    
+      
     for(j=0;j<4;j++){
       for(i=0;i<4;i++){
 	A[j][i] = ident[j][i] + alpha * K0[j][i] - gamma *
 	  -(dt03 * (A[j][i] + dK0[j][i] + K0[j][i]) + K0[j][i]);
-
+	  
 	Ma[j][i] = eps * ident[j][i] - beta * Ku[j][i] + theta *
 	  (dt03 * (Ma[j][i] + dKu[j][i] + Ku[j][i]) - Ku[j][i]);
-
+	  
 	Mb[j][i] = beta * ident[j][i] + theta * (ident[j][i] - dt03 * Ku[j][i]);
 	Mc[j][i] = alpha* ident[j][i] + gamma * (ident[j][i] + dt03 * K0[j][i]);
       }
     }
-
+      
     /* ---
        Here I am doing Ma*stk + Mb * Su + Mc * S0 + 
        (gam * dS0 - theta * dSu) * dtau / 3.0
        --- */
-    
+      
     for(i = 0; i<4; i++){
       V0[i] = 0.0;
       for(j = 0; j<4; j++){
@@ -476,42 +476,45 @@ void PiecewiseStokesBezier3(int nspect, int mu, bool_t to_obs,
       }
       V0[i] += dt03 * (gamma * dS0[i] - theta * dSu[i]);
     }
-
-    
+      
+      
     /* --- Solve linear system to get the intensity --- */
-
+      
     memcpy(Md[0], A[0], 16*sizeof(double));
     SolveLinearEq(4, Md, V0, TRUE);
-    
+      
     for(i=0;i<4;i++) I[i][k] = V0[i];
-    
-    
+      
+      
     /* --- Shift values for next depth --- */
-    
+      
     memcpy(Su,   S0, 4*sizeof(double));
     memcpy(S0,   Sd, 4*sizeof(double));
     memcpy(dSu, dS0, 4*sizeof(double));
-    memcpy(dS0, dSd, 4*sizeof(double));
-    
+    //memcpy(dS0, dSd, 4*sizeof(double));
+      
     memcpy(Ku[0],   K0[0], 16*sizeof(double));
     memcpy(K0[0],   Kd[0], 16*sizeof(double));
     memcpy(dKu[0], dK0[0], 16*sizeof(double));
-    memcpy(dK0[0], dKd[0], 16*sizeof(double));
-    
+    //memcpy(dK0[0], dKd[0], 16*sizeof(double));
+      
     dtau_uw = dtau_dw;
     dsup    = dsdn;
     dchi_up = dchi_c;
     dchi_c  = dchi_dn;
-  } // k loop
-  
+      
+  }
+      
   /* --- Linear integration in the last interval --- */
   
   k = k_end;
+  dtau_uw = 0.5*imu * (chi[k] + chi[k-dk]) *
+    fabs(geometry.height[k] - geometry.height[k-dk]);
   w3(dtau_uw, w);
-  
+      
   for (n = 0;  n < 4;  n++) V0[n] = w[0]*S[n][k] + w[1] * dSu[n];
   if (Psi) Psi[k] = w[0] - w[1] / dtau_uw;
-  
+      
   for (n = 0;  n < 4;  n++) {
     for (m = 0;  m < 4;  m++) {
       A[n][m] = -w[1]/dtau_uw * Ku[n][m];
@@ -520,14 +523,15 @@ void PiecewiseStokesBezier3(int nspect, int mu, bool_t to_obs,
     A[n][n] = 1.0 - w[0];
     Md[n][n] = 1.0;
   }
-  
+      
   for (n = 0;  n < 4;  n++) 
     for (m = 0;  m < 4;  m++) 
       V0[n] += A[n][m] * I[m][k-dk];
-  
+      
   SolveLinearEq(4, Md, V0, TRUE);
-  
+      
   for (n = 0;  n < 4;  n++) I[n][k] = V0[n];
+    
   
   freeMatrix((void **) Md);
 }
@@ -557,8 +561,8 @@ void PiecewiseStokesBezier2(int nspect, int mu, bool_t to_obs,
     I_upw[4], Bnu[2];
   double dchi_up,dchi_c,dt05;
   double dsup,dsdn,dt,dt2,dt3,dt4,eps,alpha,beta,gamma;
-  double Ku[4][4], K0[4][4], Kd[4][4], dKu[4][4], dK0[4][4], dKd[4][4];
-  double Su[4], S0[4], Sd[4], dSu[4], dS0[4], dSd[4];
+  double Ku[4][4], K0[4][4], Kd[4][4], dKu[4][4], dK0[4][4];
+  double Su[4], S0[4], Sd[4], dSu[4], dS0[4];
   double A[4][4], Ma[4][4], Mb[4][4], Mc[4][4], V0[4];
   double imu = 1.0 / geometry.muz[mu];
   double **Md = matrix_double(4, 4);
@@ -633,10 +637,8 @@ void PiecewiseStokesBezier2(int nspect, int mu, bool_t to_obs,
   
   /* --- upwind path_length (BEzier2 integration) --- */
 
-  c2 = max(chi[k]    - (dsup*0.5) * dchi_c,  0.0);
-  c1 = max(chi[k-dk] + (dsup*0.5) * dchi_up, 0.0);
-  
-  dtau_uw =  dsup * (chi[k] + chi[k-dk] + (c1 + c2)*0.5) / 3.0;
+  c1 = max(chi[k] - (dsup*0.5) * dchi_c + chi[k-dk] + (dsup*0.5) * dchi_up,  0.0);
+  dtau_uw =  dsup * (chi[k] + chi[k-dk] + c1*0.5) / 3.0;
 
   
   /* --- Ku, K0 and dKu, dSu --- */
@@ -666,13 +668,12 @@ void PiecewiseStokesBezier2(int nspect, int mu, bool_t to_obs,
     
     /* --- Make sure that c1 and c2 don't do below zero --- */
     
-    c2 = max(chi[k]    + (dsdn*0.5) * dchi_c , 0.0);
-    c1 = max(chi[k+dk] - (dsdn*0.5) * dchi_dn, 0.0);
+    c1 = max(chi[k] + (dsdn*0.5) * dchi_c +chi[k+dk] - (dsdn*0.5) * dchi_dn, 0.0);
 
     
     /* --- Bezier3 integrated dtau --- */
     
-    dtau_dw =  dsdn * (chi[k] + chi[k+dk] + (c1 + c2) * 0.5) / 3.0;
+    dtau_dw =  dsdn * (chi[k] + chi[k+dk] + c1 * 0.5) / 3.0;
     dt = dtau_uw;
 
     
@@ -680,7 +681,7 @@ void PiecewiseStokesBezier2(int nspect, int mu, bool_t to_obs,
 
     dt2 = dt * dt, dt3 = dt2 * dt, dt4 = dt2 * dt2, dt05 = dt * 0.5;
     
-    if(dt < 1.e-3){
+    if(dt < 1.e-2){
       eps = 1.0 - dt + 0.5 * dt2 - dt3 / 6.0 + dt4 / 24.0;
       alpha = dt/3.0 - dt2/12.   + dt3/60.0;
       beta  = dt/3.0 - dt2*0.25  + dt3*0.1;
@@ -709,8 +710,8 @@ void PiecewiseStokesBezier2(int nspect, int mu, bool_t to_obs,
     
     StokesK(nspect, k+dk, chi[k+dk], Kd);
     Svec(k+dk, S, Sd);
-    cent_deriv_mat(dKd, dtau_uw, dtau_dw, Ku, K0, Kd);
-    cent_deriv_vec(dSd, dtau_uw, dtau_dw, Su, S0, Sd);
+    cent_deriv_mat(dK0, dtau_uw, dtau_dw, Ku, K0, Kd);
+    cent_deriv_vec(dS0, dtau_uw, dtau_dw, Su, S0, Sd);
     
     m4m(Ku, Ku, Ma); // Ku # Ku
     m4m(K0, K0, A ); // K0 # K0
@@ -718,7 +719,7 @@ void PiecewiseStokesBezier2(int nspect, int mu, bool_t to_obs,
     for(j=0;j<4;j++){
       for(i=0;i<4;i++){
 	A[j][i] = ident[j][i] + alpha * K0[j][i] - gamma *
-	  -(dt05 * (A[j][i] + dK0[j][i] + K0[j][i]) + K0[j][i]);
+	  (-(dt05 * (A[j][i] + dK0[j][i] + K0[j][i]) + K0[j][i]));
 
 	Ma[j][i] = eps * ident[j][i] - beta * Ku[j][i] + gamma *
 	  (dt05 * (Ma[j][i] + dKu[j][i] + Ku[j][i]) - Ku[j][i]);
@@ -755,12 +756,10 @@ void PiecewiseStokesBezier2(int nspect, int mu, bool_t to_obs,
     memcpy(Su,   S0, 4*sizeof(double));
     memcpy(S0,   Sd, 4*sizeof(double));
     memcpy(dSu, dS0, 4*sizeof(double));
-    memcpy(dS0, dSd, 4*sizeof(double));
     
     memcpy(Ku[0],   K0[0], 16*sizeof(double));
     memcpy(K0[0],   Kd[0], 16*sizeof(double));
     memcpy(dKu[0], dK0[0], 16*sizeof(double));
-    memcpy(dK0[0], dKd[0], 16*sizeof(double));
     
     dtau_uw = dtau_dw;
     dsup    = dsdn;

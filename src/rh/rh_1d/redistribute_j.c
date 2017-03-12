@@ -111,7 +111,7 @@ void Redistribute(int NmaxIter, double iterLimit)
 
     /* --- Solve transfer equation with fixed populations -- -------- */
 
-    solveSpectrum(eval_operator=FALSE, redistribute=TRUE);
+    solveSpectrum(eval_operator=FALSE, redistribute=TRUE, 0);
 
     if (drhomaxa < iterLimit) break;
     niter++;
