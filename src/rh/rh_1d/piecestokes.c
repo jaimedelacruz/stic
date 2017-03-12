@@ -439,7 +439,7 @@ void PiecewiseStokesBezier3(int nspect, int mu, bool_t to_obs,
 
     /* --- Diagonal operator --- */
 
-    if(Psi) Psi[k] = alpha;
+    if(Psi) Psi[k] = alpha + gamma;
     
     
     /* ---- get algebra in place --- */
