@@ -50,8 +50,8 @@ typedef struct {
 
 /* --- Associated function prototypes --               -------------- */
 
-double Formal(int nspect, bool_t eval_operator, bool_t redistribute);
-double solveSpectrum(bool_t eval_operator, bool_t redistribute);
+double Formal(int nspect, bool_t eval_operator, bool_t redistribute, int iter);
+double solveSpectrum(bool_t eval_operator, bool_t redistribute, int iter);
 
 void   addtoGamma(int nspect, double wmu, double *P, double *Psi);
 void   addtoRates(int nspect, int mu, bool_t to_obs, double wmu,

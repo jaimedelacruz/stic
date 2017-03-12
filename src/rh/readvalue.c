@@ -386,13 +386,15 @@ void set_S_Interpolation_stokes(char *value, void *pointer)
 
   enum S_interpol_stokes interpolation;
 
-  if (!strcmp(value, "DELOLIN"))
-    interpolation = PARABOLIC;
-  else if (!strcmp(value, "CUBIC_BEZIER"))
-    interpolation = BEZIER;
+  if      (!strcmp(value, "DELO_PARABOLIC"))
+    interpolation = DELO_PARABOLIC;
+  else if (!strcmp(value, "DELO_BEZIER2"))
+    interpolation = DELO_BEZIER2;
+  else if (!strcmp(value, "DELO_BEZIER3"))
+    interpolation = DELO_BEZIER3;
   else {
     sprintf(messageStr,
-	    "\n  Invalid value for keyword S_INTERPOLATION: %s", value);
+	    "\n  Invalid value for keyword S_INTERPOLATION_stokes: %s", value);
     Error(ERROR_LEVEL_2, routineName, messageStr);
   }
   memcpy(pointer, &interpolation, sizeof(enum S_interpol_stokes));

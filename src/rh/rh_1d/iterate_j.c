@@ -103,7 +103,7 @@ void Iterate_j(int NmaxIter, double iterLimit, double *dpopmax_out)
 
     /* --- Formal solution for all wavelengths --      -------------- */
 
-    solveSpectrum(eval_operator=TRUE, FALSE);
+    solveSpectrum(eval_operator=TRUE, FALSE, niter);
 
     /* --- Solve statistical equilibrium equations --  -------------- */
 
@@ -174,7 +174,7 @@ void Iterate_j(int NmaxIter, double iterLimit, double *dpopmax_out)
 
 /* ------- begin -------------------------- solveSpectrum.c --------- */
 
-double solveSpectrum(bool_t eval_operator, bool_t redistribute)
+double solveSpectrum(bool_t eval_operator, bool_t redistribute, int iter)
 {
   register int nspect, n, nt,k;
 
@@ -275,7 +275,7 @@ double solveSpectrum(bool_t eval_operator, bool_t redistribute)
     for (nspect = 0;  nspect < spectrum.Nspect;  nspect++) {
       if (!redistribute ||
 	  (redistribute && containsPRDline(&spectrum.as[nspect]))) {
-	dJ = Formal(nspect, eval_operator, redistribute);
+	dJ = Formal(nspect, eval_operator, redistribute, iter);
 	if (dJ > dJmax) {
 	  dJmax = dJ;
 	  lambda_max = nspect;
@@ -303,7 +303,7 @@ void *Formal_pthread(void *argument)
 
   /* --- Threads wrapper around Formal --              -------------- */
 
-  ti->dJ = Formal(ti->nspect, ti->eval_operator, ti->redistribute);
+  ti->dJ = Formal(ti->nspect, ti->eval_operator, ti->redistribute, 100);
 
   return (NULL);
 }

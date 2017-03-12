@@ -40,7 +40,7 @@ extern char messageStr[];
 
 /* ------- begin -------------------------- Formal.c ---------------- */
 
-double Formal(int nspect, bool_t eval_operator, bool_t redistribute)
+double Formal(int nspect, bool_t eval_operator, bool_t redistribute, int iter)
 {
   const char routineName[] = "Formal";
   register int k, mu, n;
@@ -194,7 +194,9 @@ double Formal(int nspect, bool_t eval_operator, bool_t redistribute)
 	    for (k = 0;  k < Nspace;  k++)
 	      Spol[n][k] /= chi[k];
 	  }
-	  if(input.S_interpolation_stokes == CUBIC_BEZIER)
+	  if     (input.S_interpolation_stokes == DELO_BEZIER2)
+	    PiecewiseStokesBezier2(nspect, mu, to_obs, chi, Spol, Ipol, Psi);
+	  else if(input.S_interpolation_stokes == DELO_BEZIER3)
 	    PiecewiseStokesBezier3(nspect, mu, to_obs, chi, Spol, Ipol, Psi);
 	  else
 	    PiecewiseStokes(nspect, mu, to_obs, chi, Spol, Ipol, Psi);
@@ -212,7 +214,9 @@ double Formal(int nspect, bool_t eval_operator, bool_t redistribute)
 	}
 
 	if (eval_operator) {
-          for (k = 0;  k < Nspace;  k++) Psi[k] /= chi[k];
+	  if(iter <= input.NlambdaIter)
+	    for (k = 0;  k < Nspace;  k++) Psi[k] = 0.0;
+	  else for (k = 0;  k < Nspace;  k++) Psi[k] /= chi[k];
 	  addtoGamma(nspect, wmu, I, Psi);
 	}
 
@@ -340,7 +344,9 @@ double Formal(int nspect, bool_t eval_operator, bool_t redistribute)
       spectrum.I[nspect][mu] = Feautrier(nspect, mu, chi, S,
 					 F_order=STANDARD, I, Psi);
       if (eval_operator) {
-	for (k = 0;  k < Nspace;  k++) Psi[k] /= chi[k];
+	if(iter < input.NlambdaIter)
+	  for (k = 0;  k < Nspace;  k++) Psi[k] = 0.0;
+	else for (k = 0;  k < Nspace;  k++) Psi[k] /= chi[k];
 	addtoGamma(nspect, geometry.wmu[mu], I, Psi);
       }
 

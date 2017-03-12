@@ -243,7 +243,7 @@ double solveSpectrum(bool_t eval_operator, bool_t redistribute)
     for (nspect = 0;  nspect < spectrum.Nspect;  nspect++) {
       if (!redistribute ||
 	  (redistribute && containsPRDline(&spectrum.as[nspect]))) {
-	dJ = Formal(nspect, eval_operator, redistribute);
+	dJ = Formal(nspect, eval_operator, redistribute,100);
 	if (dJ > dJmax) {
 	  dJmax = dJ;
 	  lambda_max = nspect;
@@ -271,7 +271,7 @@ void *Formal_pthread(void *argument)
 
   /* --- Threads wrapper around Formal --              -------------- */ 
 
-  ti->dJ = Formal(ti->nspect, ti->eval_operator, ti->redistribute);
+  ti->dJ = Formal(ti->nspect, ti->eval_operator, ti->redistribute, 100);
 
   return (NULL);
 }

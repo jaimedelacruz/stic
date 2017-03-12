@@ -149,7 +149,7 @@ void calculateRay(void) {
   Background_j(analyze_output=FALSE, equilibria_only=FALSE);
 
   /* --- Solve radiative transfer for ray --           -------------- */
-  solveSpectrum(FALSE, FALSE);
+  solveSpectrum(FALSE, FALSE, 0);
 
   //set back PRD input option
   if (input.PRD_angle_dep == PRD_ANGLE_APPROX && atmos.NPRDactive > 0)  

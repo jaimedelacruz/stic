@@ -97,7 +97,8 @@ void readInput()
     {"PRD_ANGLE_DEP", "0", FALSE, KEYWORD_DEFAULT, &input.PRD_angle_dep,
      setPRDangle},
     {"XRD", "FALSE", FALSE, KEYWORD_DEFAULT, &input.XRD, setboolValue}, 
-
+    {"N_LAMBDA_ITER",  "0", FALSE, KEYWORD_OPTIONAL, &input.NlambdaIter,
+     setintValue},
     {"J_FILE",     "", FALSE, KEYWORD_REQUIRED, input.JFile, setcharValue},
     {"BACKGROUND_FILE", "", FALSE, KEYWORD_REQUIRED, input.background_File,
      setcharValue},
