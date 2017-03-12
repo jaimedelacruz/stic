@@ -150,7 +150,7 @@ void PiecewiseStokes(int nspect, int mu, bool_t to_obs,
       /* --- Piecewise linear integration at end of ray -- ---------- */
 
       for (n = 0;  n < 4;  n++)	P[n] = w[0]*S[n][k] + w[1]*dS_uw[n];
-      if (Psi) Psi[k] = w[1] / dtau_uw; //w[0] - w[1] / dtau_uw;
+      if (Psi) Psi[k] = w[0] - w[1] / dtau_uw;
     }
 
     for (n = 0;  n < 4;  n++) {
@@ -503,20 +503,18 @@ void PiecewiseStokesBezier3(int nspect, int mu, bool_t to_obs,
     dsup=dsdn;
     dchi_up=dchi_c;
     dchi_c=dchi_dn;
-}
-    
-
+  }
   
-/* --- Linear integration in the final interval --- */
-
-k = k_end;
-w3(dtau_uw, w);
-
-for (n = 0;  n < 4;  n++) V0[n] = w[0]*S[n][k] + w[1] * dSu[n];
-if (Psi) Psi[k] = w[1]/dtau_uw; //w[0] - w[1] / dtau_uw;
-
-for (n = 0;  n < 4;  n++) {
-  for (m = 0;  m < 4;  m++) {
+  /* --- Linear integration in the last interval --- */
+  
+  k = k_end;
+  w3(dtau_uw, w);
+  
+  for (n = 0;  n < 4;  n++) V0[n] = w[0]*S[n][k] + w[1] * dSu[n];
+  if (Psi) Psi[k] = w[0] - w[1] / dtau_uw;
+  
+  for (n = 0;  n < 4;  n++) {
+    for (m = 0;  m < 4;  m++) {
       A[n][m] = -w[1]/dtau_uw * Ku[n][m];
       Md[n][m] = (w[0] - w[1]/dtau_uw) * K0[n][m];
     }
@@ -529,8 +527,8 @@ for (n = 0;  n < 4;  n++) {
       V0[n] += A[n][m] * I[m][k-dk];
   
   SolveLinearEq(4, Md, V0, TRUE);
-
+  
   for (n = 0;  n < 4;  n++) I[n][k] = V0[n];
-
+  
   freeMatrix((void **) Md);
 }
