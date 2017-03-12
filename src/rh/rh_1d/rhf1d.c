@@ -200,7 +200,7 @@ bool_t rhf1d(float muz, int rhs_ndep, double *rhs_T, double *rhs_rho,
       niter = 0;
       
       while ((niter < input.NmaxScatter)) {
-	if (solveSpectrum(FALSE, FALSE) <= input.iterLimit) break;
+	if (solveSpectrum(FALSE, FALSE, 0) <= input.iterLimit) break;
 	niter++;
       }
     } else dpopmax = 1.0e13;
@@ -210,7 +210,7 @@ bool_t rhf1d(float muz, int rhs_ndep, double *rhs_T, double *rhs_rho,
   
 
   /* --- Store populations if needed --- */
-      
+
   if(savpop > 0 && converged)
     save_populations(save_pop);
   
