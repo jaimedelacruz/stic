@@ -299,7 +299,7 @@ void ceos::initAbundances(vector<iabund> &ab, bool verbose)
   for(int ii = 0; ii<MAX_ELEM; ii++) sum += ABUND[ii];
   
   for(int ii = 0; ii<MAX_ELEM; ii++) ABUND[ii] /= sum;
-  totalAbund = sum/ABUND[0];
+  totalAbund = 1.0;//sum;///ABUND[0];
 
    
   //

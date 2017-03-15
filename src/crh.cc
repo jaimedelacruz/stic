@@ -221,15 +221,12 @@ bool crh::synth(mdepth_t &m_in, double *syn, cprof_solver sol, bool save_pops){
 
 
     /* --- 
-       nHtot = n_HI + n_HII. The eos returns the partial density divided by the 
-       LTE partition function so we must multiply by the partition function to 
-       recover just the partial density.
+       nHtot 
        --- */
     
     eos.read_partial_pressures(kk, frac, part, xa, xe);
-    nhtot[kk] = (frac[eos.IXH1-1] * part[eos.IXH1-1] +
-		 frac[eos.IXH2-1] * part[eos.IXH2-1]) * 1.0E6;
-
+    nhtot[kk] = xa * eos.ABUND[0] / eos.totalAbund * 1.e6; // nHtot based on abundance
+    //nhtot[kk] = m.rho[kk] / (phyc::AMU * eos.avmol) *  eos.ABUND[0] / eos.totalAbund * 1.e6;
     
     /* --- Convert units to SI --- */
     
@@ -241,8 +238,8 @@ bool crh::synth(mdepth_t &m_in, double *syn, cprof_solver sol, bool save_pops){
     m.nne[kk] *= 1.e6;    // 1 / CM_TO_M**3
     m.tau[kk] = pow(10.0, m.ltau[kk]);
     m.b[kk] *= 1.0e-4; // B in tesla
+    //fprintf(stderr,"nHin[%2d]=%e %e %e\n", kk, m.pgas[kk], m.nne[kk]*1.e-6, nhtot[kk]*1.e-6);
   }
-
 
   int savep = 0;
   if(save_pops) savep = 1;
@@ -297,18 +294,14 @@ bool crh::synth(mdepth_t &m_in, double *syn, cprof_solver sol, bool save_pops){
 
 
   
-  /* --- Restore units in model --- */
-  /*
+  /* --- convert nHtot to Pgas using the electron density, the H abundance and temperature --- */
+
   for(int kk = 0; kk < m.ndep; kk++){
-    m.cmass[kk] *= 0.1;
-    m.rho[kk] *= 0.001;
-    m.v[kk] *= 1.0e2;
-    m.vturb[kk] *= 1.0e2;
-    m.z[kk] *= 1.0e2;    
-    m.nne[kk] *= 1.0e-6;
-    m.b[kk] *= 1.e4;
+    m.pgas[kk] = (nhtot[kk] * eos.totalAbund / eos.ABUND[0] + m.nne[kk]) *
+      phyc::BK * m_in.temp[kk] * 1.e-6;
+    m_in.nne[kk] = m.nne[kk] * 1.0e-6;
   }
-  */
+  
   
 
   /* --- Deallocate sp --- */

@@ -228,7 +228,8 @@ void getDregul2(double *m, int npar, double *dregul, nodes_t &n)
 {
 
   std::vector<double> tmp, tmp1;
-  double penalty = 0.0, weights[3] = {0.15,10.0,5.0};
+  double penalty = 0.0;
+  const double weights[3] = {0.10,0.35,10.0};
 
   
   /* --- Tikhonov's regularization on first derivative for Temp --- */

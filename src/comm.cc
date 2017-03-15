@@ -628,7 +628,11 @@ void comm_master_unpack_data(int &iproc, iput_t input, mat<double> &obs, mat<dou
 	for(int ii=0;ii<nPacked;ii++){
 	  comm_get_xy(pix++, input.nx, yy, xx);
 	  status = MPI_Unpack(buffer, input.buffer_size1, &pos, &m.cub(yy,xx,6,0),
-			    len, MPI_DOUBLE, MPI_COMM_WORLD );
+			      len, MPI_DOUBLE, MPI_COMM_WORLD );
+	  status = MPI_Unpack(buffer, input.buffer_size1, &pos, &m.cub(yy,xx,8,0),
+			      len, MPI_DOUBLE, MPI_COMM_WORLD );
+	  status = MPI_Unpack(buffer, input.buffer_size1, &pos, &m.cub(yy,xx,10,0),
+			      len, MPI_DOUBLE, MPI_COMM_WORLD );
 	}
 	break;
       }
@@ -671,6 +675,10 @@ void comm_master_unpack_data(int &iproc, iput_t input, mat<double> &obs, mat<dou
 	  //cerr<<mypix-1<<" "<<iyy<<" "<<ixx<<endl;
 	  status = MPI_Unpack(buffer, input.buffer_size1, &pos, &m.cub(iyy,ixx,6,0), len,
 			      MPI_DOUBLE, MPI_COMM_WORLD );
+	  status = MPI_Unpack(buffer, input.buffer_size1, &pos, &m.cub(yy,xx,8,0),
+			      len, MPI_DOUBLE, MPI_COMM_WORLD );
+	  status = MPI_Unpack(buffer, input.buffer_size1, &pos, &m.cub(yy,xx,10,0),
+			      len, MPI_DOUBLE, MPI_COMM_WORLD );
 	}
 	  
 	if(cgrad > 0){
@@ -727,11 +735,14 @@ void comm_slave_pack_data(iput_t &input, mat<double> &obs, mat<double> &pars, ma
       
       // gas pressure
       len = input.ndep;
-      for(int pp=0; pp<nPacked; pp++)
+      for(int pp=0; pp<nPacked; pp++){
 	status = MPI_Pack(&m[pp].pgas[0], len,  MPI_DOUBLE, &buffer[0], input.buffer_size1,
 			  &pos, MPI_COMM_WORLD);
-      
-	//  }
+	status = MPI_Pack(&m[pp].nne[0], len,  MPI_DOUBLE, &buffer[0], input.buffer_size1,
+			  &pos, MPI_COMM_WORLD);
+	status = MPI_Pack(&m[pp].z[0], len,  MPI_DOUBLE, &buffer[0], input.buffer_size1,
+			  &pos, MPI_COMM_WORLD);	
+      }
       break;
       
     case 2:
@@ -756,8 +767,14 @@ void comm_slave_pack_data(iput_t &input, mat<double> &obs, mat<double> &pars, ma
 
       // gas pressure
       len = input.ndep;
-      for(int pp=0; pp<nPacked; pp++)
-	status = MPI_Pack(&m[pp].cub(6,0), len,  MPI_DOUBLE, &buffer[0], input.buffer_size1, &pos, MPI_COMM_WORLD);
+      for(int pp=0; pp<nPacked; pp++){
+	status = MPI_Pack(&m[pp].cub(6,0), len,  MPI_DOUBLE, &buffer[0], input.buffer_size1,
+			  &pos, MPI_COMM_WORLD);
+	status = MPI_Pack(&m[pp].nne[0], len,  MPI_DOUBLE, &buffer[0], input.buffer_size1,
+			  &pos, MPI_COMM_WORLD);
+	status = MPI_Pack(&m[pp].z[0], len,  MPI_DOUBLE, &buffer[0], input.buffer_size1,
+			  &pos, MPI_COMM_WORLD);
+      }
       
       // Derivatives
       if(cgrad > 0){

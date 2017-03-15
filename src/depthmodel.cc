@@ -808,9 +808,9 @@ void mdepthall::write_model2(string &filename, int tstep){
     ofile.initVar<float>(string("ltau500"), {"time","y", "x", "ndep"});
     ofile.initVar<float>(string("z"),       {"time","y", "x", "ndep"});
     ofile.initVar<float>(string("pgas"),    {"time","y", "x", "ndep"});
-    ofile.initVar<float>(string("rho"),     {"time","y", "x", "ndep"});
+    //file.initVar<float>(string("rho"),     {"time","y", "x", "ndep"});
     ofile.initVar<float>(string("nne"),     {"time","y", "x", "ndep"});
-    ofile.initVar<float>(string("cmass"),     {"time","y", "x", "ndep"});
+    //ofile.initVar<float>(string("cmass"),     {"time","y", "x", "ndep"});
 
     firsttime = false;
     
@@ -867,23 +867,25 @@ void mdepthall::write_model2(string &filename, int tstep){
     for(int xx = 0;xx<dims[2];xx++)
       memcpy(&tmp(yy,xx,0), &cub(yy,xx,6,0), dims[3]*sizeof(double));
   ofile.write_Tstep<double>(string("pgas"),    tmp,  tstep);
-
+  
+  /*
   for(int yy=0; yy<dims[1]; yy++)
     for(int xx = 0;xx<dims[2];xx++)
       memcpy(&tmp(yy,xx,0), &cub(yy,xx,7,0), dims[3]*sizeof(double));
   ofile.write_Tstep<double>(string("rho"),    tmp,  tstep);
-
+  */
   
   for(int yy=0; yy<dims[1]; yy++)
     for(int xx = 0;xx<dims[2];xx++)
       memcpy(&tmp(yy,xx,0), &cub(yy,xx,8,0), dims[3]*sizeof(double));
   ofile.write_Tstep<double>(string("nne"),    tmp,  tstep);
 
+  /*
   for(int yy=0; yy<dims[1]; yy++)
     for(int xx = 0;xx<dims[2];xx++)
       memcpy(&tmp(yy,xx,0), &cub(yy,xx,11,0), dims[3]*sizeof(double));
   ofile.write_Tstep<double>(string("cmass"),    tmp,  tstep);
-
+  */
 
   
 }
