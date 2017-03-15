@@ -120,7 +120,7 @@ void readKuruczLines(char *inputFile)
   bool_t swap_levels, determined, useBarklem;
   int    Nline, Nread, Nrequired, checkPoint, hfs_i, hfs_j, gL_i, gL_j,
          iso_dl;
-  double lambda0, Ji, Jj, Grad, GStark, GvdWaals, pti,
+  double lambda0, Ji, Jj, Grad=0, GStark=0, GvdWaals=0, pti,
          Ei, Ej, gf, lambda_air;
   RLK_Line *rlk;
   Barklemstruct bs_SP, bs_PD, bs_DF;

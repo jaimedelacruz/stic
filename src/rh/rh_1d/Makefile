@@ -24,7 +24,7 @@ ONE_D_OBJS = initial_j.o redistribute_j.o scatter_j.o sortlambda_j.o anglequad.o
 	$(FC) $(RHINC) $(FFLAGS) -c  $< -o $@
 
 
-librhf1d.a:  $(ONE_D_OBJS) 
+librhf1d.a:  $(ONE_D_OBJS)
 	$(AR) rcs $@  $(RH_OBS) $(ONE_D_OBJS) 
 
 ## --- Clean up --                                     -------------- ##

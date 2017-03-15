@@ -19,6 +19,7 @@
 #include "constant.h"
 #include "accelerate.h"
 #include "error.h"
+#include "rhf1d.h"
 
 /* --- Acceleration parameters --                      -------------- */
 
@@ -35,6 +36,7 @@
 extern Atmosphere atmos;
 extern Geometry geometry;
 extern char   messageStr[];
+extern MPI_t mpi;
 
 
 /* ------- begin -------------------------- Hydrostatic.c ----------- */
@@ -97,7 +99,7 @@ void Hydrostatic(int NmaxIter, double iterLimit)
 
     /* --- Starting solution:
            Note: n_k[0] is the amount of atomic hydrogen. -- -------- */
-
+    //fprintf(stderr,"[%2d] nHtot=%e nH+=%e nH=%e",k, atmos.nHtot[k], np[k],atmos.H->ntotal[k] );
     n_k[0] = atmos.H->ntotal[k] - np[k];
     n_k[1] = atmos.ne[k];
     n_k[2] = np[k];
@@ -161,13 +163,25 @@ void Hydrostatic(int NmaxIter, double iterLimit)
       /* --- Fill right hand side --                   -------------- */
 
       f[0] -= C2 * geometry.cmass[k] / atmos.T[k];
-      if (atmos.Stokes) f[0] += C3 * SQ(atmos.B[k]) / atmos.T[k];
+      //if (atmos.Stokes) f[0] += C3 * SQ(atmos.B[k]) / atmos.T[k];
 
       /* --- Solve linearized set --                   -------------- */
 
       SolveLinearEq(Nhse, dfdn, f, TRUE);
       //SolveLinearSvd(Nhse, dfdn, f);
-
+      if(mpi.stop){
+	fprintf(stderr,"hydrostat: Singular matrix!\n");
+	fprintf(stderr, "   %d %f %e\n", k, atmos.T[k], atmos.nHtot[k]);
+	
+	NgFree(Nghse);
+	free(f);
+	free(n_k);
+	freeMatrix((void**) dfdn);
+	free(F);
+	free(dFdne);
+	return;
+      }
+      
       for (n = 0;  n < Nhse;  n++)  n_k[n] -= f[n];
 
       /* --- Check convergence and accelerate if appropriate -- ----- */
@@ -192,12 +206,11 @@ void Hydrostatic(int NmaxIter, double iterLimit)
     /* --- Store results --                            -------------- */
 
     nHtot_old = atmos.H->ntotal[k];
-
     atmos.H->ntotal[k] = n_k[0] + n_k[2];
     atmos.ne[k]        = n_k[1];
     np[k]              = n_k[2];
     atmos.nHtot[k]     = n_k[Nhse-1];
-
+    
     if (H2present)
       nH2[k] = n_k[3];
     else
@@ -211,7 +224,8 @@ void Hydrostatic(int NmaxIter, double iterLimit)
     NgFree(Nghse);
     free(f);
     free(n_k);
-    freeMatrix((void**) dfdn);    
+    freeMatrix((void**) dfdn);
+    //exit(0);
   }
   /* --- Adjust total populations of background metals and recalculate
          all the LTE populations, including hydrogen -- ------------- */

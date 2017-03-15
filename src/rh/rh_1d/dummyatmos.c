@@ -18,6 +18,7 @@
 #include "inputs.h"
 #include "statistics.h"
 #include "xdr.h"
+#include "rhf1d.h"
 
 
 #define MULTI_COMMENT_CHAR  "*"
@@ -58,6 +59,7 @@ void DUMMYatmos(Atmosphere *atmos, Geometry *geometry, bool_t firsttime)
   /* --- Boundary condition at BOTTOM of atmosphere --   ------------ */
 
   geometry->vboundary[BOTTOM] = THERMALIZED;
+  geometry->scale =  GEOMETRIC;
 
   
   // Nread = sscanf("dummyATM", "%s", atmos->ID);
@@ -74,7 +76,6 @@ void DUMMYatmos(Atmosphere *atmos, Geometry *geometry, bool_t firsttime)
   atmos->N[0] = Ndep;
 
   atmos->gravity = POW10(atmos->gravity) * CM_TO_M;
-
 
 
   /* --- Get angle-quadrature and copy geometry independent quantity
@@ -115,7 +116,7 @@ void convertScales(Atmosphere *atmos, Geometry *geometry)
 
   as = &spectrum.as[ref_index];
   alloc_as(ref_index, FALSE);
-  readBackground(ref_index, 0, 0);
+  readBackground_j(ref_index, 0, 0);
 
   /* --- Convert to missing depth scales --              ------------ */
 

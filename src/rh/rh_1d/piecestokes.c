@@ -220,6 +220,28 @@ inline double cent_deriv(double dsup,double dsdn,
 }
 /* -------------------------------------------------------------------------- */
 
+
+  void m4inv(double **MI){
+    register int k, i, j;
+    for(k=0;k<4;k++){
+      MI[k][k]=-1.0/MI[k][k];         // the pivot element 
+      for(i=0;i<4;++i) if(i!=k) MI[i][k]*=MI[k][k];//the pivot column 
+      for(i=0;i<4;++i)           //elements not in a pivot row or column
+	if(i!=k)
+	  for(j=0;j<4;++j)
+	    if(j!=k)
+	      MI[i][j]+=MI[i][k]*MI[k][j];
+      for(i=0;i<4;++i)           //elements in a pivot row
+	if(i!=k)
+	  MI[k][i]*=MI[k][k];
+    }
+    for( i=0;i<4;++i)
+      for( j=0;j<4;++j) MI[i][j]=-MI[i][j];
+    return;
+  }
+
+/* -------------------------------------------------------------------------- */
+
 inline void cent_deriv_mat(mat wprime, double dsup,double dsdn,
 		    mat chiup, mat chic, mat chidn)
 {
@@ -269,6 +291,16 @@ inline void m4v(mat a, vec b, vec c){
 
 /* -------------------------------------------------------------------------- */
 
+inline void pm4v(double **a, double *b, double *c){
+  register int k, i;
+  memset(&c[0],0,sizeof(double)*4);
+  for(i = 0; i<4; i++)
+    for(k = 0; k<4; k++)
+      c[i] += a[i][k] * b[k];
+}
+
+/* -------------------------------------------------------------------------- */
+
 inline void Svec(int k, double **S, double *Sf)
 {
   Sf[0] = S[0][k], Sf[1] = S[1][k], Sf[2] = S[2][k], Sf[3] = S[3][k];
@@ -300,7 +332,7 @@ void PiecewiseStokesBezier3(int nspect, int mu, bool_t to_obs,
   double dsup,dsdn,dt,dt2,dt3,dt4,eps,alpha,beta,gamma,theta;
   double Ku[4][4], K0[4][4], Kd[4][4], dKu[4][4], dK0[4][4];
   double Su[4], S0[4], Sd[4], dSu[4], dS0[4];
-  double A[4][4], Ma[4][4], Mb[4][4], Mc[4][4], V0[4];
+  double A[4][4], Ma[4][4], Mb[4][4], Mc[4][4], V0[4], V1[4];
   double imu = 1.0 / geometry.muz[mu];
   double **Md = matrix_double(4, 4);
   double *z = geometry.height;
@@ -453,7 +485,7 @@ void PiecewiseStokesBezier3(int nspect, int mu, bool_t to_obs,
       
     for(j=0;j<4;j++){
       for(i=0;i<4;i++){
-	A[j][i] = ident[j][i] + alpha * K0[j][i] - gamma *
+	Md[j][i] = ident[j][i] + alpha * K0[j][i] - gamma *
 	  -(dt03 * (A[j][i] + dK0[j][i] + K0[j][i]) + K0[j][i]);
 	  
 	Ma[j][i] = eps * ident[j][i] - beta * Ku[j][i] + theta *
@@ -480,10 +512,12 @@ void PiecewiseStokesBezier3(int nspect, int mu, bool_t to_obs,
       
     /* --- Solve linear system to get the intensity --- */
       
-    memcpy(Md[0], A[0], 16*sizeof(double));
-    SolveLinearEq(4, Md, V0, TRUE);
+    //SolveLinearEq(4, Md, V0, TRUE);
+    m4inv(Md);
+    pm4v(Md,V0,V1);
+    
       
-    for(i=0;i<4;i++) I[i][k] = V0[i];
+    for(i=0;i<4;i++) I[i][k] = V1[i];
       
       
     /* --- Shift values for next depth --- */
@@ -528,9 +562,11 @@ void PiecewiseStokesBezier3(int nspect, int mu, bool_t to_obs,
     for (m = 0;  m < 4;  m++) 
       V0[n] += A[n][m] * I[m][k-dk];
       
-  SolveLinearEq(4, Md, V0, TRUE);
-      
-  for (n = 0;  n < 4;  n++) I[n][k] = V0[n];
+  //SolveLinearEq(4, Md, V0, TRUE);
+  m4inv(Md);
+  pm4v(Md,V0,V1);
+  
+  for (n = 0;  n < 4;  n++) I[n][k] = V1[n];
     
   
   freeMatrix((void **) Md);
@@ -718,7 +754,7 @@ void PiecewiseStokesBezier2(int nspect, int mu, bool_t to_obs,
     
     for(j=0;j<4;j++){
       for(i=0;i<4;i++){
-	A[j][i] = ident[j][i] + alpha * K0[j][i] - gamma *
+	Md[j][i] = ident[j][i] + alpha * K0[j][i] - gamma *
 	  (-(dt05 * (A[j][i] + dK0[j][i] + K0[j][i]) + K0[j][i]));
 
 	Ma[j][i] = eps * ident[j][i] - beta * Ku[j][i] + gamma *
@@ -745,7 +781,6 @@ void PiecewiseStokesBezier2(int nspect, int mu, bool_t to_obs,
     
     /* --- Solve linear system to get the intensity --- */
 
-    memcpy(Md[0], A[0], 16*sizeof(double));
     SolveLinearEq(4, Md, V0, TRUE);
     
     for(i=0;i<4;i++) I[i][k] = V0[i];

@@ -73,7 +73,7 @@ bool_t rhf1d(float muz, int rhs_ndep, double *rhs_T, double *rhs_rho,
 {
   
   bool_t write_analyze_output, equilibria_only;
-  int    niter, nact;
+  int    niter, nact, i;
   static int save_Nrays;
   static double save_muz, save_mux, save_muy, save_wmu;
   static enum StokesMode oldMode;
@@ -109,17 +109,16 @@ bool_t rhf1d(float muz, int rhs_ndep, double *rhs_T, double *rhs_rho,
   
   
   if(firsttime){
+    atmos.nH = NULL;
     getCPU(0, TIME_START, NULL);
     SetFPEtraps();
     geometry.Ndep = rhs_ndep;
     atmos.gravity = gravity;
-    atmos.nH = matrix_double(6, rhs_ndep);
     readInput();
     readAbundance(&atmos);
     DUMMYatmos(&atmos, &geometry, firsttime);
     oldMode = input.StokesMode;
     mpi.rank = myrank;
-
   }
   mpi.stop = false;
 
@@ -139,13 +138,15 @@ bool_t rhf1d(float muz, int rhs_ndep, double *rhs_T, double *rhs_rho,
   atmos.chi_B = rhs_azi;
   atmos.H_LTE = TRUE;
   atmos.nHtot = rhs_nhtot;
+  atmos.rho = rhs_rho;
   save_popp = save_pop;
   input.StokesMode = oldMode;
   spectrum.updateJ = TRUE;  
   getCPU(1, TIME_START, NULL);
   if (input.StokesMode > NO_STOKES)
     atmos.Stokes = TRUE;
- 
+  
+
 
   /* --- Init atomic/molecular models, extra lambda 
      positions and background opac. Allocated only in the first call --- */
@@ -171,7 +172,8 @@ bool_t rhf1d(float muz, int rhs_ndep, double *rhs_T, double *rhs_rho,
   
   UpdateAtmosDep();
   Background_j(write_analyze_output=FALSE, equilibria_only=FALSE);
-  
+  convertScales(&atmos, &geometry);
+
   
   if(!mpi.stop){
     
@@ -244,6 +246,7 @@ bool_t rhf1d(float muz, int rhs_ndep, double *rhs_T, double *rhs_rho,
 
   input.StokesMode = oldMode;
 
+  
   /* --- Copy desired ray to output arrays---*/
   
   sp->nrays = atmos.Nrays;

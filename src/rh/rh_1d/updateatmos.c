@@ -72,7 +72,6 @@ void UpdateAtmosDep(void) {
   /* Update atmos-dependent atomic  quantities --- --------------- */
   for (nact = 0; nact < atmos.Natom; nact++) {
     atom = &atmos.atoms[nact];
-    
     /* Reallocate some stuff (because of varying Nspace) */
     atom->ntotal = (double *) realloc(atom->ntotal, atmos.Nspace * sizeof(double));
     atom->vbroad = (double *) realloc(atom->vbroad, atmos.Nspace * sizeof(double));
@@ -85,9 +84,8 @@ void UpdateAtmosDep(void) {
     /* When H is treated in LTE, n is just a pointer to nstar,
        so we don't need to free it */
     if (nact == 0) {
-      
       if (!atmos.H_LTE) {
-	//  freeMatrix((void **) atom->n);
+	if(atom->n != NULL) freeMatrix((void **) atom->n);
 	atom->n = matrix_double(atom->Nlevel, atmos.Nspace);
       }else  atom->n = atom->nstar;
     } else {
@@ -96,7 +94,6 @@ void UpdateAtmosDep(void) {
 	if (atom->n != NULL)
 	  freeMatrix((void **) atom->n);
 	atom->n = matrix_double(atom->Nlevel, atmos.Nspace);
-	//	  printf("Reallocating n[%d,%d]\n", atom->Nlevel, atmos.Nspace);
 	
       } else {
 	/* alias to nstar again, just in case */
@@ -261,7 +258,7 @@ void UpdateAtmosDep(void) {
     }
   }
 
-  //distribute_nH();
+  distribute_nH();
 
   
   /* Update atmos-dependent molecular  quantities --- --------------- */

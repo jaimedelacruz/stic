@@ -97,8 +97,19 @@ void distribute_nH()
     /* --- To save memory space let atmos.H->n point to LTE populations
            atmos.H->nstar --                           -------------- */
 
-    if (!atmos.H->active) atmos.H->n = atmos.H->nstar;
+    //    if (!atmos.H->active) atmos.H->n = atmos.H->nstar;
 
+
+    if (!atmos.H->active)
+      atmos.H->n = atmos.H->nstar;
+    /*
+    else {
+      for (i = 0;  i < atmos.H->Nlevel;  i++) {
+	for (k = 0;  k < Nspace;  k++)
+	  atmos.H->n[i][k] = atmos.H->nstar[i][k];
+      }
+    }
+    */
   } else {
     atmos.H->NLTEpops = TRUE;
     if (!atmos.H->active)
@@ -142,7 +153,7 @@ void distribute_nH()
   }
   /* --- Free memory for atmospheric populations --    -------------- */
 
-  freeMatrix((void **) atmos.nH);
+  if(atmos.nH != NULL) freeMatrix((void **) atmos.nH);
 }
 /* ------- end ---------------------------- distribute_nH.c --------- */
 

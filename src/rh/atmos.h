@@ -47,8 +47,8 @@ typedef struct {
          *backgrrecno, Npf, NHydr, fd_background, NPRDactive,
           Nactiveatom, Nactivemol;
   double *T, *ne, *vturb, totalAbund, avgMolWght, wght_per_H, gravity,
-          vmicro_char, vmacro_tresh, lambda_ref, *wmu, *Tpf,
-         *nHtot, **nH, *nHmin, *B, *gamma_B, *chi_B, B_char,
+    vmicro_char, vmacro_tresh, lambda_ref, *wmu, *Tpf, *rho,
+    *nHtot, **nH, *nHmin, *B, *gamma_B, *chi_B, B_char,
     **cos_gamma, **cos_2chi, **sin_2chi, **chi_b, **eta_b, **sca_b;
   AngleSet  angleSet;
   Element  *elements;
