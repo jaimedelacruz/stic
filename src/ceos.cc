@@ -789,7 +789,7 @@ void ceos::hydrostatic(int ndep, double *tau, double *t, double *Pg, double *rho
     z[k] = z[k-1] - 2.0 * dtau / (kappa * RHOest + kappa_old * rho[k-1]);
     cmass[k] = cmass[k-1] + 0.5*(rho[k-1] + RHOest) * (z[k-1] - z[k]);
     
-    
+
     /* --- Store partial pressures and partition function 
        for the ratiative transfer
        --- */

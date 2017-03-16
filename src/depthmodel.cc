@@ -202,7 +202,7 @@ void mdepth::getScales(ceos &eos, int bound){
   /* --- get cont opac --- */
   
   for(int k=0; k<ndep; k++){
-    eos.read_partial_pressures(0, frac, part, na, ne);
+    eos.read_partial_pressures(k, frac, part, na, ne);
     eos.contOpacity(temp[k], nw,  &wav, &kappa[k],
 			      &scat, frac, na, ne);
   }
@@ -253,6 +253,7 @@ void mdepth::getScales(ceos &eos, int bound){
       tau[k] = log10(tau[k]+toff);
     } 
   }
+
   
 }
 
