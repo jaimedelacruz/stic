@@ -26,7 +26,7 @@
 
 typedef struct {
   bool_t eval_operator, redistribute;
-  int    nspect;
+  int    nspect, iter;
   double dJ;
 } threadinfo;
 
@@ -95,7 +95,8 @@ void Iterate_j(int NmaxIter, double iterLimit, double *dpopmax_out)
   
   while ((niter <= NmaxIter || niter < 3) && !StopRequested()) {
     getCPU(2, TIME_START, NULL);
-
+    mpi.iter = niter;
+    
     for (nact = 0;  nact < atmos.Nactiveatom;  nact++)
       initGammaAtom(atmos.activeatoms[nact], cswitch);
     for (nact = 0;  nact < atmos.Nactivemol;  nact++)
@@ -129,7 +130,25 @@ void Iterate_j(int NmaxIter, double iterLimit, double *dpopmax_out)
     sprintf(messageStr, "Total Iteration %3d", niter);
     getCPU(2, TIME_POLL, messageStr);
 
-    if ((dpopsmax < iterLimit) && (cswitch <= 1.0) && (input.prdswitch >= 1.0)) break;
+    if ((dpopsmax < iterLimit) && (cswitch <= 1.0) && (input.prdswitch >= 1.0)) {
+      
+      /* --- Make sure that in the last iteration the PRD is converged all the 
+	 wav for the response functions --- */
+      
+      if (atmos.NPRDactive > 0) {
+	
+	/* --- Redistribute intensity in PRD lines if necessary -- ---- */
+	
+	if (input.PRDiterLimit < 0.0)
+	  PRDiterlimit = MAX(dpopsmax, -input.PRDiterLimit);
+	else
+	  PRDiterlimit = input.PRDiterLimit;
+       
+	Redistribute(input.PRD_NmaxIter*2+1, PRDiterlimit);
+	if (mpi.stop) return;
+      }
+      break;
+    }
     niter++;
 
     if (input.solve_ne == ITERATION)
@@ -229,6 +248,7 @@ double solveSpectrum(bool_t eval_operator, bool_t redistribute, int iter)
     for (nt = 0;  nt < input.Nthreads;  nt++) {
       ti[nt].eval_operator = eval_operator;
       ti[nt].redistribute  = redistribute;
+      ti[nt].iter = iter;
     }
     thread_id = (pthread_t *) malloc(input.Nthreads * sizeof(pthread_t));
 
@@ -300,10 +320,10 @@ double solveSpectrum(bool_t eval_operator, bool_t redistribute, int iter)
 void *Formal_pthread(void *argument)
 {
   threadinfo *ti = (threadinfo *) argument;
-
+  
   /* --- Threads wrapper around Formal --              -------------- */
 
-  ti->dJ = Formal(ti->nspect, ti->eval_operator, ti->redistribute, 100);
+  ti->dJ = Formal(ti->nspect, ti->eval_operator, ti->redistribute, (int)ti->iter);
 
   return (NULL);
 }

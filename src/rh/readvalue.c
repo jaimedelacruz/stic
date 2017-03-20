@@ -368,8 +368,8 @@ void set_S_Interpolation(char *value, void *pointer)
 
   if (!strcmp(value, "PARABOLIC"))
     interpolation = PARABOLIC;
-  else if (!strcmp(value, "BEZIER"))
-    interpolation = BEZIER;
+  else if (!strcmp(value, "BEZIER3"))
+    interpolation = BEZIER3;
   else if(!strcmp(value, "CUBIC_HERMITE"))
     interpolation = S_CUBIC_HERMITE;
   else {
@@ -388,8 +388,6 @@ void set_S_Interpolation_stokes(char *value, void *pointer)
 
   if      (!strcmp(value, "DELO_PARABOLIC"))
     interpolation = DELO_PARABOLIC;
-  else if (!strcmp(value, "DELO_BEZIER2"))
-    interpolation = DELO_BEZIER2;
   else if (!strcmp(value, "DELO_BEZIER3"))
     interpolation = DELO_BEZIER3;
   else {

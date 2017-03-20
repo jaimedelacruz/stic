@@ -24,6 +24,7 @@
 #include "inputs.h"
 #include "error.h"
 #include "xdr.h"
+#include "bezier.h"
 
 /* --- Function prototypes --                          -------------- */
 
@@ -194,9 +195,7 @@ double Formal(int nspect, bool_t eval_operator, bool_t redistribute, int iter)
 	    for (k = 0;  k < Nspace;  k++)
 	      Spol[n][k] /= chi[k];
 	  }
-	  if     (input.S_interpolation_stokes == DELO_BEZIER2)
-	    PiecewiseStokesBezier2(nspect, mu, to_obs, chi, Spol, Ipol, Psi);
-	  else if(input.S_interpolation_stokes == DELO_BEZIER3)
+	  if (input.S_interpolation_stokes == DELO_BEZIER3)
 	    PiecewiseStokesBezier3(nspect, mu, to_obs, chi, Spol, Ipol, Psi);
 	  else
 	    PiecewiseStokes(nspect, mu, to_obs, chi, Spol, Ipol, Psi);
@@ -205,8 +204,7 @@ double Formal(int nspect, bool_t eval_operator, bool_t redistribute, int iter)
 	  for (k = 0;  k < Nspace;  k++)
 	    S[k] /= chi[k];
 
-	  if (input.S_interpolation == BEZIER)
-	    //PieceBezier_1D(nspect, mu, to_obs, chi, S, I, Psi);
+	  if (input.S_interpolation == BEZIER3)
 	    Piecewise_Bezier3(nspect, mu, to_obs, chi, S, I, Psi);
 	  else if(input.S_interpolation == S_CUBIC_HERMITE){
 	    Piecewise_Hermite_1D(nspect, mu, to_obs, chi, S, I, Psi);

@@ -57,14 +57,9 @@ void PieceBezier_1D(int nspect, int mu, bool_t to_obs,
 
 void PiecewiseStokes(int nspect, int mu, bool_t to_obs,
 		     double *chi_I, double **S, double **I, double *Psi);
-void PiecewiseStokesBezier3(int nspect, int mu, bool_t to_obs,
-			    double *chi_I, double **S, double **I, double *Psi);
 void Piecewise_Hermite_1D(int nspect, int mu, bool_t to_obs,
 			  double *chi, double *S, double *I, double *Psi);
-void Piecewise_Bezier2(int nspect, int mu, bool_t to_obs,
-			  double *chi, double *S, double *I, double *Psi);
-void Piecewise_Bezier3(int nspect, int mu, bool_t to_obs,
-			  double *chi, double *S, double *I, double *Psi);
+
 #endif /* !__GEOMETRY_H__ */
 
 /* ---------------------------------------- geometry.h -------------- */
