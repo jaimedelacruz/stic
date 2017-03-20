@@ -866,7 +866,7 @@ void CollisionRate(struct Atom *atom, FILE *fp_atom)
 
 	  t4 = atmos.T[k] / 1.0E4;
 	  cup = ar85a * 1e-9 * pow(t4,ar85b) * exp(-ar85c*t4) *
-	    exp(-ar85d*EV/KBOLTZMANN/atmos.T[k])*atmos.H->n[5][k] *
+	    exp(-ar85d*EV/KBOLTZMANN/atmos.T[k])*atmos.H->n[atmos.H->Nlevel-1][k] *
 	    CUBE(CM_TO_M);
 	  atom->C[ji][k] += cup;
 	}
