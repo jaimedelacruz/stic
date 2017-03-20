@@ -22,8 +22,8 @@
 
 
 enum keywordtype  {KEYWORD_REQUIRED, KEYWORD_DEFAULT, KEYWORD_OPTIONAL};
-enum S_interpol   {PARABOLIC, BEZIER, S_CUBIC_HERMITE};
-enum S_interpol_stokes  {DELO_PARABOLIC, DELO_BEZIER2, DELO_BEZIER3};
+enum S_interpol   {PARABOLIC, BEZIER3, S_CUBIC_HERMITE};
+enum S_interpol_stokes  {DELO_PARABOLIC, DELO_BEZIER3};
 enum order_3D     {LINEAR_3D, BICUBIC_3D};
 enum ne_solution  {NONE, ONCE, ITERATION};
 
