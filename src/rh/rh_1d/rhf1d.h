@@ -39,7 +39,7 @@ extern "C" {
   } crhpop;
   
   typedef struct{
-    int rank, verb;
+    int rank, verb, iter;
     bool_t stop;
     FILE *logfile;
     char filename[300];

@@ -168,18 +168,9 @@ void Hydrostatic(int NmaxIter, double iterLimit)
       /* --- Solve linearized set --                   -------------- */
 
       SolveLinearEq(Nhse, dfdn, f, TRUE);
-      //SolveLinearSvd(Nhse, dfdn, f);
+      //
       if(mpi.stop){
-	fprintf(stderr,"hydrostat: Singular matrix!\n");
-	fprintf(stderr, "   %d %f %e\n", k, atmos.T[k], atmos.nHtot[k]);
-	
-	NgFree(Nghse);
-	free(f);
-	free(n_k);
-	freeMatrix((void**) dfdn);
-	free(F);
-	free(dFdne);
-	return;
+        SolveLinearSvd(Nhse, dfdn, f); // Solve singular matrix with SVD
       }
       
       for (n = 0;  n < Nhse;  n++)  n_k[n] -= f[n];
