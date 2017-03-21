@@ -14,7 +14,7 @@
 
 
 #include <math.h>
-#include <string.h>    // memcpy
+#include <string.h>    // memcpy, memset
 #include <x86intrin.h> // Intrinsic SSE instructions
 //
 #include "rh.h"
@@ -122,6 +122,8 @@ inline void m4v(float a[4][4], double b[4], double c[4]){
 
 /* -------------------------------------------------------------------------- */
 
+/* --- Extracts the Source vector at depth-points k --- */
+
 inline void Svec(int k, double **S, double *Sf)
 {
   Sf[0] = S[0][k], Sf[1] = S[1][k], Sf[2] = S[2][k], Sf[3] = S[3][k];
@@ -134,7 +136,7 @@ void SIMD_MatInv(float* src)
   /* --- 
 
      Very fast in-place 4x4 Matrix inversion using SIMD instrutions
-     Only works with floats. It uses Cramer's rule.
+     Only works with 32-bits floats. It uses Cramer's rule.
      
      Provided by Intel
 
@@ -411,8 +413,8 @@ void PiecewiseStokesBezier3(int nspect, int mu, bool_t to_obs,
     /* --- Bezier3 coeffs. ---- */
       
     Bezier3_coeffs(dt, &alpha, &beta, &gamma, &theta, &eps);
-    //printf("[%3d] a=%e, b=%e, g=%e, t=%e, eps=%e\n", k, alpha, beta, gamma, theta, eps);
-      
+
+    
     /* --- Diagonal operator --- */
       
     if(Psi) Psi[k] = alpha + gamma;
@@ -447,7 +449,7 @@ void PiecewiseStokesBezier3(int nspect, int mu, bool_t to_obs,
        Here I am doing Ma*stk + Mb * Su + Mc * S0 + 
        (gam * dS0 - theta * dSu) * dtau / 3.0
        --- */
-
+    
     memset(V0, 0, 4*sizeof(double));
     
     for(i = 0; i<4; i++){
@@ -491,7 +493,7 @@ void PiecewiseStokesBezier3(int nspect, int mu, bool_t to_obs,
     fabs(geometry.height[k] - geometry.height[k-dk]);
   w3(dtau_uw, w);
       
-  for (n = 0;  n < 4;  n++) V0[n] = w[0]*S[n][k] + w[1] * dSu[n];
+  for (n = 0;  n < 4;  n++) V0[n] = w[0]*S[n][k] + w[1] * -dSu[n]; // dSu is defined negative in Han's implementation
   if (Psi) Psi[k] = w[0] - w[1] / dtau_uw;
       
   for (n = 0;  n < 4;  n++) {
@@ -525,7 +527,7 @@ void Piecewise_Bezier3(int nspect, int mu, bool_t to_obs,
 {
   
   /* ---
-     Cubic Bezier solver for polarized light
+     Cubic Bezier solver for unpolarized light
      Coded by J. de la Cruz Rodriguez (ISP-SU 2017)
 
      Reference:
@@ -606,11 +608,14 @@ void Piecewise_Bezier3(int nspect, int mu, bool_t to_obs,
   
   /* set variables for first iteration to allow simple 
      shift for all next iterations */
+
   k=k_start+dk;
   dsup = fabs(geometry.height[k] - geometry.height[k-dk]) * zmu;
   dsdn = fabs(geometry.height[k+dk] - geometry.height[k]) * zmu;
   dchi_up= (chi[k] - chi[k-dk])/dsup;
+  
   /*  dchi/ds at central point */
+
   dchi_c = cent_deriv(dsup,dsdn,chi[k-dk],chi[k],chi[k+dk]);
 
   
@@ -622,7 +627,8 @@ void Piecewise_Bezier3(int nspect, int mu, bool_t to_obs,
 
   
   /* dS/dtau at upwind point */
-  dS_up=(S[k]-S[k-dk])/dtau_uw;
+
+  dS_up = (S[k]-S[k-dk]) / dtau_uw;
 
   /* --- Solve transfer along ray --                   -------------- */
 
@@ -634,6 +640,7 @@ void Piecewise_Bezier3(int nspect, int mu, bool_t to_obs,
        dsdn = fabs(geometry.height[k+dk] - geometry.height[k]   ) * zmu;
        
       /* dchi/ds at downwind point */
+       
        if (fabs(k-k_end)>1) {
 	 dsdn2=fabs(geometry.height[k+2*dk] - geometry.height[k+dk]) * zmu;
 	 dchi_dn = cent_deriv(dsdn,dsdn2,chi[k],chi[k+dk],chi[k+2*dk]);       
@@ -650,17 +657,16 @@ void Piecewise_Bezier3(int nspect, int mu, bool_t to_obs,
        /* downwind optical path length */
 
        dtau_dw =  dsdn * (chi[k] + chi[k+dk] + c1 + c2) * 0.25;
-
        dt=dtau_uw, dt03 = dt/3.0;
 
        
-      /* compute interpolation parameters */
+      /* --- compute interpolation parameters --- */
        
        Bezier3_coeffs(dt, &alpha, &beta, &gamma, &theta, &eps);
 
 
        
-       /* dS/dt at central point */
+       /* ---  dS/dt at central point --- */
        
        dS_c = cent_deriv(dtau_uw,dtau_dw,S[k-dk],S[k],S[k+dk]);
 
@@ -686,7 +692,7 @@ void Piecewise_Bezier3(int nspect, int mu, bool_t to_obs,
       
       dtau_uw = 0.5 * zmu * (chi[k] + chi[k-dk]) *
 	fabs(geometry.height[k] - geometry.height[k-dk]);
-      dS_uw = (S[k] - S[k-dk]) / dtau_uw;
+      dS_uw = -(S[k] - S[k-dk]) / dtau_uw; // Defined negative in Han's implementation
       w3(dtau_uw, w);
       
       I[k] = (1.0 - w[0])*I_upw + w[0]*S[k] + w[1]*dS_uw;
@@ -715,7 +721,9 @@ void m4inv(double MI[4][4]){
 
   /* --- 
      In-place Shipley-Coleman matrix inversion
-     Very fast, but ... how accurate??
+     Fast, but ... how accurate?? Pivoting is always done in the diagonal.
+     Copied here just in case the SIMD matrix inversion
+     gives troubles.
      --- */
   
   register int k, i, j;
@@ -735,3 +743,5 @@ void m4inv(double MI[4][4]){
     for( j=0;j<4;++j) MI[i][j]=-MI[i][j];
   return;
 }
+
+/* -------------------------------------------------------------------------- */
