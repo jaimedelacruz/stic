@@ -650,7 +650,7 @@ void CollisionRate(struct Atom *atom, FILE *fp_atom)
     } else if (strstr(keyword, "END")) {
       break;
     } else {
-      sprintf(messageStr, "Unknown keyword: !%s!", keyword);
+      sprintf(messageStr, "[%s] Unknown keyword: !%s!", atom->ID,keyword);
       Error(ERROR_LEVEL_1, routineName, messageStr);
     }
 
