@@ -309,12 +309,13 @@ void ChemicalEquilibrium(int NmaxIter, double iterLimit)
       }
       /* --- Solve linearized equations --             -------------- */
       mpi.stop = false;
-      //SolveLinearSvd(Nequation, df, f);
       SolveLinearEq(Nequation, df, f, true);
+      
       if(mpi.stop){
 	fprintf(stderr,"chemequil: Singular matrix!\n");
-	fprintf(stderr, "   %d %f %e\n", k, atmos.T[k], atmos.nHtot[k]);
-	return;
+	fprintf(stderr, "   %d %f %e, trying SVD\n", k, atmos.T[k], atmos.nHtot[k]);
+	SolveLinearSvd(Nequation, df, f);
+	mpi.stop = false;
       }
       
       for (i = 0;  i < Nequation;  i++)  n[i] -= f[i];

@@ -121,11 +121,14 @@ bool_t Accelerate(struct Ng *Ngs, double *solution)
 	}
       }
     }
+    mpi.stop = FALSE;
     SolveLinearEq(Norder, Ngs->A, Ngs->b, TRUE);
     if (mpi.stop) { /* Get out if there is a singular matrix */
-      free(weight);
-      freeMatrix((void **) Delta);
-      return TRUE;
+      //free(weight);
+      //freeMatrix((void **) Delta);
+      //return TRUE;
+      SolveLinearSvd(Norder, Ngs->A, Ngs->b);
+      mpi.stop = FALSE;
     }
     
       /* --- Construct the linear combination for the accelerated
