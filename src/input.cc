@@ -96,7 +96,8 @@ iput_t read_input(std::string filename, bool verbose){
   input.dint = 0;
   input.keep_nne = 0;
   input.marquardt_damping = -1.0;
-  input.svd_thres = 2.0e-16;
+  input.svd_thres = 1.0e-5;
+  input.svd_split = 1;
   input.regularize = 0.0;
   
   // Open File and read
@@ -204,6 +205,10 @@ iput_t read_input(std::string filename, bool verbose){
       }
       else if(key == "master_threads"){
 	input.master_threads = atoi(field.c_str());
+	set = true;
+      }
+      else if(key == "svd_split_singular"){
+	input.svd_split = atoi(field.c_str());
 	set = true;
       }
       else if(key == "wavelet_order"){

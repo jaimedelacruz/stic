@@ -14,7 +14,7 @@
 //
 using namespace std;
 //
-const double atmos::maxchange[7] = {2500., 5.0e5, 2.0e5, 500., phyc::PI/5, phyc::PI/5, 0.6};
+const double atmos::maxchange[7] = {3000., 5.0e5, 1.5e5, 600., phyc::PI/5, phyc::PI/5, 0.6};
 
 
 
@@ -51,7 +51,7 @@ void atmos::responseFunction(int npar, mdepth_t &m_in, double *pars, int nd, dou
   
   bool store_pops = false;
   int centder = input.centder; 
-  if(input.nodes.ntype[pp] == v_node) centder = 1;
+  //if(input.nodes.ntype[pp] == v_node) centder = 1;
 
   
   /* --- Init perturbation --- */
@@ -208,9 +208,10 @@ void atmos::randomizeParameters(nodes_t &n, int npar, double *pars){
       pertu = 2.0 * (rnum - 0.5) * scal[pp] * 0.1;
     else if(n.ntype[pp] == v_node)
       pertu =  (rnum - 0.5) * scal[pp];
-    else if(n.ntype[pp] == vturb_node)
-      pertu =  (rnum - 0.5) * scal[pp];
-    else if(n.ntype[pp] == b_node)
+    else if(n.ntype[pp] == vturb_node){
+      pars[pp] = 0.0;
+      pertu =  rnum * 3.50e5;// scal[pp];
+    }else if(n.ntype[pp] == b_node)
       pertu =  rnum * scal[pp];
     else if(n.ntype[pp] == inc_node)
       pertu =  rnum * scal[pp]*phyc::PI;
@@ -228,13 +229,13 @@ void getDregul2(double *m, int npar, double *dregul, nodes_t &n)
 {
 
   std::vector<double> tmp, tmp1;
-  double penalty = 0.0;
+  double penalty = 0.0, ssum = 0.0;
   const double weights[3] = {0.10,0.35,10.0};
 
   
   /* --- Tikhonov's regularization on first derivative for Temp --- */
   
-  if(n.toinv[0] && true){
+  if(n.toinv[0] && false){
     int nn = (int)n.temp.size();
     
     if(nn > 1){
@@ -451,8 +452,9 @@ double atmos::fitModel2(mdepth_t &m, int npar, double *pars, int nobs, double *o
   lm.maxreject = 6;
   lm.svd_thres = max(input.svd_thres, 1.e-16);
   lm.chi2_thres = input.chi2_thres;
-  lm.lmax = 1.e4;
-  lm.lmin = 1.e-5;
+  lm.lmax = 1.e3;
+  lm.lmin = 1.e-3;
+  lm.lfac = sqrt(10.);
   lm.proc = input.myrank;
   if(input.regularize >= 1.e-5){
     lm.regularize = true;
@@ -465,6 +467,7 @@ double atmos::fitModel2(mdepth_t &m, int npar, double *pars, int nobs, double *o
     lm.fcnt[pp].limit[0] = mmin[pp]/scal[pp];
     lm.fcnt[pp].limit[1] = mmax[pp]/scal[pp];
     lm.fcnt[pp].scl = 1.0;//scal[pp];
+    lm.ptype[pp] = (input.svd_split) ? (unsigned)input.nodes.ntype[pp] : (unsigned)0;
     
     if(input.nodes.ntype[pp] == azi_node) lm.fcnt[pp].cyclic = true;
     else                                  lm.fcnt[pp].cyclic = false;

@@ -19,6 +19,13 @@
 
 	   2017-01-11, JdlCR: added Kahan sumation but operating on each stokes parameter 
 	                      first and then adding each contribution.
+
+	   2017-03-25, JdlCR: allow to split the SVD decomposition per type of parameter
+	                      Basically, the large impact of temperature can systematically
+			      force the algorithm to filter the corrections to other parameters.
+			      We proceed as described by Ruiz-Cobo & del Toro-Iniesta (1992).
+			      Basically the singular values are projected into the sub-space
+			      of each parameter and processed there.
 */
 
 #include <algorithm>
@@ -65,11 +72,11 @@ double **var2dim(double *data, int nx1, int nx2){
 
 inline double sumarr(double *arr, size_t n){
 
-  long double sum = 0.0L, c = 0.0L;
+  double sum = 0.0L, c = 0.0L;
   
   for(size_t kk = 0; kk<n; kk++){
-    long double y = arr[kk] - c;
-    long double t = sum + y;
+    double y = arr[kk] - c;
+    double t = sum + y;
     c = (t - sum) - y;
     sum = t;
   }
@@ -81,11 +88,11 @@ inline double sumarr(double *arr, size_t n){
 
 inline double sumarr2(double *arr, int n){
 
-  long double sum = 0.0, c = 0.0;
+  double sum = 0.0, c = 0.0;
   
   for(int kk = 0; kk<n; kk++){
-    long double y = arr[kk]*arr[kk] - c;
-    long double t = sum + y;
+    double y = arr[kk]*arr[kk] - c;
+    double t = sum + y;
     c = (t - sum) - y;
     sum = t;
   }
@@ -167,9 +174,10 @@ clm::clm(int ind, int inpar){
   
   nd = ind;
   npar = inpar;
-  lwork = -1; // To be used on the first call by LaPack's SVD
+  lwork = -1; // To be used on the first call by LaPack's SVD (not used anymore)
   tmp.resize(nd);
-
+  ptype.resize(npar,0); // To define groups of parameters that are filtered together
+  nvar = 1;
   
   /* --- resize fit control arrays --- */
 
@@ -187,8 +195,8 @@ clm::clm(int ind, int inpar){
   chi2_thres = 1.0;   // Exit inversion if Chi2 is lower than this
   svd_thres = 1.e-13; // Cut-off "relative" thres. for small singular values
   lmax = 1.0e4;       // Maximum lambda value
-  lmin = 1.0e-5;      // Minimum lambda value
-  lfac = 10.0;        // Change lambda by this amount
+  lmin = 1.0e-3;      // Minimum lambda value
+  lfac = 10.0;         // Change lambda by this amount
   ilambda = 1.0;      // Initial damping parameter for the Hessian giag.
   maxreject = 7;      // Max failed evaluations of lambda.
   error = false;
@@ -311,7 +319,8 @@ double clm::getChi2Pars(double *res, double **rf, double lambda,
   /* --- Get new estimate of the model for the current lambda value --- */
   
   memset(xnew, 0, sizeof(double)*npar);
-  compute_trial2(res, rf, lambda, x, xnew, dregul);
+  //compute_trial2(res, rf, lambda, x, xnew, dregul);
+  compute_trial3(res, rf, lambda, x, xnew, dregul);
 
 
   /* --- Evaluate the new model, no response function is needed --- */
@@ -354,7 +363,8 @@ double clm::fitdata(clm_func fx, double *x, void *mydat, int maxiter)
 {
 
   /* --- Init variables --- */
-  
+
+  getParTypes();
   double chi2 = 1.e13, ochi2 = 1.e13, bestchi2 = 1.e13, olambda = 0.0, t0 = 0, t1 = 0;
   int iter = 0, nretry = 0;
   bool exitme = false, toolittle = false;
@@ -608,9 +618,178 @@ void clm::compute_trial2(double *res, double **rf, double lambda,
      The SVD is computed with Eigen3 instead of LaPack.
      --- */
   
-  JacobiSVD<MatrixXd,FullPivHouseholderQRPreconditioner> svd(A, ComputeFullU | ComputeFullV);
+  //JacobiSVD<MatrixXd,FullPivHouseholderQRPreconditioner> svd(A, ComputeFullU | ComputeFullV);
+  JacobiSVD<MatrixXd,ColPivHouseholderQRPreconditioner> svd(A, ComputeThinU | ComputeThinV);
+
   svd.setThreshold(svd_thres);
   RES = svd.solve(B);
+  
+  
+  /* --- 
+     New estimate of the parameters, xnew = x + dx.
+     Check for maximum change, add to current pars and normalize.
+     --- */
+  
+  scaleParameters(xnew);
+  checkMaxChange(xnew, x);
+  
+  for(int ii = 0; ii<npar; ii++) xnew[ii] += x[ii];
+
+
+  
+  /* --- Check that new parameters are within limits --- */
+  
+  checkParameters(xnew);
+}
+
+
+/* -------------------------------------------------------------------------------- */
+
+void clm::compute_trial3(double *res, double **rf, double lambda,
+			 double *x, double *xnew, double *dregul)
+{
+
+  
+  /* --- Init Eigen-3 arrays --- */
+  
+  MatrixXd A(npar, npar);
+  VectorXd B(npar);
+  Map<VectorXd> RES(xnew, npar);
+  double ww[npar], wt[npar], wi[npar][2];
+  
+  
+  
+  
+  /* --- 
+     compute the curvature matrix and the right-hand side of eq.: 
+     A*(dx) = B
+     where A = J.T # J
+           B = J.T # res
+	   and "dx" is the correction to the current model
+     --- */
+
+  for(int yy = 0; yy<npar; yy++){
+    
+    /* --- Compute the Hessian matrix --- */
+
+    for(int xx = 0; xx<=yy; xx++){
+      for(int ww = 0; ww<nd; ww++) tmp[ww] = rf[yy][ww] * rf[xx][ww];
+      
+      A(yy,xx) = sumarr_4(&tmp[0], nd);            
+    }
+
+    
+    /* --- It works better to store the largest diagonal terms
+       in this cycle and multiply lambda by this value than the 
+       current estimate. I am setting a cap on how much larger
+       it can be relative to the current value 
+       --- */
+    
+    diag[yy] = max(A(yy,yy), diag[yy]*0.6);
+    if(diag[yy] == 0.0 || diag[yy] < 1.e-6) diag[yy] = 1.0; 
+    //
+    double idia = diag[yy] , thrfac = 1.0e4;
+    if(idia > A(yy,yy)*thrfac) idia = A(yy,yy)*thrfac;
+
+    
+    /* --- Add regularization terms --- */
+
+    for(int xx = 0; xx<=yy; xx++){
+      if(dregul) A(yy,xx) += dregul[xx]*dregul[yy]*regul_scal*regul_scal;
+      A(xx,yy) = A(yy,xx); // Remember that A is symmetric!
+    }
+    
+    
+    /* --- Damp the diagonal of A --- */
+    
+    A(yy,yy) += lambda * idia;
+    //A(yy,yy) *= (1.0 + lambda);
+    
+    /* --- Compute J^t * Residue --- */
+    
+    for(int ww = 0; ww<nd; ww++) tmp[ww] = rf[yy][ww] * res[ww];
+    B[yy] = sumarr_4(&tmp[0], nd);
+    
+  } // yy
+
+  
+  
+  /* --- 
+     Solve linear system with SVD decomposition and singular value thresholding.
+     The SVD is computed with Eigen3 instead of LaPack.
+     --- */
+  
+  //JacobiSVD<MatrixXd,FullPivHouseholderQRPreconditioner> svd(A, ComputeFullU | ComputeFullV);
+  JacobiSVD<MatrixXd,ColPivHouseholderQRPreconditioner> svd(A, ComputeThinU | ComputeThinV);
+  
+
+
+  if(nvar > 1){
+    MatrixXd U = svd.matrixU(), V = svd.matrixV();
+    VectorXd W = svd.singularValues();
+
+    /* --- 
+       Two steps, the second is recomputed with the filtered singular values 
+       --- */
+    
+    for(int tt=0;tt<2;tt++){ 
+      memset( ww,0,npar*sizeof(double));
+
+      for(int nn=0;nn<nvar;nn++){
+	memset( wt,0,npar*sizeof(double));
+
+	
+	/* --- Get submatrix --- */
+	
+	for(int j=0;j<npar;j++)
+	  for(int i=0;i<ntype[nn];i++){
+	    int ii = pidx[nn][i];
+	    wt[j] += V(j,ii)*V(j,ii)*W[j];
+	  }
+
+	
+	/* --- Get the maximum --- */
+	
+	double wmax = 0.0;
+	for(int j=0;j<npar;j++)
+	  if(wt[j] > wmax) wmax = wt[j];
+
+	
+	/* --- Remove singular values for each type of variable --- */
+
+	wmax *= svd_thres;
+	for(int j=0;j<npar;j++){
+	  if(wt[j] < wmax) wt[j] = 0.0;
+	  else ww[j] += wt[j];
+	} // j
+      }// nn
+
+      for(int j=0;j<npar;j++){
+	W[j] = ww[j];
+	wi[j][tt] = W[j];	
+      }
+    } // tt
+
+    
+    /* --- Now recover filtered singular values from submatrix --- */
+    
+    for(int j=0;j<npar;j++){
+      if(fabs(wi[j][1]) > 1.e-10) W[j] = wi[j][0]*wi[j][0] / wi[j][1];
+      else                        W[j] = 0.0;
+    }
+    
+
+    /* --- Now solve the linear system --- */
+    
+    memcpy(xnew, &B[0], npar*sizeof(double));
+    backSub(npar, U, W, V,  xnew);
+    
+    
+  }else{
+    svd.setThreshold(svd_thres);
+    RES = svd.solve(B);
+  }
+  
   
   
   /* --- 
@@ -631,4 +810,76 @@ void clm::compute_trial2(double *res, double **rf, double lambda,
   
 
  
+}
+
+/* -------------------------------------------------------------------------------- */
+
+void clm::backSub(int n, MatrixXd &u, VectorXd &w, MatrixXd &v,  double *b)
+{
+
+  double *tmp = new double [n];
+  
+  for(int j = 0; j<n; j++){
+    if(w[j] != 0.0){
+      double s = 0.0;
+      for(int i=0;i<n;i++) s += u(i,j)*b[i];
+      s/= w[j], tmp[j] = s;
+    } else tmp[j] = 0.0;
+    
+  }// j
+  
+  for(int j = 0; j<n;j++){
+    double s = 0.0;
+    for(int jj=0;jj<n;jj++) s += v(j,jj)*tmp[jj];
+    b[j] = s;
+  }
+    
+  delete [] tmp;
+}
+
+/* -------------------------------------------------------------------------------- */
+
+void clm::getParTypes()
+{
+  nvar = 0;
+  unsigned npp[npar];
+  memset(npp,0,sizeof(unsigned)*npar);
+
+  
+  /* --- get number of different parameters --- */
+  
+  for(int ii=0;ii<npar;ii++) npp[ptype[ii]]++;
+  for(int ii=0;ii<npar;ii++) if(npp[ii] > 0) nvar++;
+
+  
+  /* --- store the indexes of each type of var --- */
+
+  pidx.resize(nvar);
+  ntype.resize(nvar);
+  
+  int k = 0;
+
+  for(int ii=0;ii<npar;ii++){
+    if(npp[ii] > 0){
+      ntype[k] = npp[ii];
+      pidx[k].resize(npp[ii],0);
+      int z=0;
+      for(int jj=0;jj<npar;jj++) if(ptype[jj] == ii) pidx[k][z++] = jj;
+      k++;
+    }
+  }
+
+  
+  /* --- Printout ? --- */
+
+  if(1){
+    fprintf(stderr,"\nclm::getParTypes: nvar = %d, singular values will be filtered per variable\n", nvar);
+    for(int ii=0;ii<nvar;ii++){
+      fprintf(stderr,"    [%3d] -> [ ", ii);
+      for(int jj=0;jj<ntype[ii];jj++) fprintf(stderr, "%2d ", pidx[ii][jj]);
+      cerr<<"]"<<endl;				 
+    }
+  }
+  
+  
 }

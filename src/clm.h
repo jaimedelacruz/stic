@@ -39,6 +39,7 @@
 */
 #include <vector>
 #include <sys/time.h>
+#include <eigen3/Eigen/Dense>
 
 
 /* --- 
@@ -79,9 +80,11 @@ class clm{
  public:
   std::vector<clmf> fcnt;
   std::vector<double> diag, tmp;
+  std::vector<unsigned> ptype, ntype;
+  std::vector<std::vector<unsigned>> pidx;
   bool verb, regularize;
   double xtol, chi2_thres, svd_thres, lfac, lmax, lmin, ilambda, regul_scal;
-  int maxreject, proc;
+  int maxreject, proc, nvar;
 
   
   /* --- Constructor / Destructor --- */
@@ -105,11 +108,15 @@ class clm{
   //	      double *x, double *xnew);
   void compute_trial2(double *res, double **rf, double lambda,
 		      double *x, double *xnew, double *dregul);
+  void compute_trial3(double *res, double **rf, double lambda,
+		      double *x, double *xnew, double *dregul);
   //void backsub(double **u, double *w, double **v, int n,
   //	       double *b, double *x);
   void scaleRF(double **rf);
   double checkLambda(double lamb);
   void zero(double *res, double **rf);
+  void getParTypes();
+  void backSub(int n, Eigen::MatrixXd &u, Eigen::VectorXd &w, Eigen::MatrixXd &v,  double *b);
 
   double getTime(double t0 = -1.0){
     struct timeval dum;
