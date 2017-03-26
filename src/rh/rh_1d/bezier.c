@@ -447,7 +447,8 @@ void PiecewiseStokesBezier3(int nspect, int mu, bool_t to_obs,
       
     /* ---
        Here I am doing Ma*stk + Mb * Su + Mc * S0 + 
-       (gam * dS0 - theta * dSu) * dtau / 3.0
+       (gam * dS0 - theta * dSu) * dtau / 3.0 to compute the 
+       right-hand term
        --- */
     
     memset(V0, 0, 4*sizeof(double));
@@ -619,7 +620,7 @@ void Piecewise_Bezier3(int nspect, int mu, bool_t to_obs,
   dchi_c = cent_deriv(dsup,dsdn,chi[k-dk],chi[k],chi[k+dk]);
 
   
-  /* --- upwind path_length (BEzier2 integration) --- */
+  /* --- upwind path_length (Bezier3 integration) --- */
 
   c1 = max(chi[k] - (dsup/3.0) * dchi_c, 0.0);
   c2 = max(chi[k-dk] + (dsup/3.0) * dchi_up,  0.0);
