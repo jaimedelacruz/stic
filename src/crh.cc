@@ -224,8 +224,10 @@ bool crh::synth(mdepth_t &m_in, double *syn, cprof_solver sol, bool save_pops){
        nHtot 
        --- */
     
-    eos.read_partial_pressures(kk, frac, part, xa, xe);
-    nhtot[kk] = xa * eos.ABUND[0] / eos.totalAbund * 1.e6; // nHtot based on abundance
+    //eos.read_partial_pressures(kk, frac, part, xa, xe);
+    
+    double xna = m.pgas[kk] / (phyc::BK * m.temp[kk]) - m.nne[kk];
+    nhtot[kk] = xna * eos.ABUND[0] / eos.totalAbund * 1.e6; // nHtot based on abundance
     //nhtot[kk] = m.rho[kk] / (phyc::AMU * eos.avmol) *  eos.ABUND[0] / eos.totalAbund * 1.e6;
     
     /* --- Convert units to SI --- */
@@ -238,7 +240,6 @@ bool crh::synth(mdepth_t &m_in, double *syn, cprof_solver sol, bool save_pops){
     m.nne[kk] *= 1.e6;    // 1 / CM_TO_M**3
     m.tau[kk] = pow(10.0, m.ltau[kk]);
     m.b[kk] *= 1.0e-4; // B in tesla
-    //fprintf(stderr,"nHin[%2d]=%e %e %e\n", kk, m.pgas[kk], m.nne[kk]*1.e-6, nhtot[kk]*1.e-6);
   }
 
   int savep = 0;
@@ -295,13 +296,15 @@ bool crh::synth(mdepth_t &m_in, double *syn, cprof_solver sol, bool save_pops){
 
   
   /* --- convert nHtot to Pgas using the electron density, the H abundance and temperature --- */
-
+ 
   for(int kk = 0; kk < m.ndep; kk++){
+    
     m.pgas[kk] = (nhtot[kk] * eos.totalAbund / eos.ABUND[0] + m.nne[kk]) *
       phyc::BK * m_in.temp[kk] * 1.e-6;
+
+    m_in.pgas[kk] = m.pgas[kk]; // preserve pgas at the boundary otherwise the inversion is unstable
     m_in.nne[kk] = m.nne[kk] * 1.0e-6;
   }
-  
   
 
   /* --- Deallocate sp --- */

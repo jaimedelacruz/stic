@@ -454,7 +454,7 @@ double atmos::fitModel2(mdepth_t &m, int npar, double *pars, int nobs, double *o
   lm.chi2_thres = input.chi2_thres;
   lm.lmax = 1.e3;
   lm.lmin = 1.e-3;
-  lm.lfac = sqrt(10.);
+  lm.lfac = 10.;//sqrt(10.);
   lm.proc = input.myrank;
   if(input.regularize >= 1.e-5){
     lm.regularize = true;

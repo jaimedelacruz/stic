@@ -82,7 +82,7 @@ class clm{
   std::vector<double> diag, tmp;
   std::vector<unsigned> ptype, ntype;
   std::vector<std::vector<unsigned>> pidx;
-  bool verb, regularize;
+  bool verb, regularize, first;
   double xtol, chi2_thres, svd_thres, lfac, lmax, lmin, ilambda, regul_scal;
   int maxreject, proc, nvar;
 

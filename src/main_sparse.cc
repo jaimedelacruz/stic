@@ -26,21 +26,30 @@ int main(int narg, char* argv[]){
   MPI_Comm_rank(MPI_COMM_WORLD, &myrank);// Job number
   MPI_Comm_size(MPI_COMM_WORLD, &nprocs);// number of processors
   MPI_Get_processor_name(&hostname[0], &hlen);// Hostname
-
-
-  /* --- Printout logo :-) --- */
-  
+                                                                           
+                                                                       
   if(myrank == 0){
-    const char title[6][100] = {"                         ______  _   _  _                                        ",                                 
-				"                         | ___ \\| | | |(_)                                       ",
-				" ______  ______  ______  | |_/ /| |_| | _  _ __  __   __  ______  ______  ______ ",
-				"|______||______||______| |    / |  _  || || '_ \\ \\ \\ / / |______||______||______|",
-				"                         | |\\ \\ | | | || || | | | \\ V /                          ",
-				"                         \\_| \\_|\\_| |_/|_||_| |_|  \\_/                           "};
+    const char title[16][72] =    {
+      "   SSSSSSSSSSSSSSS TTTTTTTTTTTTTTTTTTTTTTTIIIIIIIIII      CCCCCCCCCCCCC",
+      " SS:::::::::::::::ST:::::::::::::::::::::TI::::::::I   CCC::::::::::::C",
+      "S:::::SSSSSS::::::ST:::::::::::::::::::::TI::::::::I CC:::::::::::::::C",
+      "S:::::S     SSSSSSST:::::TT:::::::TT:::::TII::::::IIC:::::CCCCCCCC::::C",
+      "S:::::S            TTTTTT  T:::::T  TTTTTT  I::::I C:::::C       CCCCCC",
+      "S:::::S                    T:::::T          I::::IC:::::C              ",
+      " S::::SSSS                 T:::::T          I::::IC:::::C              ",
+      "  SS::::::SSSSS            T:::::T          I::::IC:::::C              ",
+      "    SSS::::::::SS          T:::::T          I::::IC:::::C              ",
+      "       SSSSSS::::S         T:::::T          I::::IC:::::C              ",
+      "            S:::::S        T:::::T          I::::IC:::::C              ",
+      "            S:::::S        T:::::T          I::::I C:::::C       CCCCCC",
+      "SSSSSSS     S:::::S      TT:::::::TT      II::::::IIC:::::CCCCCCCC::::C",
+      "S::::::SSSSSS:::::S      T:::::::::T      I::::::::I CC:::::::::::::::C",
+      "S:::::::::::::::SS       T:::::::::T      I::::::::I   CCC::::::::::::C",
+      " SSSSSSSSSSSSSSS         TTTTTTTTTTT      IIIIIIIIII      CCCCCCCCCCCCC"};
     
+                                                                  
     
-    
-    for(int ii = 0; ii<6; ii++) fprintf(stderr,"%s\n", title[ii]);
+    for(int ii = 0; ii<16; ii++) fprintf(stderr,"%s\n", title[ii]);
     cerr<<endl;
   }               
   

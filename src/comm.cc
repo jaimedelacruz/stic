@@ -72,7 +72,7 @@ void comm_send_parameters(iput_t &input){
   status = MPI_Bcast(&nregions,  1,    MPI_INT, 0, MPI_COMM_WORLD);  
   status = MPI_Bcast(&input.buffer_size,  2,    MPI_UNSIGNED_LONG, 0, MPI_COMM_WORLD);
 
-  status = MPI_Bcast(&input.nt, 19,    MPI_INT, 0, MPI_COMM_WORLD); // We are sending 11 ints from the struct!
+  status = MPI_Bcast(&input.nt, 20,    MPI_INT, 0, MPI_COMM_WORLD); // We are sending 11 ints from the struct!
   status = MPI_Bcast(&input.mu,  8, MPI_DOUBLE, 0, MPI_COMM_WORLD); // We are sending 4 doubles from the struct!
   status = MPI_Bcast(&input.max_inv_iter,  1, MPI_UNSIGNED, 0, MPI_COMM_WORLD);
     
@@ -87,6 +87,10 @@ void comm_send_parameters(iput_t &input){
   // Atmos type
   status = MPI_Bcast(const_cast<char *>(input.atmos_type.c_str()), input.atmos_len+1, MPI_CHAR, 0, MPI_COMM_WORLD);
 
+  // Abund file
+  status = MPI_Bcast(const_cast<char *>(input.abfile.c_str()), input.ab_len+1, MPI_CHAR, 0, MPI_COMM_WORLD);
+
+  
   // Line structs
   for (int ll = 0;ll<nline;ll++) {
     status = MPI_Bcast(&input.lines[ll].elem[0], 8,   MPI_CHAR, 0, MPI_COMM_WORLD); // We are getting 23 chars
@@ -168,7 +172,7 @@ void comm_recv_parameters(iput_t &input){
   status = MPI_Bcast(&nregions,  1,    MPI_INT, 0, MPI_COMM_WORLD);
   status = MPI_Bcast(&input.buffer_size,  2,    MPI_UNSIGNED_LONG, 0, MPI_COMM_WORLD);
 
-  status = MPI_Bcast(&input.nt, 19,    MPI_INT, 0, MPI_COMM_WORLD); // We are getting 15 ints from the struct!
+  status = MPI_Bcast(&input.nt, 20,    MPI_INT, 0, MPI_COMM_WORLD); // We are getting 15 ints from the struct!
   status = MPI_Bcast(&input.mu,  8, MPI_DOUBLE, 0, MPI_COMM_WORLD); // We are getting 4 doubles from the struct!
   status = MPI_Bcast(&input.max_inv_iter,  1, MPI_UNSIGNED, 0, MPI_COMM_WORLD);
 
@@ -196,6 +200,13 @@ void comm_recv_parameters(iput_t &input){
     input.atmos_type = removeSpaces(string(buf));
   }
 
+  { // Atmos type
+    input.abfile.clear();
+    char buf[input.ab_len+1];
+    status = MPI_Bcast(buf,     input.ab_len+1,    MPI_CHAR, 0, MPI_COMM_WORLD);
+    input.atmos_type = removeSpaces(string(buf));
+  }
+  
   for (int ll = 0;ll<nline;ll++){
     char bla[8];
     status = MPI_Bcast(bla, 8,   MPI_CHAR, 0, MPI_COMM_WORLD); // We are getting 23 chars

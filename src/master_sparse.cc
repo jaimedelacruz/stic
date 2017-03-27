@@ -147,7 +147,7 @@ void master_inverter(mdepthall_t &model, mat<double> &pars, mat<double> &obs, ma
 void do_master_sparse(int myrank, int nprocs,  char hostname[]){
 
   /* --- Printout number of processes --- */
-  cerr << "SparseInv: Initialized with "<<nprocs <<" processes"<<endl;
+  cerr << "STIC: Initialized with "<<nprocs <<" process(es)"<<endl;
   mat<double> model, obs, wav, w, syn, chi2;;
   mdepthall_t im;
 

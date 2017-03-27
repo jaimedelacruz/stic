@@ -232,6 +232,11 @@ iput_t read_input(std::string filename, bool verbose){
 	input.wavelet_type =field;
 	set = true;
       }
+      else if(key == "abundance_file"){
+	input.abfile = field;
+	set = true;
+	input.ab_len = field.size();
+      }
       else if(key == "lines"){
 	std::vector<std::string> param = strsplit(field,",");
 	for(auto &it: param) input.ilines.push_back(it); 
@@ -393,8 +398,8 @@ void read_lines(std::string filename, iput_t &input, bool verbose){
   //
   std::ifstream in(filename, std::ios::in | std::ios::binary);
   if (!in){
-    std::cout << "read_lines: ERROR, file "<<filename <<" not found, exiting" <<std::endl;
-    exit(0);
+    //exit(0);
+    return;
   }
   
   // 

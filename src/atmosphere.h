@@ -28,7 +28,7 @@ class atmos{
   ceos eos;
   
   atmos(){};
- atmos(iput_t &inpt, double grav = 4.44): eos(inpt.lines, grav), inst(NULL){};
+ atmos(iput_t &inpt, double grav = 4.44): eos(inpt.lines, inpt.abfile, grav), inst(NULL){};
   virtual ~atmos(){};
   // virtual void init(iput_t &input) = 0;
   virtual bool synth(mdepth_t &m, double *out, cprof_solver sol = bez_ltau, bool store_pops = true) = 0;

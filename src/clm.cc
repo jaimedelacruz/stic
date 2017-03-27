@@ -184,7 +184,7 @@ clm::clm(int ind, int inpar){
   fcnt.resize(npar);
   diag.resize(npar);
   memset(&fcnt[0], 0, npar*sizeof(clmf));
-
+  first = true;
   
   /* --- 
      Default values of the fit control, 
@@ -702,8 +702,8 @@ void clm::compute_trial3(double *res, double **rf, double lambda,
     
     /* --- Damp the diagonal of A --- */
     
-    A(yy,yy) += lambda * idia;
-    //A(yy,yy) *= (1.0 + lambda);
+    //A(yy,yy) += lambda * idia;
+    A(yy,yy) *= (1.0 + lambda);
     
     /* --- Compute J^t * Residue --- */
     
@@ -872,13 +872,14 @@ void clm::getParTypes()
   
   /* --- Printout ? --- */
 
-  if(1){
-    fprintf(stderr,"\nclm::getParTypes: nvar = %d, singular values will be filtered per variable\n", nvar);
+  if(verb && first){
+    fprintf(stderr,"\nclm::getParTypes: nvar = %d, SVD singular values will be filtered per variable\n", nvar);
     for(int ii=0;ii<nvar;ii++){
       fprintf(stderr,"    [%3d] -> [ ", ii);
       for(int jj=0;jj<ntype[ii];jj++) fprintf(stderr, "%2d ", pidx[ii][jj]);
       cerr<<"]"<<endl;				 
     }
+    first = false;
   }
   
   
