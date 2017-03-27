@@ -3,6 +3,9 @@ Coded by J. de la Cruz Rodriguez (jaime@astro.su.se)
 
 RH was developed by H. Uitenbroek (Uitenbroek 2001).
 
+The fast PRD approximation (Leenaarts et al. 2012) was taken
+from T. Pereira's RH1.5D as Han did not include it in his version.
+
 
 Dependencies
 ========
@@ -38,8 +41,11 @@ uname -m
 uname -s
 
 Let's assume that you got CPU=x86_64 and OS=Linux.
+
 Now you can go to subfolder makefiles/ and edit makefile.x86_64.Linux with the compilation
-flags for your machine. In principle makefile.x86_64.Linux is a symbolic link pointing to makefile.x86_64.Linux.gcc or makefile.x86_64.Linux.intel. These files are tuned to use GCC or the Intel compilers. You can create your own to run in your local machine and point the link to it.
+flags for your machine. In principle makefile.x86_64.Linux is a symbolic link pointing to
+makefile.x86_64.Linux.gcc or makefile.x86_64.Linux.intel. These files are tuned to use GCC or
+the Intel compilers. You can create your own to run in your local machine and point the link to it.
 
 Go to stic/src/rh:
 make
@@ -53,6 +59,3 @@ make
 
 If there were no errors, Stic.x should exist now in that folder.
 That is your binary!
-
-
-
