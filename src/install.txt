@@ -1,0 +1,58 @@
+The STIC inversion code based on the RH code.
+Coded by J. de la Cruz Rodriguez (jaime@astro.su.se)
+
+RH was developed by H. Uitenbroek (Uitenbroek 2001).
+
+
+Dependencies
+========
+Eigen3		(clm.h, clm.cc)
+FFTW-3	 	(fpi.h, fpi.cc, spectral.h, spectral.cc, sparse.h, sparse.cc, fft_tools.h)
+GSL	 	 	(sparse.h, sparse.cc, hinode.h, hinode.cc)
+netCDF4-CXX	(io.h, io.cc, master_sparse.cc)
+LaPack		(rh/SolveLinear.c, rh/rh_1d/rhf1d.h)
+
+
+Introduction
+=======
+The code is organized in several subfolders, including a synthesis module based
+on RH (Uitenbroek 2001).
+
+stic/src	  		-> The source code
+stic/src/rh/		-> RH general atomic routines
+stic/src/rh/rh_1d	-> modified 1.5D geometry for RH
+stic/input     		-> Some input data, atom models, etc...
+stic/example 		-> A test case including one pixels that you can invert using the code
+
+
+Installation
+=======
+
+The first step is to check the system and CPU of the machine where you are running.
+All the steps here are assuming that you are in stic/src.
+
+You can get the CPU by typing:
+uname -m
+
+...and the system:
+uname -s
+
+Let's assume that you got CPU=x86_64 and OS=Linux.
+Now you can go to subfolder makefiles/ and edit makefile.x86_64.Linux with the compilation
+flags for your machine. In principle makefile.x86_64.Linux is a symbolic link pointing to makefile.x86_64.Linux.gcc or makefile.x86_64.Linux.intel. These files are tuned to use GCC or the Intel compilers. You can create your own to run in your local machine and point the link to it.
+
+Go to stic/src/rh:
+make
+
+Then go to stic/src/rh/rh_1d/:
+make
+
+You have created the RH module that the inversion code will use.
+Now go to the main folder stic/src/:
+make
+
+If there were no errors, Stic.x should exist now in that folder.
+That is your binary!
+
+
+
