@@ -60,7 +60,7 @@ void DUMMYatmos(Atmosphere *atmos, Geometry *geometry, bool_t firsttime)
 
   geometry->vboundary[BOTTOM] = THERMALIZED;
   geometry->scale =  GEOMETRIC;
-
+  //geometry->scale = COLUMN_MASS;
   
   // Nread = sscanf("dummyATM", "%s", atmos->ID);
   
@@ -97,7 +97,7 @@ void convertScales(Atmosphere *atmos, Geometry *geometry)
 
   bool_t hunt;
   int    ref_index, Ndep = geometry->Ndep;
-  double *rho, *height, *cmass, *tau_ref, h_zero, unity;
+  double  *height, *cmass, *tau_ref, h_zero, unity;
   ActiveSet *as;
 
   /* --- Convert between different depth scales --       ------------ */
@@ -106,9 +106,9 @@ void convertScales(Atmosphere *atmos, Geometry *geometry)
   cmass   = geometry->cmass;
   tau_ref = geometry->tau_ref;
 
-  rho = (double *) malloc(Ndep * sizeof(double));
-  for (k = 0;  k < Ndep;  k++)
-    rho[k] = (AMU * atmos->wght_per_H) * atmos->nHtot[k];
+  // rho = (double *) malloc(Ndep * sizeof(double));
+  //for (k = 0;  k < Ndep;  k++)
+  // rho[k] = (AMU * atmos->wght_per_H) * atmos->nHtot[k];
 
   /* --- Get opacity of reference wavelength --          ------------ */
 
@@ -123,21 +123,21 @@ void convertScales(Atmosphere *atmos, Geometry *geometry)
   switch (geometry->scale) {
   case COLUMN_MASS:
     height[0] = 0.0;
-    tau_ref[0] = as->chi_c[0] / rho[0] * cmass[0];
+    tau_ref[0] = as->chi_c[0] /atmos->rho[0] * cmass[0];
     for (k = 1;  k < Ndep;  k++) {
       height[k] = height[k-1] - 2.0*(cmass[k] - cmass[k-1]) / 
-	(rho[k-1] + rho[k]);
+	(atmos->rho[k-1] + atmos->rho[k]);
       tau_ref[k] = tau_ref[k-1] + 0.5*(as->chi_c[k-1] + as->chi_c[k]) *
 	(height[k-1] - height[k]);
     }
     break;
   case TAU500:
     height[0] = 0.0;
-    cmass[0]  = (tau_ref[0] / as->chi_c[0]) * rho[0];
+    cmass[0]  = (tau_ref[0] / as->chi_c[0]) * atmos->rho[0];
     for (k = 1;  k < Ndep;  k++) {
       height[k] = height[k-1] - 2.0 * (tau_ref[k] - tau_ref[k-1]) / 
 	(as->chi_c[k-1] + as->chi_c[k]);
-      cmass[k]  = cmass[k-1]  + 0.5*(rho[k-1] + rho[k]) *
+      cmass[k]  = cmass[k-1]  + 0.5*(atmos->rho[k-1] + atmos->rho[k]) *
 	(height[k-1] - height[k]);
     }
     break;
@@ -147,7 +147,7 @@ void convertScales(Atmosphere *atmos, Geometry *geometry)
     tau_ref[0] = 0.5 * as->chi_c[0] * (height[0] - height[1]);
     if (tau_ref[0] > 1.0) tau_ref[0] = 0.0;
     for (k = 1;  k < Ndep;  k++) {
-      cmass[k]  = cmass[k-1]  + 0.5*(rho[k-1] + rho[k]) *
+      cmass[k]  = cmass[k-1]  + 0.5*(atmos->rho[k-1] + atmos->rho[k]) *
 	(height[k-1] - height[k]);
       tau_ref[k] = tau_ref[k-1] + 0.5*(as->chi_c[k-1] + as->chi_c[k]) *
 	(height[k-1] - height[k]);
@@ -162,7 +162,7 @@ void convertScales(Atmosphere *atmos, Geometry *geometry)
     for (k = 0;  k < Ndep;  k++) height[k] = height[k] - h_zero;
   }
 
-  free(rho);
+  //free(rho);
 }
 /* ------- end ---------------------------- convertScales.c --------- */
 

@@ -91,15 +91,15 @@ void Hydrostatic(int NmaxIter, double iterLimit)
            keep temperature and radiation field constant during the
            hydrostatic equilibrium iterations --       -------------- */
 
-    beta = (atmos.totalAbund - 1.0) + 
-      atmos.wght_per_H * C1 * SQ(atmos.vturb[k]) / atmos.T[k];
+    beta = (atmos.totalAbund - 1.0) ;//+ 
+    //      atmos.wght_per_H * C1 * SQ(atmos.vturb[k]) / atmos.T[k];
 
     if (H2present)
       Phi_H2 = nH2[k] / SQ(atmos.H->ntotal[k]);
 
     /* --- Starting solution:
            Note: n_k[0] is the amount of atomic hydrogen. -- -------- */
-    //fprintf(stderr,"[%2d] nHtot=%e nH+=%e nH=%e",k, atmos.nHtot[k], np[k],atmos.H->ntotal[k] );
+
     n_k[0] = atmos.H->ntotal[k] - np[k];
     n_k[1] = atmos.ne[k];
     n_k[2] = np[k];
@@ -201,7 +201,7 @@ void Hydrostatic(int NmaxIter, double iterLimit)
     atmos.ne[k]        = n_k[1];
     np[k]              = n_k[2];
     atmos.nHtot[k]     = n_k[Nhse-1];
-    
+
     if (H2present)
       nH2[k] = n_k[3];
     else
@@ -231,6 +231,7 @@ void Hydrostatic(int NmaxIter, double iterLimit)
     LTEpops(atom, Debeye=TRUE);
   }
 
+  
   /* --- Clean up --                                   -------------- */
 
   free(F);
