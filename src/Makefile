@@ -26,7 +26,7 @@ FDENS = ceos.o io.o depthmodel.o fillDensities.o
 	$(FC) $(FFLAGS) -c  $< -o $@
 
 RHinv: $(FFILES) $(OFILES_SPARSE)
-	$(LINKER) -o Stic.x  $(OPTS) $(OPENMP) $(FFILES) $(OFILES_SPARSE) $(INCLUDE) $(LIBS) $(LINKEROPTS) 
+	$(LINKER) -o STiC.x  $(OPTS) $(OPENMP) $(FFILES) $(OFILES_SPARSE) $(INCLUDE) $(LIBS) $(LINKEROPTS) 
 
 clean:
 	rm -f *.o *.mod

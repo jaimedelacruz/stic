@@ -57,5 +57,5 @@ You have created the RH module that the inversion code will use.
 Now go to the main folder stic/src/:
 make
 
-If there were no errors, Stic.x should exist now in that folder.
+If there were no errors, STiC.x should exist now in that folder.
 That is your binary!
