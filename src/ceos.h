@@ -96,6 +96,8 @@ class ceos{
   ceos(double grav = 4.44);
   ceos(std::vector<line_t> &lines, double grav = 4.44);
   ceos(std::vector<line_t> &lines, std::vector<iabund> &ab, double grav = 4.44);
+  ceos(std::vector<line_t> &lines, std::string &abfile, double grav = 4.44);
+
   void initAbundances(std::vector<iabund> &ab, bool verbose = false);
   void initEOS(std::vector<line_t> &lines);
   
@@ -153,6 +155,8 @@ class ceos{
   // float test_pgas_from_rho(float T, float &Pg, float rho,  float &nne);
   float init_pe_from_T_pg(float t, float pg);
 
+  void readAbund(std::string file);
+  
 };
 
 

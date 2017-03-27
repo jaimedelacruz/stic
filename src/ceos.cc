@@ -3,6 +3,11 @@
 #include <cstring>
 #include <cstdio>
 #include <algorithm>
+#include <fstream>      // std::ifstream
+#include <sstream>
+#include <string>
+#include <cctype>
+//
 #include "ceos.h"
 #include "input.h"
 #include "cop.h"
@@ -269,6 +274,29 @@ ceos::ceos(vector<line_t> &lines, vector<iabund> &ab, double grav){
   
 }
 
+
+ceos::ceos(vector<line_t> &lines, std::string &abfile, double grav){
+
+  string inam = "ceos::ceos: ";
+  gravity = pow(10.0, grav);
+
+  
+  /* --- Init abundances --- */
+
+  readAbund(abfile);
+
+  
+  /* --- Init arrays for fortran routines --- */
+  
+  initEOS(lines);
+
+
+  /* --- Get unique species in the user line-list --- */
+  
+  unique();
+  
+  
+}
 
 // ------------------------------------------------------------------------- 
 // Init abundances
@@ -732,7 +760,8 @@ void ceos::hydrostatic(int ndep, double *tau, double *t, double *Pg, double *rho
   contOpacity_TPg(t[0], Pg[0], nw, &wav, &kappa_old, &scat, -1.0);
   store_partial_pressures(ndep, (int)0, xna, xne);
 
-  cmass[0] = (tau[0] / kappa_old) * RHOest;
+  //cmass[0] = (tau[0] / kappa_old) * RHOest;
+  cmass[0] =  Pg[0] / gravity; //(xna + xne) * (kb * t[0] / gravity);
   kappa_old /= RHOest;
   
 
@@ -1502,3 +1531,38 @@ float ceos::init_pe_from_T_pg(float t, float pg)
   return (float)(pg*ybh/(1.+ybh));
 }
 
+void ceos::readAbund(std::string file)
+{
+
+  /* --- Open file and read abundances --- */
+
+  std::vector<iabund> ab;
+  iabund ia;
+  int Nread;
+  
+  std::ifstream in(file, std::ios::in | std::ios::binary);
+  std::string iline;
+  if(in){
+    while (std::getline(in, iline)) {
+      
+      if(iline[0] == '#' || iline == "") continue;
+      iline.erase(0,2); // Remove dummy spaces
+      int n = iline.find(" ");      
+      Nread = sscanf(iline.substr(0, n).c_str(), "%2s", ia.elem);
+      
+      if(ia.elem[1] != '\0' && ia.elem[1] != ' ') ia.elem[1] = tolower(ia.elem[1]);
+      else ia.elem[1] = ' ';
+      ia.elem[2] = '\0';
+      
+      ia.abund = atof(iline.substr(n+1).c_str()) - 12.0;
+      ab.push_back(ia);    
+    }//while
+  }else
+    fprintf(stderr,"ceos::readAbund: WARNING: file [%s] not found, using default abundance values\n",
+	    file.c_str());
+
+  /* --- Update abundances --- */
+  
+  initAbundances(ab, false);
+  
+}
