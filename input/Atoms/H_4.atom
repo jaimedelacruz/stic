@@ -15,12 +15,12 @@
 #                                                                        H            He
 # Lyman series
 
-  1   0  4.162e-01  VOIGT    100    ASYMM  15.0   600.0   UNSOLD   1.000  0.000  1.000  0.000  4.70e+08  1.0E+00
-  2   0  7.910e-02  VOIGT     40    ASYMM   5.0   250.0   UNSOLD   1.000  0.000  1.000  0.000  9.98e+07  1.0E+00
+  1   0  4.162e-01  VOIGT     55    SYMM  15.0   600.0   UNSOLD   1.000  0.000  1.000  0.000  4.70e+08  1.0E+00
+  2   0  7.910e-02  VOIGT     25    SYMM   5.0   250.0   UNSOLD   1.000  0.000  1.000  0.000  9.98e+07  1.0E+00
 
 # Balmer series
 
-  2   1  6.407e-01  VOIGT     40    ASYMM   3.0   200.0   UNSOLD   1.000  0.000  1.000  0.000  9.98e+07  1.0E+00
+  2   1  6.407e-01  VOIGT     25    SYMM   3.0   200.0   UNSOLD   1.000  0.000  1.000  0.000  9.98e+07  1.0E+00
 
 # Photoionization Cross Sectionss
 
@@ -28,7 +28,6 @@
 #
 
 #   H I 1S 2SE          
-##  3   0      6.152E-22       20       HYDROGENIC       22.794
   3   0      6.152E-22       20       HYDROGENIC       50.0
 
 #   H I 2P 2PO          
