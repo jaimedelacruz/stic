@@ -39,7 +39,6 @@ void do_slave(int myrank, int nprocs, char hostname[]){
   // Define ID and rank
   //
   input.myid = (string)"rank " +to_string(myrank)+ (string)", ";
-  //cerr << input.myid <<endl;
   
   //
   // Get main parameters from master
@@ -47,6 +46,9 @@ void do_slave(int myrank, int nprocs, char hostname[]){
   input.nprocs = nprocs;
   MPI_Barrier(MPI_COMM_WORLD);// Wait until all processors reach this point
   comm_recv_parameters(input);
+  
+  
+  
   input.myrank = myrank;
   if(input.mode == 1 || input.mode == 3) comm_send_weights(input, w);
 
