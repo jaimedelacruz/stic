@@ -1,5 +1,5 @@
-ARCH     = $(shell uname -m)
-ARCHF    = $(shell uname -a)
+CPU     = $(shell uname -m)
+OS       = $(shell uname -s)
 
 include makefiles/makefile.$(CPU).$(OS)
 
@@ -7,7 +7,7 @@ RHFOLD = rh/
 
 INCLUDE = $(shell ncxx4-config --cflags) -I$(GSLPATH)/include -I./ -I$(RHFOLD) -I$(RHFOLD)/rh_1d
 LIBS_FDENS = $(shell ncxx4-config --libs) -lstdc++ -L$(GSLPATH)/lib/
-LIBS = $(LIBS_FDENS) -L./ -L$(RHFOLD)/rh_1d/ -lrhf1d -L$(GSLPATH) -lblas -lgsl -lgslcblas -lfftw3 # -lifcore -static-intel #-fuse-linker-plugin 
+LIBS = $(LIBS_FDENS) -L./ -L$(RHFOLD)/rh_1d/ -lrhf1d -L$(GSLPATH) -lblas -lgsl -lgslcblas -lfftw3 #-llapack
 
 
 
@@ -26,11 +26,11 @@ FDENS = ceos.o io.o depthmodel.o fillDensities.o
 	$(FC) $(FFLAGS) -c  $< -o $@
 
 RHinv: $(FFILES) $(OFILES_SPARSE)
-	$(LINKER) -o RHinv.x  $(OPTS) $(OPENMP) $(FFILES) $(OFILES_SPARSE) $(INCLUDE) $(LIBS) $(LINKEROPTS) 
+	$(LINKER) -o Stic.x  $(OPTS) $(OPENMP) $(FFILES) $(OFILES_SPARSE) $(INCLUDE) $(LIBS) $(LINKEROPTS) 
 
 clean:
 	rm -f *.o *.mod
 
 fillDensities: $(FFILES) $(FDENS)
-	$(MPCXX) -o fillDensities.x $(CXXFLAGS) $(FFILES) $(OPENMP) $(FDENS) $(LIBS_FDENS)  $(INCLUDE) #-nofor-main
+	$(MPCXX) -o fillDensities.x $(CXXFLAGS) $(FFILES) $(OPENMP) $(FDENS) $(LIBS_FDENS)  $(INCLUDE)
 
