@@ -15,16 +15,19 @@ OMPI_CC = $(CC)
 MPCXX = mpicxx
 MPFC = mpif90
 
+LINKER = MPICXX
 
 #
 # OPTIMIZATION
 #
 OPTS = -O3 -g -march=native -lm -lpthread -Wa,-q
-CXXFLAGS = $(OPTS) -std=c++11 -Wno-literal-suffix
-CFLAGS = $(OPTS)
+CXXFLAGS = $(OPTS) -ffast-math -std=c++11 -Wno-literal-suffix
+CFLAGS = $(OPTS) -ffast-math
 FFLAGS = $(OPTS)
 AR = ar
 OPENMP = -fopenmp
+
+LINKEROPTS =  -lgfortran
 
 
 #
