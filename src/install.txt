@@ -17,7 +17,7 @@ LaPack		(rh/SolveLinear.c, rh/rh_1d/rhf1d.h)
 
 
 Introduction
-=======
+========
 The code is organized in several subfolders, including a synthesis module based
 on RH (Uitenbroek 2001).
 

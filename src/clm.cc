@@ -870,9 +870,9 @@ void clm::getParTypes()
   }
 
   
-  /* --- Printout ? --- */
+  /* --- Printout only for debugging ? --- */
 
-  if(verb && first){
+  if(0){
     fprintf(stderr,"\nclm::getParTypes: nvar = %d, SVD singular values will be filtered per variable\n", nvar);
     for(int ii=0;ii<nvar;ii++){
       fprintf(stderr,"    [%3d] -> [ ", ii);

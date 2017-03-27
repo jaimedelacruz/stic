@@ -200,11 +200,11 @@ void comm_recv_parameters(iput_t &input){
     input.atmos_type = removeSpaces(string(buf));
   }
 
-  { // Atmos type
+  { // abund type
     input.abfile.clear();
     char buf[input.ab_len+1];
     status = MPI_Bcast(buf,     input.ab_len+1,    MPI_CHAR, 0, MPI_COMM_WORLD);
-    input.atmos_type = removeSpaces(string(buf));
+    input.abfile = removeSpaces(string(buf));
   }
   
   for (int ll = 0;ll<nline;ll++){
