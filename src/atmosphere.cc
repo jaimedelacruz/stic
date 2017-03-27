@@ -468,7 +468,9 @@ double atmos::fitModel2(mdepth_t &m, int npar, double *pars, int nobs, double *o
     lm.fcnt[pp].limit[1] = mmax[pp]/scal[pp];
     lm.fcnt[pp].scl = 1.0;//scal[pp];
     lm.ptype[pp] = (input.svd_split) ? (unsigned)input.nodes.ntype[pp] : (unsigned)0;
-    
+    if(input.nodes.ntype[pp] ==  pgas_node && input.svd_split > 0)  lm.ptype[pp] = (unsigned)temp_node; // Treat Pgas as a temperature variable
+
+      
     if(input.nodes.ntype[pp] == azi_node) lm.fcnt[pp].cyclic = true;
     else                                  lm.fcnt[pp].cyclic = false;
     
