@@ -29,7 +29,7 @@ m.rcParams['mathtext.bf'] = font+':bold'
 
 import sparsetools as sp
 import matplotlib.pyplot as plt
-import spectral as s
+#import spectral as s
 
 i = sp.profile('observed.nc')
 o = sp.profile('synthetic_cycle1.nc')
@@ -45,7 +45,7 @@ ax4 = plt.subplot2grid((5,6), (3,4), colspan=2, rowspan=2)
 
 
 ss = 0
-wav = s.air2vac(i.wav)
+#wav = s.air2vac(i.wav)
 ax1.plot(i.dat[0,0,0,:,ss],'.', color='black')
 ax1.plot(o.dat[0,0,0,:,ss], color='orangered')
 ax1.set_ylabel('Intensity')

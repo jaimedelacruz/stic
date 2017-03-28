@@ -315,7 +315,7 @@ template <class T> class mat {
   }
 
   bool isNaN() const{
-    for(size_t ii=0; ii<nel; ii++) if(isnan(d[ii])) return true;
+    for(size_t ii=0; ii<nel; ii++) if(std::isnan(d[ii])) return true;
     return false;
   }
   
