@@ -153,7 +153,7 @@ if __name__ == "__main__":
 
     fe_1.weights[:,:] = 1.e16 # Very high value means weight zero
     fe_1.weights[ife,:] = 0.005
-    fe_1.weights[ife,1:3] /= 5.0 # Some more weight for Q&U
+    fe_1.weights[ife,1:3] /= 4.5 # Some more weight for Q&U
     fe_1.weights[ife,3] /= 3.5    # Some more weight for V
 
     ca_8.weights[:,:] = 1.e16 # Very high value means weight zero
@@ -162,7 +162,8 @@ if __name__ == "__main__":
     ca_8.weights[ic8,3] /= 5.0    # Some more weight for V
 
     ca_k.weights[:,:] = 1.e16 # Very high value means weight zero
-    ca_k.weights[ick,0] = 0.005
+    ca_k.weights[ick,0] = 0.003
+    ca_k.weights[-1,0] = 0.003 # Continuum point
 
 
     # Now combine all regions in one object.
@@ -250,9 +251,9 @@ if __name__ == "__main__":
     # Fill in initial B field and velovity (optional)
     m.vturb[0,0,0,:] = 1.e5
     m.vlos[0,0,0,:] = 0.5e5 # cm/s
-    m.B[0,0,0,:] = 700.
-    m.inc[0,0,0,:] = 65. * 3.14159 / 180.
-    m.azi[0,0,0,:] = 22.5 * 3.14159 / 180.
+    m.B[0,0,0,:] = 900.
+    m.inc[0,0,0,:] = 80. * 3.14159 / 180.
+    m.azi[0,0,0,:] = 100. * 3.14159 / 180.
 
     # Write to HD
     m.write('modelin.nc', write_all=True)
