@@ -1,4 +1,4 @@
-CPU     = $(shell uname -m)
+CPU     = $(shell uname -p)
 OS       = $(shell uname -s)
 
 include makefiles/makefile.$(CPU).$(OS)
@@ -7,7 +7,7 @@ RHFOLD = rh/
 
 INCLUDE = $(shell ncxx4-config --cflags) -I$(GSLPATH)/include -I./ -I$(RHFOLD) -I$(RHFOLD)/rh_1d
 LIBS_FDENS = $(shell ncxx4-config --libs) -lstdc++ -L$(GSLPATH)/lib/
-LIBS = $(LIBS_FDENS) -L./ -L$(RHFOLD)/rh_1d/ -lrhf1d -L$(GSLPATH) -lblas -lgsl -lgslcblas -lfftw3 #-llapack
+LIBS = $(LIBS_FDENS) -L./ -L$(RHFOLD)/rh_1d/ -lrhf1d -L$(GSLPATH) -lblas -lgsl -lgslcblas -lfftw3 -llapack
 
 
 
