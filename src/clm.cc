@@ -702,8 +702,8 @@ void clm::compute_trial3(double *res, double **rf, double lambda,
     
     /* --- Damp the diagonal of A --- */
     
-    //A(yy,yy) += lambda * idia;
-    A(yy,yy) *= (1.0 + lambda);
+    A(yy,yy) += lambda * idia;
+    //A(yy,yy) *= (1.0 + lambda);
     
     /* --- Compute J^t * Residue --- */
     
