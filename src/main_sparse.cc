@@ -29,26 +29,27 @@ int main(int narg, char* argv[]){
                                                                            
                                                                        
   if(myrank == 0){
-    const char title[16][72] =    {
-      "   SSSSSSSSSSSSSSS TTTTTTTTTTTTTTTTTTTTTTTIIIIIIIIII      CCCCCCCCCCCCC",
-      " SS:::::::::::::::ST:::::::::::::::::::::TI::::::::I   CCC::::::::::::C",
-      "S:::::SSSSSS::::::ST:::::::::::::::::::::TI::::::::I CC:::::::::::::::C",
-      "S:::::S     SSSSSSST:::::TT:::::::TT:::::TII::::::IIC:::::CCCCCCCC::::C",
-      "S:::::S            TTTTTT  T:::::T  TTTTTT  I::::I C:::::C       CCCCCC",
-      "S:::::S                    T:::::T          I::::IC:::::C              ",
-      " S::::SSSS                 T:::::T          I::::IC:::::C              ",
-      "  SS::::::SSSSS            T:::::T          I::::IC:::::C              ",
-      "    SSS::::::::SS          T:::::T          I::::IC:::::C              ",
-      "       SSSSSS::::S         T:::::T          I::::IC:::::C              ",
-      "            S:::::S        T:::::T          I::::IC:::::C              ",
-      "            S:::::S        T:::::T          I::::I C:::::C       CCCCCC",
-      "SSSSSSS     S:::::S      TT:::::::TT      II::::::IIC:::::CCCCCCCC::::C",
-      "S::::::SSSSSS:::::S      T:::::::::T      I::::::::I CC:::::::::::::::C",
-      "S:::::::::::::::SS       T:::::::::T      I::::::::I   CCC::::::::::::C",
-      " SSSSSSSSSSSSSSS         TTTTTTTTTTT      IIIIIIIIII      CCCCCCCCCCCCC"};
+    const char title[16][71] =
+      {                                                  
+	"   SSSSSSSSSSSSSSS TTTTTTTTTTTTTTTTTTTTTTT  iiii         CCCCCCCCCCCCC",
+	" SS:::::::::::::::ST:::::::::::::::::::::T i::::i     CCC::::::::::::C",
+	"S:::::SSSSSS::::::ST:::::::::::::::::::::T  iiii    CC:::::::::::::::C",
+	"S:::::S     SSSSSSST:::::TT:::::::TT:::::T         C:::::CCCCCCCC::::C",
+	"S:::::S            TTTTTT  T:::::T  TTTTTTiiiiiii C:::::C       CCCCCC",
+	"S:::::S                    T:::::T        i:::::iC:::::C              ",
+	" S::::SSSS                 T:::::T         i::::iC:::::C              ",
+	"  SS::::::SSSSS            T:::::T         i::::iC:::::C              ",
+	"    SSS::::::::SS          T:::::T         i::::iC:::::C              ",
+	"       SSSSSS::::S         T:::::T         i::::iC:::::C              ",
+	"            S:::::S        T:::::T         i::::iC:::::C              ",
+	"            S:::::S        T:::::T         i::::i C:::::C       CCCCCC",
+	"SSSSSSS     S:::::S      TT:::::::TT      i::::::i C:::::CCCCCCCC::::C",
+	"S::::::SSSSSS:::::S      T:::::::::T      i::::::i  CC:::::::::::::::C",
+	"S:::::::::::::::SS       T:::::::::T      i::::::i    CCC::::::::::::C",
+	" SSSSSSSSSSSSSSS         TTTTTTTTTTT      iiiiiiii       CCCCCCCCCCCCC"
+      };
     
-                                                                  
-    
+    cerr<<endl;
     for(int ii = 0; ii<16; ii++) fprintf(stderr,"%s\n", title[ii]);
     cerr<<endl;
   }               
