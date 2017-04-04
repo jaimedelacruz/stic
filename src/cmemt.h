@@ -34,7 +34,7 @@
 #include <stdlib.h>
 #include <sstream>
 #include <cstring>
-#include <math.h>
+#include <cmath>
 //
 template <class T> std::string formatVect(std::vector<T> &in){
   std::stringstream res;
@@ -315,7 +315,7 @@ template <class T> class mat {
   }
 
   bool isNaN() const{
-    for(size_t ii=0; ii<nel; ii++) if(isnan(d[ii])) return true;
+    for(size_t ii=0; ii<nel; ii++) if(std::isnan(d[ii])) return true;
     return false;
   }
   

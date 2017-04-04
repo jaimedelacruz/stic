@@ -15,7 +15,7 @@ OMPI_CC = $(CC)
 MPCXX = mpicxx
 MPFC = mpif90
 
-LINKER = MPICXX
+LINKER = $(MPCXX)
 
 #
 # OPTIMIZATION

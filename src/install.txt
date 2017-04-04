@@ -1,5 +1,5 @@
 The STIC inversion code based on the RH code.
-Coded by J. de la Cruz Rodriguez (jaime@astro.su.se)
+0;95;0cCoded by J. de la Cruz Rodriguez (jaime@astro.su.se)
 
 RH was developed by H. Uitenbroek (Uitenbroek 2001).
 
@@ -59,3 +59,32 @@ make
 
 If there were no errors, STiC.x should exist now in that folder.
 That is your binary!
+
+
+
+Kebnekaise
+==========
+
+To compile the code in kebnekaise, make sure you link the corresponding makefile (ln -s makefile.x86_64.Linux.kebnekaise makefile.x86_64.Linux)
+Load the following modules:
+module load intel/2017.01
+module load impi
+module load GSL
+module load Eigen
+module load netCDF-C++4
+
+Then in src/ type the following commands to link Eigen3:
+mkdir eigen3
+cd eigen3/
+ln -s /usr/lib/R/site-library/RcppEigen/include/Eigen .
+
+Now go to rh/
+make
+
+Now go to rh/rh_1d/
+make
+
+Now from /src
+make
+
+If all went fine, you should have STiC.x in your folder!
