@@ -26,7 +26,7 @@ FDENS = cop.o ceos.o io.o depthmodel.o fillDensities.o
 	$(FC) $(FFLAGS) -c  $< -o $@
 
 STiC: $(FFILES) $(OFILES_SPARSE)
-	$(LINKER) -o STiC.x  $(OPTS) $(OPENMP) $(FFILES) $(OFILES_SPARSE) $(INCLUDE) $(LIBS) $(LINKEROPTS) 
+	$(LINKER) $(LINKEROPTS) -o STiC.x  $(OPTS) $(OPENMP) $(FFILES) $(OFILES_SPARSE) $(INCLUDE) $(LIBS)
 
 clean:
 	rm -f *.o *.mod
