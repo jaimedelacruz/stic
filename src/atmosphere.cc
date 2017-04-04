@@ -500,7 +500,8 @@ double atmos::fitModel2(mdepth_t &m, int npar, double *pars, int nobs, double *o
     /* --- init parameters for this inversion --- */
     
     memcpy(&ipars[0], &pars[0], npar * sizeof(double));
-    if(iter > 0) randomizeParameters(input.nodes , npar, &ipars[0]);
+    if(iter > 0 || input.random_first)
+      randomizeParameters(input.nodes , npar, &ipars[0]);
 
     
     /* --- Work with normalized parameters --- */

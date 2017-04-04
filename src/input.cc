@@ -99,6 +99,7 @@ iput_t read_input(std::string filename, bool verbose){
   input.svd_thres = 1.0e-5;
   input.svd_split = 1;
   input.regularize = 0.0;
+  input.random_first = 0;
   
   // Open File and read
   std::ifstream in(filename, std::ios::in | std::ios::binary);
@@ -175,6 +176,10 @@ iput_t read_input(std::string filename, bool verbose){
       }
       else if(key == "keep_nne"){
 	input.keep_nne = atoi(field.c_str());
+	set = true;
+      }
+      else if(key == "randomize_first"){
+	input.random_first = atoi(field.c_str());
 	set = true;
       }
       else if(key == "randomize_inversions"){
