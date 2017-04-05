@@ -154,7 +154,7 @@ def fftconvol2d(im, psf, padding = 1, no_shift = False):
         print("fftconvol2d: ERROR, images must be 2 dimensions:")
         print(" IMG -> ", n)
         print(" PSF -> ", n1)
-        return(0)
+        return(im)
 
     # Get padded dims
     npad = n + n1

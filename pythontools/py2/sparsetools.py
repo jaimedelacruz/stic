@@ -6,6 +6,7 @@ import sys
 import imtools as im
 import scipy.ndimage.filters as fil
 import scipy.interpolate as inte
+import mathtools as mt
 #
 #import ipdb as db
 import matplotlib.pyplot as plt
@@ -296,15 +297,20 @@ class model:
             # Smooth with PSF
             for ii in range(numnodes):
                 if(median > 0):
-                     ivar[ii,:,:] = fil.median_filter( ivar[ii,:,:].squeeze(), size=median)
-                ivar[ii,:,:] = im.fftconvol2d(ivar[ii,:,:].squeeze(), psf, padding = 1)
+                     ivar[ii,:,:] = fil.median_filter( ivar[ii,:,:].squeeze(), size=median).reshape((ivar.shape[1::]))
+                if(len(ivar[ii].squeeze().shape) == 1):
+                    idx = np.where(psf == psf.max())
+                    ipsf = psf[idx[0], :].squeeze()
+                    ivar[ii,:,:] = mt.convolve(ivar[ii].squeeze(), ipsf/ipsf.sum()).reshape(ivar.shape[1::])
+                else:
+                    ivar[ii,:,:] = im.fftconvol2d(ivar[ii,:,:].squeeze(), psf, padding = 1).reshape(ivar.shape[1::])
             ivar = np.copy(ivar.transpose((1,2,0)), order='c')
 
             # interpolate depth
             if(numnodes == 1):
                 ivar = ivar.squeeze()
                 for kk in range(self.ndep):
-                    res[tt,:,:,kk] = ivar
+                    res[tt,:,:,kk] = ivar.reshape(res.shape[1:3])
             elif(numnodes == 2):
                 for yy in range(self.ny):
                     for xx in range(self.nx):
@@ -315,7 +321,7 @@ class model:
                         res[tt,yy,xx,:] = np.interp(tau, itau, ivar[yy,xx,:]) #mt.hermpol(itau, ivar[yy,xx,:], tau)
         return(res)
     
-    def smooth(self, ntemp=0, nvlos=0, nvturb=0, nB=0, ninc=0, nazi=0, fwhm = 1.0, t0=0, t1=-1, median = -1):
+    def smooth(self, ntemp=0, nvlos=0, nvturb=0, nB=0, ninc=0, nazi=0, npgas=0, fwhm = 1.0, t0=0, t1=-1, median = -1):
         # Get Gaussian PSF to smooth the vars
         npsf = max(int(fwhm) * 3, 3)
         npsf2 = float(npsf/2)
@@ -340,7 +346,8 @@ class model:
             self.inc[:] = self._smoothVar(ninc, self.inc, tau, psf, median, t0=t0, t1=t1)
         if(nazi > 0):
             self.azi[:] = self._smoothVar(nazi, self.azi, tau, psf, median, t0=t0, t1=t1)
-
+        if(npgas > 0):
+            self.pgas[:] = 10.0**self._smoothVar(npgas, np.log10(self.pgas), tau, psf, median, t0=t0, t1=t1)
 
     def write(self, filename, write_all=True, t0 = 0, \
               t1 = -1, x0=0, x1=-1, y0=0, y1=-1, z0 = 0, z1 = -1):
