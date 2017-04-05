@@ -3,7 +3,7 @@ IMTOOLS module contains routines that are usually used to manipulate images.
 Author: J. de la Cruz Rodriguez (ISP-SU 2015)
 """
 import numpy as np
-#import ipdb as db
+import ipdb as db
 import matplotlib.pyplot as plt
 from scipy.interpolate import interp2d
 
@@ -32,9 +32,9 @@ def histo_opt(img, cutoff = 1.e-3, top_only = False, bottom_only = False, get_id
     if(img.dtype.name.find('int') == -1): # Image is float/double
         ma = img.max()
         mi = img.min()
-        fak = 10000. / (ma - mi)
-        nbins = 10000
-        hi, xl = np.histogram(((img-mi)*fak).astype('int16'), bins = nbins)
+        nbins = 10001
+        fak = float(nbins-1) / (ma - mi)
+        hi, xl = np.histogram(((img-mi)*fak).astype('int32'), bins = nbins)
     else: # Image is integer
         fak = 1
         mi = img.min()
@@ -46,13 +46,22 @@ def histo_opt(img, cutoff = 1.e-3, top_only = False, bottom_only = False, get_id
     hi = np.asarray(hi)
 
     # Cumulative sum and normalize total power
-    for i in xrange(nh-1): hi[i+1] += hi[i]
-    hi = hi.astype('float32') / hi[-1]
+    for i in range(1,nh,1): hi[i] += hi[i-1]
+    hi = np.float32(hi) / hi[-1]
     
     # Locate the value that is below the threshold
-    cmin = np.max(np.where(hi <= cutoff)[0]) / fak + mi
-    cmax = np.min(np.where(hi >= (1.0 - cutoff))[0]) / fak + mi
-    
+    cmin = np.where(hi <= cutoff)[0]
+    if(len(cmin) == 0):
+        cmin = mi
+    else:
+        cmin = float(cmin.max()) / fak + mi
+        
+    cmax = np.where(hi >= (1.0 - cutoff))[0]
+    if(len(cmax) == 0):
+        cmax = ma
+    else:
+        cmax = float(cmax.min()) / fak + mi
+        
         
     # Return the clipped image
     if(top_only == True and bottom_only == False):
