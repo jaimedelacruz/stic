@@ -217,9 +217,10 @@ void atmos::randomizeParameters(nodes_t &n, int npar, double *pars){
       pertu =  rnum * scal[pp]*phyc::PI;
     else if(n.ntype[pp] == azi_node)
       pertu =  rnum * scal[pp]*phyc::PI;   
-    else if(n.ntype[pp] == pgas_node)
-      pertu = (rnum-0.35);
-      
+    else if(n.ntype[pp] == pgas_node){
+      pertu = 1.0 + (rnum-0.35);
+      pars[pp] = 0.0;
+    }
     pars[pp] = checkParameter(pars[pp] + pertu, pp);
   }
 
