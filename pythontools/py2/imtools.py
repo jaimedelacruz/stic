@@ -3,7 +3,7 @@ IMTOOLS module contains routines that are usually used to manipulate images.
 Author: J. de la Cruz Rodriguez (ISP-SU 2015)
 """
 import numpy as np
-import ipdb as db
+#import ipdb as db
 import matplotlib.pyplot as plt
 from scipy.interpolate import interp2d
 
