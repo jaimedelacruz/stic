@@ -440,8 +440,9 @@ double clm::fitdata(clm_func fx, double *x, void *mydat, int maxiter)
       /* --- Prep lambda for next iter. If we have been increasing lambda,
 	 do not decrease it again until next iteration 
 	 --- */
-      
-      if(nretry == 0 || lambda >= 1.0) lambda = checkLambda(lambda / lfac);
+
+      double ilfac = (lambda > 0.1)? lfac : sqrt(lfac);
+      if(nretry == 0 || lambda >= 1.0) lambda = checkLambda(lambda / ilfac);
       
 
       /* --- is the improvements below our threshold? --- */
@@ -463,8 +464,8 @@ double clm::fitdata(clm_func fx, double *x, void *mydat, int maxiter)
       
     }else{
       /* --- Prep lambda for next trial --- */
-      
-      lambda = checkLambda(lambda * lfac);
+      double ilfac = (lambda >= 0.1)? lfac : sqrt(lfac);
+      lambda = checkLambda(lambda * ilfac);
       nretry++;
       rej = " *";
       
@@ -686,10 +687,10 @@ void clm::compute_trial3(double *res, double **rf, double lambda,
        --- */
     
     diag[yy] = max(A(yy,yy), diag[yy]*0.6);
-    if(diag[yy] == 0.0 || diag[yy] < 1.e-6) diag[yy] = 1.0; 
+    if(diag[yy] == 0.0) diag[yy] = 1.0; 
     //
-    double idia = diag[yy] , thrfac = 1.0e4;
-    if(idia > A(yy,yy)*thrfac) idia = A(yy,yy)*thrfac;
+    double idia = diag[yy];// , thrfac = 1.0e4;
+    //if(idia > A(yy,yy)*thrfac) idia = A(yy,yy)*thrfac;
 
     
     /* --- Add regularization terms --- */
@@ -702,8 +703,8 @@ void clm::compute_trial3(double *res, double **rf, double lambda,
     
     /* --- Damp the diagonal of A --- */
     
-    A(yy,yy) += lambda * idia;
-    //A(yy,yy) *= (1.0 + lambda);
+    //A(yy,yy) += lambda * idia;
+    A(yy,yy) *= (1.0 + lambda);
     
     /* --- Compute J^t * Residue --- */
     

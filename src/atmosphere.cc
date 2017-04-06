@@ -231,12 +231,12 @@ void getDregul2(double *m, int npar, double *dregul, nodes_t &n)
 
   std::vector<double> tmp, tmp1;
   double penalty = 0.0, ssum = 0.0;
-  const double weights[3] = {0.10,0.35,10.0};
+  const double weights[3] = {0.10,0.5,10.0};
 
   
   /* --- Tikhonov's regularization on first derivative for Temp --- */
   
-  if(n.toinv[0] && false){
+  if(n.toinv[0] && true){
     int nn = (int)n.temp.size();
     
     if(nn > 1){
@@ -455,7 +455,7 @@ double atmos::fitModel2(mdepth_t &m, int npar, double *pars, int nobs, double *o
   lm.chi2_thres = input.chi2_thres;
   lm.lmax = 1.e3;
   lm.lmin = 1.e-3;
-  lm.lfac = 10.;//sqrt(10.);
+  lm.lfac = 10.0;
   lm.proc = input.myrank;
   if(input.regularize >= 1.e-5){
     lm.regularize = true;
