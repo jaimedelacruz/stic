@@ -302,7 +302,7 @@ bool crh::synth(mdepth_t &m_in, double *syn, cprof_solver sol, bool save_pops){
     m.pgas[kk] = (nhtot[kk] * eos.totalAbund / eos.ABUND[0] + m.nne[kk]) *
       phyc::BK * m_in.temp[kk] * 1.e-6;
 
-    m_in.pgas[kk] = m.pgas[kk]; // preserve pgas at the boundary otherwise the inversion is unstable
+    if(kk > 0) m_in.pgas[kk] = m.pgas[kk]; // preserve pgas at the boundary otherwise the inversion can be unstable
     m_in.nne[kk] = m.nne[kk] * 1.0e-6;
   }
   
