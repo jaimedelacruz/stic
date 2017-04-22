@@ -64,7 +64,7 @@ void atmos::responseFunction(int npar, mdepth_t &m_in, double *pars, int nd, dou
   double pertu = 0.0;
     
   //
-  if(input.nodes.ntype[pp] == temp_node) pertu = input.dpar * pval * 0.4;
+  if(input.nodes.ntype[pp] == temp_node) pertu = input.dpar * pval * 0.25;
   else                                   pertu = input.dpar * scal[pp];
 
   
@@ -226,45 +226,49 @@ void atmos::randomizeParameters(nodes_t &n, int npar, double *pars){
 
   
 }
+
+/* --------------------------------------------------------------------------------------------------- */
+
+double tikhonov1_dregul(int n, double *ltau, double *var, double weight, double *res)
+{
+
+  double c = weight / n,  penalty = 0.0;
+  
+  
+  /* --- Derivative in the first and last points --- */
+  
+  res[0]   =  c * (var[1] - var[0]) / (ltau[1] - ltau[0]);// ltau_range;
+  res[n-1] =  -c * (var[n-1] - var[n-2]) / (ltau[n-1] - ltau[n-2]) ;/// ltau_range;
+  
+  
+  /* --- Derivative in intermediate points --- */
+
+  for(int kk=1;kk<n-1;kk++ ){
+    double dt0 = (ltau[kk]-ltau[kk-1]), dt1 = (ltau[kk+1]-ltau[kk]);//, dtau = dt0+dt1;
+    res[kk] =  c * ( (var[kk+1] - var[kk])/dt1 - (var[kk] - var[kk-1])/dt0   ) ;//* (dtau / ltau_range);
+  }
+
+
+  /* --- Penalty term --- */
+
+  for(int ii = 1; ii<n; ii++){
+    penalty += mth::sqr((var[ii] - var[ii-1]) / (ltau[ii] - ltau[ii-1]));
+  }
+
+
+return penalty*fabs(c);///ltau_range;
+}
+
+
+/* --------------------------------------------------------------------------------------------------- */
+
 void getDregul2(double *m, int npar, double *dregul, nodes_t &n)
 {
 
   std::vector<double> tmp, tmp1;
   double penalty = 0.0, ssum = 0.0;
-  const double weights[3] = {0.10,0.5,10.0};
+  const double weights[3] = {0.10,0.5,2.0};
 
-  
-  /* --- Tikhonov's regularization on first derivative for Temp --- */
-  
-  if(n.toinv[0] && true){
-    int nn = (int)n.temp.size();
-    
-    if(nn > 1){
-      tmp.resize(nn, 0.0);
-      tmp1.resize(nn, 0.0);
-
-      mth::cent_der<double>(nn,&n.temp[0], &m[n.temp_off], &tmp[0]);
-      mth::cent_der<double>(nn,&n.temp[0], &tmp[0], &tmp1[0]);
-      mth::cent_der<double>(nn,&n.temp[0], &tmp1[0], &dregul[n.temp_off]);
-      mth::cmul<double>(nn, &dregul[n.temp_off], 2*weights[0]/nn);
-      penalty += weights[0] * mth::ksum2(nn, &tmp1[0]) / nn;
-    }
-  }
-
-  
-  /* --- Tikhonov's regularization on first derivative for vlos --- */
-  
-  if(n.toinv[1] && true){
-    int nn = (int)n.v.size();
-    
-    if(nn > 1){
-      tmp.resize(nn, 0.0);
-      mth::cent_der<double>(nn,&n.v[0], &m[n.v_off], &tmp[0]);
-      mth::cent_der<double>(nn,&n.v[0],        &tmp[0], &dregul[n.v_off]);
-      mth::cmul<double>(nn, &dregul[n.v_off], 2*weights[1]/nn);
-      penalty +=weights[1] * mth::ksum2(nn, &tmp[0]) / nn;
-    }
-  }
   
   /* --- Penalize deviations from zero for Vturb --- */
 
@@ -272,10 +276,21 @@ void getDregul2(double *m, int npar, double *dregul, nodes_t &n)
     int nn = (int)n.vturb.size();          
     double sum2 = 0.0;
     for(size_t ii=0; ii<nn; ii++) {
-      dregul[n.vturb_off+ii] = 2.0 * weights[2] * m[n.vturb_off+ii] / nn;
+      dregul[n.vturb_off+ii] = weights[2] * m[n.vturb_off+ii] / nn;
       sum2 +=  mth::sqr( m[n.vturb_off+ii]);
     }
     penalty +=  weights[2] * sum2 / nn;
+  }
+  
+
+
+  /* --- Penalize fluctuations in the first derivative of temp and Vlos --- */
+
+  if(n.toinv[0] && true){ // temperature
+    int nn = (int)n.temp.size();          
+    if(nn > 2){
+      penalty += tikhonov1_dregul(nn, &n.temp[0], &m[n.temp_off], weights[0], &dregul[n.temp_off]);
+    }
   }
   
   
@@ -283,57 +298,7 @@ void getDregul2(double *m, int npar, double *dregul, nodes_t &n)
   
 }
 
-void getDregul(mdepth &m, int npar, double *dregul, nodes_t &n)
-{
-  const double scale[2] = {0.05, 0.05};
-  double penalty = 0.0, sum = 0.0, total = 0.0;
-  double bla[2] = {0.0,0.0};
-  
-  if(n.toinv[2]){
-    
-    /* --- Vturb regularization: penalize deviations from zero --- */
-    
-    for(size_t ii=0; ii<m.ndep; ii++) penalty += mth::sqr((m.vturb[ii]-sum)*1.e-5);
-    penalty *= scale[0]/m.ndep;
-    
-    
-    /* --- Now derivative of vturb --- */
-    
-    for(size_t ii=0; ii<m.ndep; ii++) bla[0] += 2.0e-5 * (m.vturb[ii]-sum);
-    bla[0] *= scale[0]/m.ndep;
-    
-  } else bla[0] = 0.0;
-  
-  
-  if(n.toinv[1]){
-    
-    
-    /* --- Vlos regularization: penalize deviations from the mean value --- */
-    
-    sum = 0.0;
-    total = mth::sum(m.ndep, m.v) / m.ndep;
-    for(size_t ii=0; ii<m.ndep; ii++) sum += mth::sqr((m.v[ii]-total)*1.e-5);
-    penalty +=  sum * scale[1] / m.ndep;
-    
-    
-    /* --- Now derivative of Vlos --- */
-    
-    for(size_t ii=0; ii<m.ndep; ii++) bla[1] += 2.0e-5 * (m.v[ii]-total);
-    bla[1] *= scale[1]/m.ndep;
-    
-  }else bla[1] = 0.0;
-    
-    for(size_t ii=0; ii<npar; ii++) {
-      if     (n.ntype[ii] == vturb_node) dregul[ii] = bla[0];
-      else if(n.ntype[ii] == v_node    ) dregul[ii] = bla[1];
-      else                               dregul[ii] = 0.0;
-    }
-  
-
-  /* --- Store the Chi2 penalty in the last element of dregul --- */
-  
-  dregul[npar] = penalty;
-}
+/* --------------------------------------------------------------------------------------------------- */
 
 int getChi2(int npar1, int nd, double *pars1, double *dev, double **derivs, void *tmp1, double *dregul){
 
@@ -459,7 +424,7 @@ double atmos::fitModel2(mdepth_t &m, int npar, double *pars, int nobs, double *o
   lm.proc = input.myrank;
   if(input.regularize >= 1.e-5){
     lm.regularize = true;
-    lm.regul_scal = input.regularize;
+    lm.regul_scal_in = input.regularize;
   } else lm.regularize = false;
   
   /* ---  Set parameter limits --- */
