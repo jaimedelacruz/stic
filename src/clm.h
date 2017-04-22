@@ -5,7 +5,7 @@
    author: J. de la Cruz Rodriguez (Department of Astronomy, Stockholm University 2016)
    
    DEPENDENCIES:
-          EIGEN3, LaPack (routines commented out, but still working).
+          EIGEN3, for SVD decomposition.
 
    PARAMETERS: (DEFAULT VALUES) 
       svd_thres  = 1.e-16 -> Relative threshold for small singular values
@@ -83,7 +83,7 @@ class clm{
   std::vector<unsigned> ptype, ntype;
   std::vector<std::vector<unsigned>> pidx;
   bool verb, regularize, first;
-  double xtol, chi2_thres, svd_thres, lfac, lmax, lmin, ilambda, regul_scal;
+  double xtol, chi2_thres, svd_thres, lfac, lmax, lmin, ilambda, regul_scal, regul_scal_in;
   int maxreject, proc, nvar;
 
   
@@ -104,6 +104,9 @@ class clm{
   double compute_chi2(double *res, double penalty);
   double getChi2Pars(double *res, double **rf, double lambda,
 		     double *x, double *xnew, void *mydat, clm_func fx, double *dregul);
+  double getChi2ParsLineSearch(double *res, double **rf, double &lambda,
+			       double *x, double *xnew, void *mydat,
+			       clm_func fx, double *dregul, double rchi2);
   //  void compute_trial3(double *res, double **rf, double lambda,
   //	      double *x, double *xnew);
   void compute_trial2(double *res, double **rf, double lambda,

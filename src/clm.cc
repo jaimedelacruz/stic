@@ -26,6 +26,9 @@
 			      We proceed as described by Ruiz-Cobo & del Toro-Iniesta (1992).
 			      Basically the singular values are projected into the sub-space
 			      of each parameter and processed there.
+
+	   2017-04-21, JdlCR: Implemented simple bracketing of lambda for best convergence.
+	                      Also fixed regularization, according to Nik's comments.
 */
 
 #include <algorithm>
@@ -38,6 +41,7 @@
 #include <eigen3/Eigen/Dense>
 #include <eigen3/Eigen/SVD>
 #include "clm.h"
+#include "interpol.h"
 
 using namespace std;
 using namespace Eigen;
@@ -202,6 +206,7 @@ clm::clm(int ind, int inpar){
   error = false;
   regularize = false; // Compute regularization terms in fx ?
   regul_scal = 1.0;   // scale factor for regularization terms
+  regul_scal_in = 0.0;   // scale factor for regularization terms input
   proc = 0;           // print-out processor number
 }
 
@@ -304,7 +309,6 @@ void clm::zero(double *res, double **rf)
 
 double clm::compute_chi2(double *res, double penalty)
 {
-  // std::cerr<< (double)sumarr2(res,nd)/double(nd)<<" "<<penalty<<std::endl;
   return (double)sumarr2_4(res,nd)/double(nd) + penalty*regul_scal;				 
 }
 
@@ -319,7 +323,6 @@ double clm::getChi2Pars(double *res, double **rf, double lambda,
   /* --- Get new estimate of the model for the current lambda value --- */
   
   memset(xnew, 0, sizeof(double)*npar);
-  //compute_trial2(res, rf, lambda, x, xnew, dregul);
   compute_trial3(res, rf, lambda, x, xnew, dregul);
 
 
@@ -347,6 +350,98 @@ double clm::getChi2Pars(double *res, double **rf, double lambda,
 
 /* -------------------------------------------------------------------------------- */
 
+double clm::getChi2ParsLineSearch(double *res, double **rf, double &lambda,
+				  double *x, double *xnew, void *mydat, clm_func fx, double *dregul, double rchi2)
+{
+
+  /* --- Braket lambda/chi2 --- */
+
+  vector<vector<double>> ixnew;
+  vector<double> ilamb, ichi, tmp(npar, 0.0);
+  ilamb.push_back(lambda);
+  
+
+  
+  /* --- Init chi2 --- */
+  
+  ichi.push_back(getChi2Pars(res, rf, ilamb[0], x, xnew, mydat, fx, dregul));
+  memcpy(&tmp[0],xnew, npar*sizeof(double)), ixnew.push_back(tmp);
+  
+
+  /* --- Can we take larger steps if Chi2 was ok? --- */
+  
+  if(ichi[0] < rchi2){ // Things improved compared to reference chi2, try to go further!
+    int kk = 0;
+    while((kk<1) || (ichi[kk] < ichi[kk-1])){
+      double ilfac = (ilamb[kk] > 0.1)? lfac : sqrt(lfac);
+      ilamb.push_back(ilamb[kk] / ilfac);
+      ichi.push_back(getChi2Pars(res, rf, ilamb[kk+1], x, xnew, mydat, fx, dregul));
+      memcpy(&tmp[0],xnew, npar*sizeof(double)), ixnew.push_back(tmp);
+      kk += 1;
+    }
+
+
+    /* --- Check the index of the smallest chi2 --- */
+    
+    int idx = 0, nn=(int)ichi.size();
+    if(nn > 1)
+      for(kk = 1; kk<nn; kk++){
+	if(ichi[kk]<ichi[kk-1]) idx = kk;
+      }
+
+
+    /* --- if the best chi2 is in the first element, try to bracket it --- */
+    
+    kk = 0;
+    while(idx == 0 && kk++ <= 2){
+      double ilfac = (ilamb[0]  >= 0.1)? lfac : sqrt(lfac);
+      ilamb.insert(ilamb.begin(), ilamb[0] * ilfac);
+      ichi.insert(ichi.begin(), getChi2Pars(res, rf, ilamb[0], x, xnew, mydat, fx, dregul));
+      memcpy(&tmp[0],xnew, npar*sizeof(double)), ixnew.insert(ixnew.begin(), tmp);
+      
+      /* --- Check the index of the smallest chi2 after adding a new element --- */
+      
+      int idx = 0, nn=(int)ichi.size();
+      if(nn > 1)
+	for(kk = 1; kk<nn; kk++){
+	if(ichi[kk]<ichi[kk-1]) idx = kk;
+	}
+    } // while
+    
+    
+    /* --- If we have braketed lambda with 3 values, use parabolic interpolation, 
+       otherwise just take the best value we have (indexed by idx at this point) --- */
+    
+    if(idx != 0){
+      vector<double> cc = parab_fit<double>(log(ilamb[idx-1]), log(ilamb[idx]),
+					    log(ilamb[idx+1]), (ichi[idx-1]), (ichi[idx]),
+					    (ichi[idx+1]));
+      
+      ilamb.push_back(exp(-0.5 * cc[1]/cc[2]));
+      ichi.push_back(getChi2Pars(res, rf, ilamb[ilamb.size()-1], x, xnew, mydat, fx, dregul));
+      memcpy(&tmp[0],xnew, npar*sizeof(double)), ixnew.push_back(tmp);
+
+      if(ichi[ichi.size()-1] < ichi[idx]) idx = (int)ichi.size()-1;
+      
+    }
+
+    /* --- Copy best solution to output array --- */
+    
+    memcpy(xnew, &ixnew[idx][0], npar*sizeof(double));
+    lambda = ilamb[idx];
+    return ichi[idx];
+    
+  }else{ // Chi2 is worse than reference chi2
+
+    /* --- Get out and increase lambda outside --- */
+    
+    return ichi[0];
+  }
+
+}
+
+/* -------------------------------------------------------------------------------- */
+
 void clm::scaleRF(double **rf)
 {
   for(int pp = 0; pp<npar;pp++){
@@ -364,6 +459,8 @@ double clm::fitdata(clm_func fx, double *x, void *mydat, int maxiter)
 
   /* --- Init variables --- */
 
+  regul_scal = regul_scal_in;
+  
   getParTypes();
   double chi2 = 1.e13, ochi2 = 1.e13, bestchi2 = 1.e13, olambda = 0.0, t0 = 0, t1 = 0;
   int iter = 0, nretry = 0;
@@ -407,11 +504,12 @@ double clm::fitdata(clm_func fx, double *x, void *mydat, int maxiter)
     scaleRF(rf);
     memcpy(&bestpars[0], &x[0], npar*sizeof(double));
     //
-    ochi2 = compute_chi2(res, (dregul)?dregul[npar]*regul_scal:0.0);
+    ochi2 = compute_chi2(res, (dregul)?dregul[npar]:0.0);
     bestchi2 = ochi2;
     
     if(verb)
-      fprintf(stdout, "[p:%4d, Init] chi2=%f (%f), lambda=%e\n", proc, ochi2,(dregul)?dregul[npar]*regul_scal:0.0 , lambda);
+      fprintf(stdout, "[p:%4d, Init] chi2=%f (%f), lambda=%e\n", proc,
+	      ochi2-((dregul)?dregul[npar]*regul_scal:0.0), ((dregul)?dregul[npar]*regul_scal:0.0) , lambda);
   }
 
   /* --- Main iterations --- */
@@ -424,7 +522,7 @@ double clm::fitdata(clm_func fx, double *x, void *mydat, int maxiter)
        inside getChi2Pars 
        --- */
     if(error) break;
-    chi2 = getChi2Pars(res, rf, lambda, x, xnew, mydat, fx, dregul);
+    chi2 = getChi2ParsLineSearch(res, rf, lambda, x, xnew, mydat, fx, dregul, bestchi2);
     if(chi2 != chi2) error = true;
     if(error) break;
     
@@ -441,8 +539,8 @@ double clm::fitdata(clm_func fx, double *x, void *mydat, int maxiter)
 	 do not decrease it again until next iteration 
 	 --- */
 
-      double ilfac = (lambda > 0.1)? lfac : sqrt(lfac);
-      if(nretry == 0 || lambda >= 1.0) lambda = checkLambda(lambda / ilfac);
+      //double ilfac = (lambda > 0.1)? lfac : sqrt(lfac);
+      //if(nretry == 0 || lambda >= 1.0) lambda = checkLambda(lambda / ilfac);
       
 
       /* --- is the improvements below our threshold? --- */
@@ -463,16 +561,20 @@ double clm::fitdata(clm_func fx, double *x, void *mydat, int maxiter)
       rej = " ";
       
     }else{
+      
       /* --- Prep lambda for next trial --- */
+      
       double ilfac = (lambda >= 0.1)? lfac : sqrt(lfac);
       lambda = checkLambda(lambda * ilfac);
       nretry++;
       rej = " *";
       
       if(nretry < maxreject){
+	if(nretry == (maxreject-3) || lambda > 10.) regul_scal *= 0.85;
+	
 	if(verb)
 	  fprintf(stderr,"[p:%4d,i:%4d]  ->  chi2=%f (%f), increasing lambda [%e -> %e]\n",
-		  proc,iter, chi2, (dregul)?dregul[npar]*regul_scal:0.0,olambda, lambda);
+		  proc,iter, chi2-((dregul)?dregul[npar]*regul_scal:0.0), ((dregul)?dregul[npar]*regul_scal:0.0),olambda, lambda);
 	continue;
       }
 	
@@ -483,8 +585,8 @@ double clm::fitdata(clm_func fx, double *x, void *mydat, int maxiter)
     t1 = getTime();
 
     if(verb)
-      fprintf(stderr,"[p:%4d,i:%4d] chi2=%14.5f (%f), dchi2=%e, lambda=%e, elapsed=%5.3fs %s\n",
-	      proc,iter, chi2, (dregul)?dregul[npar]*regul_scal:0.0,chi2-ochi2, olambda, t1-t0,rej.c_str());
+      fprintf(stderr,"[p:%4d,i:%4d] chi2=%14.5f (%f, %f), dchi2=%e, lambda=%e, elapsed=%5.3fs %s\n",
+	      proc,iter, chi2-((dregul)?dregul[npar]*regul_scal:0.0), ((dregul)?dregul[npar]*regul_scal:0.0) ,regul_scal,chi2-ochi2, olambda, t1-t0,rej.c_str());
     
     ochi2 = chi2;
 
@@ -528,6 +630,12 @@ double clm::fitdata(clm_func fx, double *x, void *mydat, int maxiter)
     
     scaleRF(rf);
     iter++;
+
+    
+    /* --- Scale down the regularization term if needed --- */
+
+    const int offset_iter = 4;
+    if( (fabs(reldchi) < 5.e-2)) regul_scal *= 0.85;
   }
   
   /* --- Copy results to output array --- */
@@ -619,7 +727,6 @@ void clm::compute_trial2(double *res, double **rf, double lambda,
      The SVD is computed with Eigen3 instead of LaPack.
      --- */
   
-  //JacobiSVD<MatrixXd,FullPivHouseholderQRPreconditioner> svd(A, ComputeFullU | ComputeFullV);
   JacobiSVD<MatrixXd,ColPivHouseholderQRPreconditioner> svd(A, ComputeThinU | ComputeThinV);
 
   svd.setThreshold(svd_thres);
@@ -692,25 +799,26 @@ void clm::compute_trial3(double *res, double **rf, double lambda,
     double idia = diag[yy];// , thrfac = 1.0e4;
     //if(idia > A(yy,yy)*thrfac) idia = A(yy,yy)*thrfac;
 
-    
-    /* --- Add regularization terms --- */
 
-    for(int xx = 0; xx<=yy; xx++){
-      if(dregul) A(yy,xx) += dregul[xx]*dregul[yy]*regul_scal*regul_scal;
-      A(xx,yy) = A(yy,xx); // Remember that A is symmetric!
-    }
+    
+    for(int xx = 0; xx<=yy; xx++) A(xx,yy) = A(yy,xx); // Remember that A is symmetric!
+
+    
+    /* --- Regularization terms are diagonal (?) --- */
+    
+    if(dregul) A(yy,yy) += dregul[yy]*regul_scal;
+
     
     
     /* --- Damp the diagonal of A --- */
     
-    //A(yy,yy) += lambda * idia;
-    A(yy,yy) *= (1.0 + lambda);
+    A(yy,yy) += lambda * idia;
+    //A(yy,yy) *= (1.0 + lambda);
     
     /* --- Compute J^t * Residue --- */
     
     for(int ww = 0; ww<nd; ww++) tmp[ww] = rf[yy][ww] * res[ww];
-    B[yy] = sumarr_4(&tmp[0], nd);
-    
+    B[yy] = sumarr_4(&tmp[0], nd);    
   } // yy
 
   
