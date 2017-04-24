@@ -237,8 +237,8 @@ double tikhonov1_dregul(int n, double *ltau, double *var, double weight, double 
   
   /* --- Derivative in the first and last points --- */
   
-  res[0]   =  c * (var[1] - var[0]) / (ltau[1] - ltau[0]);// ltau_range;
-  res[n-1] =  -c * (var[n-1] - var[n-2]) / (ltau[n-1] - ltau[n-2]) ;/// ltau_range;
+  res[0]   =  -c * (var[1] - var[0]) / (ltau[1] - ltau[0]);// ltau_range;
+  res[n-1] =  c * (var[n-1] - var[n-2]) / (ltau[n-1] - ltau[n-2]) ;/// ltau_range;
   
   
   /* --- Derivative in intermediate points --- */
@@ -267,7 +267,7 @@ void getDregul2(double *m, int npar, double *dregul, nodes_t &n)
 
   std::vector<double> tmp, tmp1;
   double penalty = 0.0, ssum = 0.0;
-  const double weights[3] = {0.10,0.5,2.0};
+  const double weights[4] = {0.5,0.8,2.0,1.0};
 
   
   /* --- Penalize deviations from zero for Vturb --- */
@@ -281,7 +281,26 @@ void getDregul2(double *m, int npar, double *dregul, nodes_t &n)
     }
     penalty +=  weights[2] * sum2 / nn;
   }
+
   
+  /* --- Penalize deviations from mean for Vlos --- */
+
+
+  if(n.toinv[1] && true){
+    int nn = (int)n.v.size();          
+
+    double sum2 = 0.0;
+    double me = mth::mean(nn, &m[n.v_off]); // Get the mean velocity
+    
+    for(size_t ii=0; ii<nn; ii++) {
+      double tmp = m[n.v_off+ii] - me;
+      dregul[n.v_off+ii] = weights[1] * tmp/ nn;
+      sum2 +=  tmp*tmp;
+    }
+    penalty +=  weights[1] * sum2 / nn;
+  }
+
+
 
 
   /* --- Penalize fluctuations in the first derivative of temp and Vlos --- */
@@ -292,6 +311,24 @@ void getDregul2(double *m, int npar, double *dregul, nodes_t &n)
       penalty += tikhonov1_dregul(nn, &n.temp[0], &m[n.temp_off], weights[0], &dregul[n.temp_off]);
     }
   }
+
+
+  /* --- Penalize deviations from the mean of Bstr --- */
+
+  if(n.toinv[3] && true){
+    int nn = (int)n.b.size();          
+
+    double sum2 = 0.0;
+    double me = mth::mean(nn, &m[n.b_off]); // Get the mean Bstr
+    
+    for(size_t ii=0; ii<nn; ii++) {
+      double tmp = m[n.b_off+ii] - me;
+      dregul[n.b_off+ii] = weights[3] * tmp/ nn;
+      sum2 +=  tmp*tmp;
+    }
+    penalty +=  weights[3] * sum2 / nn;
+  }
+
   
   
   dregul[npar] = penalty;
@@ -418,8 +455,8 @@ double atmos::fitModel2(mdepth_t &m, int npar, double *pars, int nobs, double *o
   lm.maxreject = 6;
   lm.svd_thres = max(input.svd_thres, 1.e-16);
   lm.chi2_thres = input.chi2_thres;
-  lm.lmax = 1.e3;
-  lm.lmin = 1.e-3;
+  lm.lmax = 1.e4;
+  lm.lmin = 1.e-4;
   lm.lfac = 10.0;
   lm.proc = input.myrank;
   if(input.regularize >= 1.e-5){

@@ -371,16 +371,16 @@ double clm::getChi2ParsLineSearch(double *res, double **rf, double &lambda,
   /* --- Can we take larger steps if Chi2 was ok? --- */
   
   if(ichi[0] < rchi2){ // Things improved compared to reference chi2, try to go further!
-    int kk = 0;
-    while((kk<1) || (ichi[kk] < ichi[kk-1])){
-      double ilfac = (ilamb[kk] > 0.1)? lfac : sqrt(lfac);
+    int kk = 0, iter = 0;
+    while((kk<1) || ((ichi[kk] < ichi[kk-1]) && (iter++ < 4) && (lambda > 1.e-5))){
+      double ilfac = lfac;//(ilamb[kk] > 0.1)? lfac : sqrt(lfac);
       ilamb.push_back(ilamb[kk] / ilfac);
       ichi.push_back(getChi2Pars(res, rf, ilamb[kk+1], x, xnew, mydat, fx, dregul));
       memcpy(&tmp[0],xnew, npar*sizeof(double)), ixnew.push_back(tmp);
       kk += 1;
     }
 
-
+    
     /* --- Check the index of the smallest chi2 --- */
     
     int idx = 0, nn=(int)ichi.size();
@@ -389,22 +389,28 @@ double clm::getChi2ParsLineSearch(double *res, double **rf, double &lambda,
 	if(ichi[kk]<ichi[kk-1]) idx = kk;
       }
 
+    if(idx == (nn-1)){ // We could not braket the solution, just return the best
+      memcpy(xnew, &ixnew[idx][0], npar*sizeof(double));
+      lambda = ilamb[idx];
+      return ichi[idx];
+    }
+    
 
     /* --- if the best chi2 is in the first element, try to bracket it --- */
     
     kk = 0;
     while(idx == 0 && kk++ <= 2){
-      double ilfac = (ilamb[0]  >= 0.1)? lfac : sqrt(lfac);
+      double ilfac = lfac;//(ilamb[0]  >= 0.1)? lfac : sqrt(lfac);
       ilamb.insert(ilamb.begin(), ilamb[0] * ilfac);
       ichi.insert(ichi.begin(), getChi2Pars(res, rf, ilamb[0], x, xnew, mydat, fx, dregul));
       memcpy(&tmp[0],xnew, npar*sizeof(double)), ixnew.insert(ixnew.begin(), tmp);
       
       /* --- Check the index of the smallest chi2 after adding a new element --- */
       
-      int idx = 0, nn=(int)ichi.size();
-      if(nn > 1)
-	for(kk = 1; kk<nn; kk++){
-	if(ichi[kk]<ichi[kk-1]) idx = kk;
+      idx = 0, nn=(int)ichi.size();
+      if(nn != 1)
+	for(int ii = 1; ii<nn; ii++){
+	  if(ichi[ii]<ichi[ii-1]) idx = ii;
 	}
     } // while
     
@@ -413,18 +419,36 @@ double clm::getChi2ParsLineSearch(double *res, double **rf, double &lambda,
        otherwise just take the best value we have (indexed by idx at this point) --- */
     
     if(idx != 0){
-      vector<double> cc = parab_fit<double>(log(ilamb[idx-1]), log(ilamb[idx]),
-					    log(ilamb[idx+1]), (ichi[idx-1]), (ichi[idx]),
-					    (ichi[idx+1]));
-      
-      ilamb.push_back(exp(-0.5 * cc[1]/cc[2]));
-      ichi.push_back(getChi2Pars(res, rf, ilamb[ilamb.size()-1], x, xnew, mydat, fx, dregul));
-      memcpy(&tmp[0],xnew, npar*sizeof(double)), ixnew.push_back(tmp);
-
-      if(ichi[ichi.size()-1] < ichi[idx]) idx = (int)ichi.size()-1;
-      
+      for(int ii=0; ii<2; ii++){
+	vector<double> cc = parab_fit<double>(log(ilamb[idx-1]), log(ilamb[idx]),
+					      log(ilamb[idx+1]), (ichi[idx-1]), (ichi[idx]),
+					      (ichi[idx+1]));
+	
+	double glamb = exp(-0.5 * cc[1]/cc[2]);
+	double gchi  = getChi2Pars(res, rf, glamb, x, &tmp[0], mydat, fx, dregul);
+	
+	if(gchi < ichi[idx]){
+	  ichi.push_back(gchi);
+	  ilamb.push_back(glamb);
+	  ixnew.push_back(tmp);
+	  idx = (int)ichi.size()-1;
+	  break;
+	}else{ // Braket one more time with this new value
+	  int dir = -1;
+	  if(glamb < ilamb[idx]) dir = 1;
+	  ichi[idx+dir] = gchi;
+	  ilamb[idx+dir] = glamb;
+	  ixnew[idx+dir] = tmp;
+	}
+      }
     }
-
+    
+    if(0){
+      fprintf(stderr,"[ %f(%e) ", ichi[0], ilamb[0]);
+      for(int ii=1; ii<(int)ichi.size(); ii++) fprintf(stderr,"%f(%e) ",  ichi[ii], ilamb[ii]);
+      fprintf(stderr,"] -> %f(%e)\n", ichi[idx], ilamb[idx]);
+    }
+    
     /* --- Copy best solution to output array --- */
     
     memcpy(xnew, &ixnew[idx][0], npar*sizeof(double));
@@ -463,8 +487,9 @@ double clm::fitdata(clm_func fx, double *x, void *mydat, int maxiter)
   
   getParTypes();
   double chi2 = 1.e13, ochi2 = 1.e13, bestchi2 = 1.e13, olambda = 0.0, t0 = 0, t1 = 0;
+  double orchi2=1.e13, rchi2=1.e13;
   int iter = 0, nretry = 0;
-  bool exitme = false, toolittle = false;
+  bool exitme = false, toolittle = false, dcreased = false;
   string rej = "";
   memset(&diag[0],0,npar*sizeof(double));
   error = false;
@@ -506,6 +531,8 @@ double clm::fitdata(clm_func fx, double *x, void *mydat, int maxiter)
     //
     ochi2 = compute_chi2(res, (dregul)?dregul[npar]:0.0);
     bestchi2 = ochi2;
+    orchi2 = ochi2 - ((dregul)?dregul[npar]*regul_scal:0.0);
+    
     
     if(verb)
       fprintf(stdout, "[p:%4d, Init] chi2=%f (%f), lambda=%e\n", proc,
@@ -523,6 +550,8 @@ double clm::fitdata(clm_func fx, double *x, void *mydat, int maxiter)
        --- */
     if(error) break;
     chi2 = getChi2ParsLineSearch(res, rf, lambda, x, xnew, mydat, fx, dregul, bestchi2);
+    rchi2 = chi2 - ((dregul)?dregul[npar]*regul_scal:0.0);
+	
     if(chi2 != chi2) error = true;
     if(error) break;
     
@@ -532,17 +561,20 @@ double clm::fitdata(clm_func fx, double *x, void *mydat, int maxiter)
 
     double reldchi = 2.0 * (chi2 - bestchi2) / (chi2 + bestchi2);
     olambda = lambda;
-
-    if(chi2 < bestchi2){
+    if(lambda >= 1.e4) lambda = 1.e2;
+    
+    if((!dcreased && chi2 < bestchi2) || (dcreased && rchi2 < orchi2)){
       
       /* --- Prep lambda for next iter. If we have been increasing lambda,
 	 do not decrease it again until next iteration 
 	 --- */
-
+      
       //double ilfac = (lambda > 0.1)? lfac : sqrt(lfac);
       //if(nretry == 0 || lambda >= 1.0) lambda = checkLambda(lambda / ilfac);
       
-
+      lambda *= lfac; // Helps to braket the solution
+      if(lambda <= 1.e-3) lambda = 1.e-1;
+      
       /* --- is the improvements below our threshold? --- */
 
       if(fabs(reldchi) < xtol){
@@ -554,24 +586,30 @@ double clm::fitdata(clm_func fx, double *x, void *mydat, int maxiter)
       /* --- Store new best guessed model --- */
       
       bestchi2 = chi2;
+      orchi2  = chi2 - ((dregul)?dregul[npar]*regul_scal:0.0);
+      //
       memcpy(&bestpars[0], xnew, npar*sizeof(double));
       memcpy(&x[0],        xnew, npar*sizeof(double));
       nretry = 0;
 
+      dcreased = false;
       rej = " ";
       
     }else{
       
       /* --- Prep lambda for next trial --- */
       
-      double ilfac = (lambda >= 0.1)? lfac : sqrt(lfac);
+      double ilfac = lfac;//(lambda >= 0.1)? lfac : sqrt(lfac);
       lambda = checkLambda(lambda * ilfac);
       nretry++;
       rej = " *";
       
       if(nretry < maxreject){
-	if(nretry == (maxreject-3) || lambda > 10.) regul_scal *= 0.85;
-	
+	if(nretry == (maxreject-3)){
+	  regul_scal *= 0.75;
+	  dcreased = true;
+	}else dcreased = false;
+	  
 	if(verb)
 	  fprintf(stderr,"[p:%4d,i:%4d]  ->  chi2=%f (%f), increasing lambda [%e -> %e]\n",
 		  proc,iter, chi2-((dregul)?dregul[npar]*regul_scal:0.0), ((dregul)?dregul[npar]*regul_scal:0.0),olambda, lambda);
@@ -635,7 +673,10 @@ double clm::fitdata(clm_func fx, double *x, void *mydat, int maxiter)
     /* --- Scale down the regularization term if needed --- */
 
     const int offset_iter = 4;
-    if( (fabs(reldchi) < 5.e-2)) regul_scal *= 0.85;
+    if( (fabs(reldchi) < 2.e-2)){
+      regul_scal *= 0.75;
+      dcreased = true;
+    }
   }
   
   /* --- Copy results to output array --- */
@@ -812,8 +853,8 @@ void clm::compute_trial3(double *res, double **rf, double lambda,
     
     /* --- Damp the diagonal of A --- */
     
-    A(yy,yy) += lambda * idia;
-    //A(yy,yy) *= (1.0 + lambda);
+    //A(yy,yy) += lambda * idia;
+    A(yy,yy) *= (1.0 + lambda);
     
     /* --- Compute J^t * Residue --- */
     
