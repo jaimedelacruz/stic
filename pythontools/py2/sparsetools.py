@@ -11,6 +11,8 @@ import mathtools as mt
 #import ipdb as db
 import matplotlib.pyplot as plt
 import sparsetools as sp
+from scipy.interpolate import interp2d
+
 #
 
 def nodes(ma, mi, n, ex):
@@ -18,6 +20,9 @@ def nodes(ma, mi, n, ex):
     kk /= kk.max()
     return(kk*(ma-mi) + mi)
 #
+def is_odd(num):
+    if(num & 0x1): return True
+    else: return False
 
 class model:
     def __init__(self,  file=None, nx=0, ny=0, ndep=0, nt=0, verb = True):
@@ -94,7 +99,51 @@ class model:
         m.cmass[:,:,:,:] = self.cmass[t0:t1,y0:y1,x0:x1,z0:z1]
         #
         return(m)
+
+    def _intVar(self, v, nx=1, ny=1, fac = 1):
+
+        if(nx==self.nx and self.ny == ny): return v
             
+        facx = np.arange(nx)[0::fac][-1]
+        facy = np.arange(ny)[0::fac][-1]
+        print("model::_intVar: facy={0}, facx={1}, ny={2}, nx={3}".format(facy, facx, ny-1, nx-1))
+        
+        xx = np.arange(self.nx, dtype='float32') / (self.nx-1.0)*facx
+        yy = np.arange(self.ny, dtype='float32') / (self.ny-1.0)*facy
+        
+        xx1 = np.arange(nx, dtype='float32')
+        yy1 = np.arange(ny, dtype='float32')
+        
+
+        m = np.zeros((self.nt, ny, nx, self.ndep), dtype='float32')
+        
+        for tt in range(self.nt):
+            for kk in range(self.ndep):
+                inte = interp2d(xx,yy,v[tt,:,:,kk].squeeze(), kind='linear')
+                m[tt,:,:,kk] = inte(xx1, yy1)
+        return m
+    
+    def scale(self, ny=1, nx=1, fac=-1):
+
+        
+        m = model(nx=nx, ny=ny, nt=self.nt, ndep=self.ndep)
+
+        m.ltau[:,:,:,:] = self._intVar(self.ltau, nx=nx, ny=ny, fac=fac)
+        m.z[:,:,:,:] = self._intVar(self.z*1.e-5, nx=nx, ny=ny, fac=fac)*1.e5
+        m.temp[:,:,:,:] = self._intVar(self.temp, nx=nx, ny=ny, fac=fac)
+        m.vlos[:,:,:,:] = self._intVar(self.vlos*1.e-5, nx=nx, ny=ny, fac=fac)*1.e5
+        m.vturb[:,:,:,:] = self._intVar(self.vturb*1.e-5, nx=nx, ny=ny, fac=fac)*1.e5
+        m.B[:,:,:,:] = self._intVar(self.B, nx=nx, ny=ny, fac=fac)
+        m.inc[:,:,:,:] = self._intVar(self.inc, nx=nx, ny=ny, fac=fac)
+        m.azi[:,:,:,:] = self._intVar(self.azi, nx=nx, ny=ny, fac=fac)
+        m.pgas[:,:,:,:] = self._intVar(self.pgas, nx=nx, ny=ny, fac=fac)
+        m.nne[:,:,:,:] = self._intVar(self.nne, nx=nx, ny=ny, fac=fac)
+        m.rho[:,:,:,:] = self._intVar(self.rho, nx=nx, ny=ny, fac=fac)
+        m.cmass[:,:,:,:] = self._intVar(self.cmass, nx=nx, ny=ny, fac=fac)
+
+        return m
+
+    
     def read(self, file, verb = True, t0 = 0, t1 = -1, x0 = 0, x1 = -1 , y0 = 0, y1 = -1):
         inam =  'model::read: '
         if(not os.path.isfile(file)):
@@ -322,8 +371,11 @@ class model:
         return(res)
     
     def smooth(self, ntemp=0, nvlos=0, nvturb=0, nB=0, ninc=0, nazi=0, npgas=0, fwhm = 1.0, t0=0, t1=-1, median = -1):
+        
         # Get Gaussian PSF to smooth the vars
-        npsf = max(int(fwhm) * 3, 3)
+        npsf = max(int(fwhm), 3)
+        if(not is_odd(npsf)): npsf -= 1
+        
         npsf2 = float(npsf/2)
         sig2  = (fwhm / (2.0 * np.sqrt(2.0 * np.log(2.0))))**2
         psf = np.zeros((npsf,npsf), dtype='float64', order='c')
@@ -488,6 +540,44 @@ class model:
 
 
 class profile:
+    def scale(self, ny=1, nx = 1):
+        m = sp.profile(nt=self.nt, ny=ny, nx=nx, nw=self.nw, ns=self.ns)
+        
+        xx = np.arange(self.nx, dtype='float32')
+        yy = np.arange(self.ny, dtype='float32')
+
+        xx1 = np.arange(nx, dtype='float32')/(nx-1.0) * self.nx
+        yy1 = np.arange(ny, dtype='float32')/(ny-1.0) * self.ny
+
+        me = np.mean(self.dat[:,:,:,:,0])
+        if(me < 1.e-19): me = 1.0
+        me1 = 1.0 / me
+        
+        
+        for tt in range(self.nt):
+            inte = interp2d(xx,yy,self.pweights[tt,:,:], kind='linear')
+            m.pweights[yy,:,:] = inte(xx1,yy1)
+             
+            for ww in range(self.nw):
+                for ss in range(self.ns):
+                    inte = interp2d(xx,yy,self.dat[tt,:,:,ww,ss].squeeze()*me1, kind='linear')
+                    m.dat[tt,:,:,ww,ss] = inte(xx1,yy1)*me
+
+        m.wav[:] = self.wav
+        m.weights[:,:] = self.weights[:,:]
+        
+                     
+        return m
+
+    def skip(self, fx=2, fy=2):
+        nt,ny,nx,nw,ns = self.dat[:,0::fy, 0::fx, :,:].shape[:]
+        m = sp.profile(nx=nx, ny=ny, nt=nt, nw=nw, ns=ns)
+        m.dat[:,:,:,:,:] = self.dat[:,0::fy,0::fx,:,:]
+        m.weights[:,:] = self.weights[:,:]
+        m.wav[:] = self.wav
+        m.pweights[:] = self.pweights[:,0::fy,0::fx]
+        return m
+                    
     def __init__(self, filename = "", nx = 1, ny = 1, nw = 1, ns = 4, nt = 1, \
                  dtype = 'float64', verbose=True):
                  
