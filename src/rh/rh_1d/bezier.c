@@ -9,6 +9,10 @@
 
    Modifications:
            2017-03-12, JdlCR: Created!
+	   2017-04-27, JdlCR: Removed linear approximation from the last interval,
+	                      instead we set the last derivative using the linear
+			      approximation. This ensures continuity and derivability
+			      in the upwind point of the last interval.
 
    ----------------------------------------------------------------------- */
 
@@ -281,7 +285,7 @@ void PiecewiseStokesBezier3(int nspect, int mu, bool_t to_obs,
   const char routineName[] = "PiecewiseStokesBezier3";
   register int k, n, m, i, j;
   
-  int    Ndep = geometry.Ndep, k_start, k_end, dk;
+  int    Ndep = geometry.Ndep, k_start, k_end, dk, k_last;
   double dtau_uw, dtau_dw = 0.0, c1, c2, w[3], dsdn2, dchi_dn,
     I_upw[4], Bnu[2];
   double dchi_up,dchi_c,dt03;
@@ -385,28 +389,53 @@ void PiecewiseStokesBezier3(int nspect, int mu, bool_t to_obs,
 
   
   /* --- Solve transfer along ray --                   -------------- */
-
-  for (k = k_start+dk;  k != k_end;  k += dk) {      
+  
+  k_last = k_end  + dk;
+  //
+  for (k = k_start+dk; k != k_last;  k += dk) {      
       
     /* ---  dchi/ds at downwind point --- */
+
+    if(k != k_end){
       
-    dsdn = fabs(z[k+dk] - z[k]) * imu;
+      dsdn = fabs(z[k+dk] - z[k]) * imu;
       
-    if(fabs(k-k_end)>1){
-      dsdn2=fabs(z[k+2*dk] - z[k+dk]) * imu;
-      dchi_dn = cent_deriv(dsdn,dsdn2,chi[k],chi[k+dk],chi[k+2*dk]);       
-    } else dchi_dn=(chi[k+dk]-chi[k])/dsdn;
-      
+      if(fabs(k-k_end)>1){
+	dsdn2=fabs(z[k+2*dk] - z[k+dk]) * imu;
+	dchi_dn = cent_deriv(dsdn,dsdn2,chi[k],chi[k+dk],chi[k+2*dk]);       
+      } else dchi_dn=(chi[k+dk]-chi[k])/dsdn;
+     
       
     /* --- Make sure that c1 and c2 don't do below zero --- */
       
-    c2 = max(chi[k]    + (dsdn/3.0) * dchi_c , 0.0);
-    c1 = max(chi[k+dk] - (dsdn/3.0) * dchi_dn, 0.0);
+      c1 = max(chi[k+dk] - (dsdn/3.0) * dchi_dn, 0.0);
+      c2 = max(chi[k]    + (dsdn/3.0) * dchi_c , 0.0);
+    
       
+      /* --- Bezier3 integrated dtau --- */
       
-    /* --- Bezier3 integrated dtau --- */
+      dtau_dw = 0.25 * dsdn * (chi[k] + chi[k+dk] + c1 + c2);
       
-    dtau_dw = 0.25 * dsdn * (chi[k] + chi[k+dk] + c1 + c2);
+      /* ---- get algebra in place --- */
+
+      StokesK(nspect, k+dk, chi[k+dk], Kd);
+      Svec(k+dk, S, Sd);
+      
+      cent_deriv_mat(dK0, dtau_uw, dtau_dw, Ku, K0, Kd);
+      cent_deriv_vec(dS0, dtau_uw, dtau_dw, Su, S0, Sd);
+      
+    } else{
+
+      /* --- Last interval, assume linear dependence for the derivatives 
+	 at the central point. In that case all the info related to the 
+	 downwind point can be ditched --- */
+      
+      for(n=0;n<4;n++){
+	dS0[n] = (S0[n] - Su[n]) / dtau_uw;	
+	for(m=0;m<4;m++) dK0[n][m] = (K0[n][m] - Ku[n][m]) / dtau_uw;
+      }
+    }
+    
     dt = dtau_uw, dt03 = dt / 3.0;
 
     
@@ -418,16 +447,11 @@ void PiecewiseStokesBezier3(int nspect, int mu, bool_t to_obs,
     /* --- Diagonal operator --- */
       
     if(Psi) Psi[k] = alpha + gamma;
-      
-      
-    /* ---- get algebra in place --- */
-      
-    StokesK(nspect, k+dk, chi[k+dk], Kd);
-    Svec(k+dk, S, Sd);
-    //
-    cent_deriv_mat(dK0, dtau_uw, dtau_dw, Ku, K0, Kd);
-    cent_deriv_vec(dS0, dtau_uw, dtau_dw, Su, S0, Sd);
-    //
+
+
+    
+    /* --- Build the linear system of equations to get the intensity --- */
+    
     m4m(Ku, Ku, Ma); // Ku # Ku
     m4m(K0, K0, A ); // K0 # K0
 
@@ -468,8 +492,8 @@ void PiecewiseStokesBezier3(int nspect, int mu, bool_t to_obs,
     
     
     for(i=0;i<4;i++) I[i][k] = V1[i];
-      
-      
+
+    
     /* --- Shift values for next depth --- */
       
     memcpy(Su,   S0, 4*sizeof(double));
@@ -486,39 +510,7 @@ void PiecewiseStokesBezier3(int nspect, int mu, bool_t to_obs,
     dchi_c  = dchi_dn;
       
   }
-      
-  /* --- Linear integration in the last interval --- */
-  
-  k = k_end;
-  dtau_uw = 0.5*imu * (chi[k] + chi[k-dk]) *
-    fabs(geometry.height[k] - geometry.height[k-dk]);
-  w3(dtau_uw, w);
-      
-  for (n = 0;  n < 4;  n++) V0[n] = w[0]*S[n][k] + w[1] * -dSu[n]; // dSu is defined negative in Han's implementation
-  if (Psi) Psi[k] = w[0] - w[1] / dtau_uw;
-      
-  for (n = 0;  n < 4;  n++) {
-    for (m = 0;  m < 4;  m++) {
-      A[n][m] = -w[1]/dtau_uw * Ku[n][m];
-      Md[n][m] = (w[0] - w[1]/dtau_uw) * K0[n][m];
-    }
-    A[n][n] = 1.0 - w[0];
-    Md[n][n] = 1.0;
-  }
-      
-  for (n = 0;  n < 4;  n++) 
-    for (m = 0;  m < 4;  m++) 
-      V0[n] += A[n][m] * I[m][k-dk];
 
-  
-  /* --- Solve linear system --- */
-  
-  SIMD_MatInv(Md[0]); // Invert Md
-  m4v(Md,V0,V1);      // Multiply Md^-1 * V0
-  
-  
-  for (n = 0;  n < 4;  n++) I[n][k] = V1[n];
-  
 }
 
 /* --------------------------------------------------------------- */
@@ -635,79 +627,69 @@ void Piecewise_Bezier3(int nspect, int mu, bool_t to_obs,
 
   for (k = k_start+dk;  k != k_end+dk;  k += dk) {
     
-    if (k != k_end) {
-
+    if(k != k_end){
+      
       /* downwind path length */
-       dsdn = fabs(geometry.height[k+dk] - geometry.height[k]   ) * zmu;
-       
+      dsdn = fabs(geometry.height[k+dk] - geometry.height[k]   ) * zmu;
+      
       /* dchi/ds at downwind point */
-       
-       if (fabs(k-k_end)>1) {
-	 dsdn2=fabs(geometry.height[k+2*dk] - geometry.height[k+dk]) * zmu;
-	 dchi_dn = cent_deriv(dsdn,dsdn2,chi[k],chi[k+dk],chi[k+2*dk]);       
-       } else {
-	 dchi_dn=(chi[k+dk]-chi[k])/dsdn;
-       }
-       
-       /* --- Make sure that c1 and c2 don't do below zero --- */
+      
+      if (fabs(k-k_end)>1) {
+	dsdn2=fabs(geometry.height[k+2*dk] - geometry.height[k+dk]) * zmu;
+	dchi_dn = cent_deriv(dsdn,dsdn2,chi[k],chi[k+dk],chi[k+2*dk]);       
+      } else {
+	dchi_dn=(chi[k+dk]-chi[k])/dsdn;
+      }
+      
+      /* --- Make sure that c1 and c2 don't do below zero --- */
+      
+      c1 = max(chi[k]    + (dsdn/3.0) * dchi_c,  0.0);
+      c2 = max(chi[k+dk] - (dsdn/3.0) * dchi_dn, 0.0);
+      
+      
+      /* downwind optical path length */
+      
+      dtau_dw =  dsdn * (chi[k] + chi[k+dk] + c1 + c2) * 0.25;
+
+
+      /* ---  dS/dt at central point --- */
     
-       c1 = max(chi[k]    + (dsdn/3.0) * dchi_c,  0.0);
-       c2 = max(chi[k+dk] - (dsdn/3.0) * dchi_dn, 0.0);
-
-       
-       /* downwind optical path length */
-
-       dtau_dw =  dsdn * (chi[k] + chi[k+dk] + c1 + c2) * 0.25;
-       dt=dtau_uw, dt03 = dt/3.0;
-
-       
-      /* --- compute interpolation parameters --- */
-       
-       Bezier3_coeffs(dt, &alpha, &beta, &gamma, &theta, &eps);
-
-
-       
-       /* ---  dS/dt at central point --- */
-       
-       dS_c = cent_deriv(dtau_uw,dtau_dw,S[k-dk],S[k],S[k+dk]);
-
-       
-       /* --- Source function control points --- */
-       
-       c1 = max(S[k]    - dt03 * dS_c , 0.0);
-       c2 = max(S[k-dk] + dt03 * dS_up, 0.0);       
-
-       
-       /* --- Solve integral in this interval --- */
-       
-       I[k]= I_upw*eps + alpha*S[k] + beta*S[k-dk] + gamma * c1 + theta * c2; 
-
-       
-       /* --- Diagonal operator --- */
-
-       if (Psi) Psi[k] = alpha + gamma;
-       
-    } else { 
+      dS_c = cent_deriv(dtau_uw,dtau_dw,S[k-dk],S[k],S[k+dk]);
       
-      /* --- Piecewise linear integration at end of ray -- ---------- */
-      
-      dtau_uw = 0.5 * zmu * (chi[k] + chi[k-dk]) *
-	fabs(geometry.height[k] - geometry.height[k-dk]);
-      dS_uw = -(S[k] - S[k-dk]) / dtau_uw; // Defined negative in Han's implementation
-      w3(dtau_uw, w);
-      
-      I[k] = (1.0 - w[0])*I_upw + w[0]*S[k] + w[1]*dS_uw;
+    }else{
 
+      /* --- Last interval, use linear approx for the derivative at 
+	 the central point --- */
       
-      /* --- Diagonal operator --- */
-      
-      if (Psi) Psi[k] = w[0] - w[1] / dtau_uw;
+      dS_c = (S[k] -S[k-dk]) / dtau_uw;
     }
+
+    
+    /* --- compute interpolation parameters --- */
+    
+    dt03 = dtau_uw/3.0;
+    Bezier3_coeffs(dtau_uw, &alpha, &beta, &gamma, &theta, &eps);
+
+    
+    
+    /* --- Source function control points --- */
+    
+    c1 = max(S[k]    - dt03 * dS_c , 0.0);
+    c2 = max(S[k-dk] + dt03 * dS_up, 0.0);       
+    
+    
+    /* --- Solve integral in this interval --- */
+    
+    I[k]= I[k-dk]*eps + alpha*S[k] + beta*S[k-dk] + gamma * c1 + theta * c2; 
+    
+    
+    /* --- Diagonal operator --- */
+    
+    if (Psi) Psi[k] = alpha + gamma;
     
     
     /* --- Re-use downwind quantities for next upwind position -- --- */
     
-    I_upw = I[k];
     dsup=dsdn;
     dchi_up=dchi_c;
     dchi_c=dchi_dn;
