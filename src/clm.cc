@@ -199,7 +199,7 @@ clm::clm(int ind, int inpar){
   chi2_thres = 1.0;   // Exit inversion if Chi2 is lower than this
   svd_thres = 1.e-13; // Cut-off "relative" thres. for small singular values
   lmax = 1.0e4;       // Maximum lambda value
-  lmin = 1.0e-3;      // Minimum lambda value
+  lmin = 1.0e-4;      // Minimum lambda value
   lfac = 10.0;         // Change lambda by this amount
   ilambda = 1.0;      // Initial damping parameter for the Hessian giag.
   maxreject = 7;      // Max failed evaluations of lambda.
@@ -389,14 +389,20 @@ double clm::getChi2ParsLineSearch(double *res, double **rf, double &lambda,
 	if(ichi[kk]<ichi[kk-1]) idx = kk;
       }
 
-    if(idx == (nn-1)){ // We could not braket the solution, just return the best
+    
+    /* --- We could not braket the solution, too many iteration or too small lambda, 
+       just return the best we have --- */
+    
+    if(idx == (nn-1)){
       memcpy(xnew, &ixnew[idx][0], npar*sizeof(double));
       lambda = ilamb[idx];
       return ichi[idx];
     }
-    
 
-    /* --- if the best chi2 is in the first element, try to bracket it --- */
+
+    
+    /* --- if the best chi2 is in the first element, try to bracket it by appending 
+       chi2 with larger lambda values --- */
     
     kk = 0;
     while(idx == 0 && kk++ <= 2){
@@ -416,7 +422,11 @@ double clm::getChi2ParsLineSearch(double *res, double **rf, double &lambda,
     
     
     /* --- If we have braketed lambda with 3 values, use parabolic interpolation, 
-       otherwise just take the best value we have (indexed by idx at this point) --- */
+       otherwise just take the best value we have (indexed by idx at this point) 
+       If we improve he solution, just return that value. If not, try to re-bracket 
+       the value of lambda with the new estimate. Only try twice, otherwise we are loosing
+       time.
+       --- */
     
     if(idx != 0){
       for(int ii=0; ii<2; ii++){
@@ -574,6 +584,7 @@ double clm::fitdata(clm_func fx, double *x, void *mydat, int maxiter)
       
       lambda *= lfac; // Helps to braket the solution
       if(lambda <= 1.e-3) lambda = 1.e-1;
+      if(lambda >= 1.e2) lambda = 10.0;
       
       /* --- is the improvements below our threshold? --- */
 
@@ -605,7 +616,7 @@ double clm::fitdata(clm_func fx, double *x, void *mydat, int maxiter)
       rej = " *";
       
       if(nretry < maxreject){
-	if(nretry == (maxreject-3)){
+	if((nretry == (maxreject-3)) && 0){
 	  regul_scal *= 0.75;
 	  dcreased = true;
 	}else dcreased = false;
@@ -673,7 +684,7 @@ double clm::fitdata(clm_func fx, double *x, void *mydat, int maxiter)
     /* --- Scale down the regularization term if needed --- */
 
     const int offset_iter = 4;
-    if( (fabs(reldchi) < 2.e-2)){
+    if( (fabs(reldchi) < 2.e-2) && 0){
       regul_scal *= 0.75;
       dcreased = true;
     }
@@ -690,9 +701,15 @@ double clm::fitdata(clm_func fx, double *x, void *mydat, int maxiter)
   delete [] res;
   delete [] bestpars;
   delete [] xnew;
+  double tmp = (dregul) ? dregul[npar] : 0.0;
   delete [] dregul;
+
+
+  /* --- Since the best solution between different inversions of the same pixel may have
+     reduced the regularization term by different amounts, it makes more sense to scale the 
+     regularization with the initial scale factor (not the decreased one) --- */
   
-  return (double)bestchi2;
+  return (double)orchi2 + tmp*regul_scal_in; 
 }
 
 /* -------------------------------------------------------------------------------- */

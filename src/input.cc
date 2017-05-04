@@ -100,6 +100,7 @@ iput_t read_input(std::string filename, bool verbose){
   input.svd_split = 1;
   input.regularize = 0.0;
   input.random_first = 0;
+  memset(input.nodes.regul_type, 0, 6*sizeof(int));
   
   // Open File and read
   std::ifstream in(filename, std::ios::in | std::ios::binary);
@@ -154,20 +155,27 @@ iput_t read_input(std::string filename, bool verbose){
 	input.solver = atoi(field.c_str());
 	set = true;
       }
-       else if(key == "centered_derivatives"){
+      else if(key == "centered_derivatives"){
 	input.centder = atoi(field.c_str());
 	set = true;
       }
-       else if(key == "recompute_hydro"){
+      else if(key == "recompute_hydro"){
 	input.thydro = atoi(field.c_str());
 	set = true;
       }
-       else if(key == "depth_interpolation"){
+      else if(key == "depth_interpolation"){
 	input.dint = atoi(field.c_str());
 	set = true;
       }
-       else if(key == "regularize"){
+      else if(key == "regularize"){
 	input.regularize = atof(field.c_str());
+	set = true;
+      }
+      else if(key == "regularization_type"){
+	std::vector<std::string> param = strsplit(field,",");
+	int dum = (int)param.size();
+	if(dum > 7) dum = 7;
+	for(int ii = 0; ii<dum; ii++) input.nodes.regul_type[ii] = std::stoi(param[ii]);
 	set = true;
       }
       else if(key == "mode"){
