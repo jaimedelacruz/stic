@@ -31,7 +31,7 @@ extern char messageStr[];
 
 /* ------- begin -------------------------- setOptions.c ------------ */
 
-void setOptions(int argc, char *argv[], int iproc)
+void setOptions(int argc, char *argv[], int iproc, int quiet)
 {
   const  char routineName[] = "setOptions";
   static char logfileName[MAX_LINE_SIZE], wavetable[MAX_LINE_SIZE];
@@ -58,13 +58,17 @@ void setOptions(int argc, char *argv[], int iproc)
   parse(argc, argv, Noption, theOptions);
   sprintf(logfileName, PROCLOGFILE, iproc, (int)getpid());
   strcpy(commandline.logfileName, logfileName);
+  if(quiet) commandline.quiet = TRUE;
+  
   
   if (strlen(logfileName) > 0) {
-    if ((commandline.logfile = fopen(logfileName, "w")) == NULL) {
-      sprintf(messageStr, "Unable to open log file %s", logfileName);
-      Error(ERROR_LEVEL_2, routineName, messageStr);
+    if(!commandline.quiet){
+      if ((commandline.logfile = fopen(logfileName, "w")) == NULL) {
+	sprintf(messageStr, "Unable to open log file %s", logfileName);
+	Error(ERROR_LEVEL_2, routineName, messageStr);
+      }
+      setvbuf(commandline.logfile, NULL, _IOLBF, BUFSIZ);
     }
-    setvbuf(commandline.logfile, NULL, _IOLBF, BUFSIZ);
   } else
     commandline.logfile = stderr;
 

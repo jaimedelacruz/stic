@@ -65,7 +65,7 @@ enum VoigtAlgorithm {ARMSTRONG, RYBICKI, HUI_ETAL, HUMLICEK, LOOKUP};
 void   SetFPEtraps(void);
 void   checkNread(int Nread, int Nrequired, const char *routineName,
 		  int checkPoint);
-void   setOptions(int argc, char *argv[], int iproc);
+void   setOptions(int argc, char *argv[], int iproc, int quiet);
 double vproject(int k, int mu);
 void   Bproject(void);
 bool_t StopRequested(void);
