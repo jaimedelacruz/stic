@@ -253,7 +253,8 @@ double const_dregul(int n, double *ltau, double *var, double weight, double *res
     }
   }else{
     double tmp = var[0]-me;
-    res[0] = weight / 7.0  
+    res[0] = weight / 7.0 * tmp*tmp;
+    penalty = weight / 7.0 * tmp;
   }
 
   return penalty;
