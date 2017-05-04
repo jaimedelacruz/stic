@@ -235,21 +235,27 @@ double const_dregul(int n, double *ltau, double *var, double weight, double *res
      Penalize deviations from me, removed the factor x2 from the derivative
      to be consistent with our LM definition 
      --- */
+  double penalty = 0.0;
   
-  double penalty = 0.0, c = weight / (fabs(ltau[n-1] - ltau[0]));
-  
-  for(int ii = 0; ii<n; ii++){
-    //
-    int i0=std::max(ii-1, 0);
-    int i1=std::min(ii+1, n-1);
-    //
-    double trange = fabs(ltau[i0]-ltau[i1]) * 0.5;
-    double tmp = var[ii] - me;
-    //
-    res[ii] = c * trange * tmp;
-    penalty += c * trange * tmp * tmp;
+  if(n > 1){
+    double c =  weight / fabs(ltau[n-1] - ltau[0]);
+    
+    for(int ii = 0; ii<n; ii++){
+      //
+      int i0=std::max(ii-1, 0);
+      int i1=std::min(ii+1, n-1);
+      //
+      double trange = fabs(ltau[i0]-ltau[i1]) * 0.5;
+      double tmp = var[ii] - me;
+      //
+      res[ii] = c * trange * tmp;
+      penalty += c * trange * tmp * tmp;
+    }
+  }else{
+    double tmp = var[0]-me;
+    res[0] = weight / 7.0  
   }
-  
+
   return penalty;
 }
 
@@ -318,7 +324,7 @@ void getDregul2(double *m, int npar, double *dregul, nodes_t &n)
     int nn = (int)n.temp.size();
     switch(n.regul_type[0]){
     case(1):
-      penalty += tikhonov1_dregul(nn, ltau, &m[n.temp_off], weights[0], &dregul[n.temp_off]);
+      penalty += tikhonov1_dregul(nn, ltau, &m[off], we, &dregul[off]);
       break;
     default:
       break;
