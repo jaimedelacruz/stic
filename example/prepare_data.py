@@ -157,13 +157,13 @@ if __name__ == "__main__":
     fe_1.weights[ife,3] /= 3.5    # Some more weight for V
 
     ca_8.weights[:,:] = 1.e16 # Very high value means weight zero
-    ca_8.weights[ic8,:] = 0.005
-    ca_8.weights[ic8,1:3] /= 6.0 # Some more weight for Q&U
-    ca_8.weights[ic8,3] /= 5.0    # Some more weight for V
+    ca_8.weights[ic8,:] = 0.004
+    ca_8.weights[ic8,1:3] /= 7.0 # Some more weight for Q&U
+    ca_8.weights[ic8,3] /= 4.0    # Some more weight for V
 
     ca_k.weights[:,:] = 1.e16 # Very high value means weight zero
-    ca_k.weights[ick,0] = 0.003
-    ca_k.weights[-1,0] = 0.003 # Continuum point
+    ca_k.weights[ick,0] = 0.002
+    ca_k.weights[-1,0] = 0.004 # Continuum point
 
 
     # Now combine all regions in one object.
@@ -207,7 +207,7 @@ if __name__ == "__main__":
     ntw= 25
     f=fpi.crisp(8542.0)
     tw = (np.arange(ntw)-ntw/2)*dw 
-    tr = f.dual_fpi(tw, erh = -0.01)
+    tr = f.dual_fpi(tw, erh = -0.02)
     tr /= tr.sum()
     writeInstProf('8542.nc', tr,  [8542.091, 9.0, 2.0])
 
