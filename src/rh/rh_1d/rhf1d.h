@@ -58,7 +58,7 @@ extern "C" {
 	       double *rhs_z, double *rhs_nhtot, double *rhs_ltau,
 	       double *rhs_cmass, double gravity, bool_t stokes, ospec *sp,
 	       crhpop *save_pop, int mynw, double *mylambda, int myrank, int savpop,
-	       int iverbose);
+	       int iverbose, int *hydrostat);
 #ifdef __cplusplus
 }
 # endif

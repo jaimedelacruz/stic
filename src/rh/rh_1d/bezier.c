@@ -55,7 +55,7 @@ static const double ident[4][4] =
 inline double cent_deriv(double dsup,double dsdn, 
 			 double chiup,double chic, double chidn)
 {
-  /* --- Derivative Fritsch & Butland (1984) --- */
+  /* --- Derivatives from Fritsch & Butland (1984) --- */
 
   double fim1, fi, alpha, wprime;
   

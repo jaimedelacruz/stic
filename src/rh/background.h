@@ -22,7 +22,7 @@
        equilibrium calculations --                     -------------- */
 
 #define N_MAX_HSE_ITER    100
-#define HSE_ITER_LIMIT    1.0E-5
+#define HSE_ITER_LIMIT    1.0E-3
 
 
 /* --- Structure definitions --                        -------------- */
