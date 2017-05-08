@@ -228,7 +228,7 @@ void atmos::randomizeParameters(nodes_t &n, int npar, double *pars){
 
 /* --------------------------------------------------------------------------------------------------- */
 
-double const_dregul(int n, double *ltau, double *var, double weight, double *res, double me)
+double const_dregul(int n, double *ltau, double *var, double weight, double *res, double me, bool divide_by_n)
 {
   
   /* --- 
@@ -236,6 +236,8 @@ double const_dregul(int n, double *ltau, double *var, double weight, double *res
      to be consistent with our LM definition 
      --- */
   double penalty = 0.0;
+  double c1 = (divide_by_n && (n > 0)) ? 1.0/(n) : 1.0;
+  
   
   if(n > 1){
     double c =  weight / fabs(ltau[n-1] - ltau[0]);
@@ -249,12 +251,12 @@ double const_dregul(int n, double *ltau, double *var, double weight, double *res
       double tmp = var[ii] - me;
       //
       res[ii] = c * trange * tmp;
-      penalty += c * trange * tmp * tmp;
+      penalty += c1 * c * trange * tmp * tmp;
     }
   }else{
     double tmp = var[0]-me;
     res[0] = weight / 7.0 * tmp*tmp;
-    penalty = weight / 7.0 * tmp;
+    penalty = weight * c1 / 7.0 * tmp;
   }
 
   return penalty;
@@ -264,8 +266,13 @@ double const_dregul(int n, double *ltau, double *var, double weight, double *res
 
 double tikhonov1_dregul(int n, double *ltau, double *var, double weight, double *res)
 {
- 
-  double c = weight / n,  penalty = 0.0;
+
+  if(n == 1){
+    res[0] = 0.0;
+    return 0.0;
+  }
+  
+  double penalty = 0.0, c = weight / (n-1.0);
   
   
   /* --- Derivative in the first and last points:
@@ -307,7 +314,7 @@ return penalty*c;///ltau_range;
 
 void getDregul2(double *m, int npar, double *dregul, nodes_t &n)
 {
-  const double weights[7] = {0.8, 0.8, 1.0, 1.0, 1.0, 1.0, 1.0};
+  const double weights[7] = {0.2, 0.8, 1.0, 1.0, 1.0, 1.0, 1.0};
   double penalty = 0.0, *ltau = NULL, we = 0.0;
   nodes_type_t ntype = none_node;
   int off = 0;
@@ -346,10 +353,10 @@ void getDregul2(double *m, int npar, double *dregul, nodes_t &n)
       penalty += tikhonov1_dregul(nn, ltau, &m[off], we, &dregul[off]);
       break;
     case(2):
-      penalty += const_dregul(nn, ltau, &m[off], we, &dregul[off], mth::mean(nn, &m[off]));
+      penalty += const_dregul(nn, ltau, &m[off], we, &dregul[off], mth::mean(nn, &m[off]), true);
       break;
     case(3):
-      penalty += const_dregul(nn, ltau, &m[off], we, &dregul[off], 0.0);	    
+      penalty += const_dregul(nn, ltau, &m[off], we, &dregul[off], 0.0, false);	    
       break;
     default:
       break;
@@ -371,10 +378,10 @@ void getDregul2(double *m, int npar, double *dregul, nodes_t &n)
       penalty += tikhonov1_dregul(nn, ltau, &m[off], we, &dregul[off]);
       break;
     case(2):
-      penalty += const_dregul(nn, ltau, &m[off], we, &dregul[off], mth::mean(nn, &m[off]));
+      penalty += const_dregul(nn, ltau, &m[off], we, &dregul[off], mth::mean(nn, &m[off]), true);
       break;
     case(3):
-      penalty += const_dregul(nn, ltau, &m[off], we, &dregul[off], 0.0);	    
+      penalty += const_dregul(nn, ltau, &m[off], we, &dregul[off], 0.0, false);	    
       break;
     default:
       break;
@@ -396,10 +403,10 @@ void getDregul2(double *m, int npar, double *dregul, nodes_t &n)
       penalty += tikhonov1_dregul(nn, ltau, &m[off], we, &dregul[off]);
       break;
     case(2):
-      penalty += const_dregul(nn, ltau, &m[off], we, &dregul[off], mth::mean(nn, &m[off]));
+      penalty += const_dregul(nn, ltau, &m[off], we, &dregul[off], mth::mean(nn, &m[off]), true);
       break;
     case(3):
-      penalty += const_dregul(nn, ltau, &m[off], we, &dregul[off], 0.0);	    
+      penalty += const_dregul(nn, ltau, &m[off], we, &dregul[off], 0.0, false);	    
       break;
     default:
       break;
@@ -420,7 +427,7 @@ void getDregul2(double *m, int npar, double *dregul, nodes_t &n)
       penalty += tikhonov1_dregul(nn, ltau, &m[off], we, &dregul[off]);
       break;
     case(2):
-      penalty += const_dregul(nn, ltau, &m[off], we, &dregul[off], mth::mean(nn, &m[off]));
+      penalty += const_dregul(nn, ltau, &m[off], we, &dregul[off], mth::mean(nn, &m[off]), true);
       break;
     default:
       break;
@@ -441,7 +448,7 @@ void getDregul2(double *m, int npar, double *dregul, nodes_t &n)
       penalty += tikhonov1_dregul(nn, ltau, &m[off], we, &dregul[off]);
       break;
     case(2):
-      penalty += const_dregul(nn, ltau, &m[off], we, &dregul[off], mth::mean(nn, &m[off]));
+      penalty += const_dregul(nn, ltau, &m[off], we, &dregul[off], mth::mean(nn, &m[off]), true);
       break;
     default:
       break;
@@ -591,7 +598,7 @@ double atmos::fitModel2(mdepth_t &m, int npar, double *pars, int nobs, double *o
   lm.chi2_thres = input.chi2_thres;
   lm.lmax = 1.e4;
   lm.lmin = 1.e-4;
-  lm.lfac = 10.0;
+  lm.lfac = sqrt(10.0);
   lm.proc = input.myrank;
   if(input.regularize >= 1.e-5){
     lm.regularize = true;
