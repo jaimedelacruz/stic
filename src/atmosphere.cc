@@ -235,8 +235,9 @@ double const_dregul(int n, double *ltau, double *var, double weight, double *res
      Penalize deviations from me, removed the factor x2 from the derivative
      to be consistent with our LM definition 
      --- */
-  double penalty = 0.0;
-  double c1 = (divide_by_n && (n > 0)) ? 1.0/(n) : 1.0;
+  double penalty = 0.0, nn = (double)n;
+  
+  double c1 = (divide_by_n && (n > 0)) ? ((nn-1.0) / (nn)) : 1.0;
   
   
   if(n > 1){
