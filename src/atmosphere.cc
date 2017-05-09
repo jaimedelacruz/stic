@@ -315,7 +315,7 @@ return penalty*c;///ltau_range;
 
 void getDregul2(double *m, int npar, double *dregul, nodes_t &n)
 {
-  const double weights[7] = {0.2, 0.8, 1.0, 1.0, 1.0, 1.0, 1.0};
+  const double weights[7] = {0.25, 0.8, 1.0, 1.0, 1.0, 1.0, 3.0};
   double penalty = 0.0, *ltau = NULL, we = 0.0;
   nodes_type_t ntype = none_node;
   int off = 0;
