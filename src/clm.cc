@@ -573,7 +573,7 @@ double clm::fitdata(clm_func fx, double *x, void *mydat, int maxiter)
     olambda = lambda;
     if(lambda >= 1.e4) lambda = 1.e2;
     
-    if((!dcreased && chi2 < bestchi2) || (dcreased && rchi2 < orchi2)){
+    if((!dcreased && (chi2 < bestchi2)) || (dcreased && (rchi2 < orchi2))){
       
       /* --- Prep lambda for next iter. If we have been increasing lambda,
 	 do not decrease it again until next iteration 
@@ -610,7 +610,7 @@ double clm::fitdata(clm_func fx, double *x, void *mydat, int maxiter)
       
       /* --- Prep lambda for next trial --- */
       
-      double ilfac = lfac;//(lambda >= 0.1)? lfac : sqrt(lfac);
+      double ilfac = lfac*lfac;//(lambda >= 0.1)? lfac : sqrt(lfac);
       lambda = checkLambda(lambda * ilfac);
       nretry++;
       rej = " *";

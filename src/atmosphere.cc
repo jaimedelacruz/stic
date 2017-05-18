@@ -209,13 +209,13 @@ void atmos::randomizeParameters(nodes_t &n, int npar, double *pars){
     else if(n.ntype[pp] == v_node)
       pertu =  (rnum - 0.5) * scal[pp];
     else if(n.ntype[pp] == vturb_node){
-      pertu =  (rnum - 0.5) * 2.e5;
+      pertu =  (rnum - 0.75) * 2.e5;
     }else if(n.ntype[pp] == b_node)
       pertu =  (rnum-0.35) * scal[pp];
     else if(n.ntype[pp] == inc_node)
-      pertu =  2*(rnum-0.5) * phyc::PI;
+      pertu =  (rnum-0.5) * phyc::PI;
     else if(n.ntype[pp] == azi_node)
-      pertu =  2*(rnum-0.5) * phyc::PI;   
+      pertu =  (rnum-0.5) * phyc::PI;   
     else if(n.ntype[pp] == pgas_node){
       pertu = 0.0;//1.0 + (rnum-0.35);
       //pars[pp] = 0.0;
@@ -315,7 +315,7 @@ return penalty*c;///ltau_range;
 
 void getDregul2(double *m, int npar, double *dregul, nodes_t &n)
 {
-  const double weights[7] = {0.25, 0.8, 1.0, 1.0, 1.0, 1.0, 3.0};
+  const double weights[7] = {0.05, 7.0, 2.0, 1.0, 1.0, 1.0, 1.5};
   double penalty = 0.0, *ltau = NULL, we = 0.0;
   nodes_type_t ntype = none_node;
   int off = 0;
@@ -435,7 +435,7 @@ void getDregul2(double *m, int npar, double *dregul, nodes_t &n)
     }
   }
 
-  /* --- Penalize inc? --- */
+  /* --- Penalize azi? --- */
   
   if(n.toinv[5] && (n.regul_type[5] > 0)){ // azi
     int nn = (int)n.azi.size();
