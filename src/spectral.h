@@ -12,7 +12,7 @@
 
 typedef struct{
   int n, n1, npad;
-  fftw_plan fwd, rev;
+  fftw_plan fwd, rev, oplan;
   std::vector<double> dat;
   std::vector<std::complex<double>> ft, otf;
 } spec_ft;

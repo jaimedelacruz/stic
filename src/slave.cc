@@ -22,9 +22,11 @@
 #include "depthmodel.h"
 #include "cmemt.h"
 #include "crh.h"
+//
 #include "instruments.h"
 #include "spectral.h"
 #include "fpi.h"
+#include "fpigen.h"
 
 using namespace std;
 //
@@ -72,8 +74,10 @@ void do_slave(int myrank, int nprocs, char hostname[]){
   inst.resize(nreg);
   
   for(int kk = 0; kk<nreg; kk++){
-    if(atmos->input.regions[kk].inst == "spectral") inst[kk] = new spectral(atmos->input.regions[kk], 1);
-    else if(atmos->input.regions[kk].inst == "fpi") inst[kk] = new     sfpi(atmos->input.regions[kk], 1);
+    if(atmos->input.regions[kk].inst == "spectral") inst[kk] = new   spectral(atmos->input.regions[kk], 1);
+    else if(atmos->input.regions[kk].inst == "fpi") inst[kk] = new       sfpi(atmos->input.regions[kk], 1);
+    else if(atmos->input.regions[kk].inst == "fpigen") inst[kk] = new sfpigen(atmos->input.regions[kk], 1);
+
     else inst[kk] = new instrument();
   }
   atmos->inst = &inst[0];
@@ -105,15 +109,23 @@ void do_slave(int myrank, int nprocs, char hostname[]){
     if(input.mode == 1){
 
       /* --- Invert pixels --- */
-      for(int pp = 0; pp<input.nPacked; pp++)
+      for(int pp = 0; pp<input.nPacked; pp++){
+
+	/* --- Update instrumental profile if needed --- */
+	
+	for(int kk = 0; kk<nreg; kk++) inst[kk]->update((size_t)(input.ipix + pp));
+
+	
+	/* --- Perform inversion --- */
+	
 	input.chi[pp] =
 	  atmos->fitModel2( m[pp], input.npar, &pars(pp,0),
-			  (int)(input.nw_tot*input.ns), &obs(pp,0,0), w);
+			    (int)(input.nw_tot*input.ns), &obs(pp,0,0), w);
+      }
+
       
-      // for(int pp=0;pp<int(input.ipix.size());pp++)
-	//	input.chi[pp] = atmos->fitmodel(&pars(pp,0), &obs(pp,0,0));
+      // Send back to master
       
-      // Send back to mater
       comm_slave_pack_data(input, obs, pars, dobs, compute_derivatives, m);
       
     }else if(input.mode == 2){
@@ -141,7 +153,8 @@ void do_slave(int myrank, int nprocs, char hostname[]){
 	if(input.thydro) it.getPressureScale(input.boundary, atmos->eos);
 	else it.fill_densities(atmos->eos, input.keep_nne);
 
-
+	
+	
 	/* --- Synthesize spectra --- */
 	
 	bool conv = atmos->synth(it, &obs(pixel,0,0), (cprof_solver)input.solver);
@@ -155,6 +168,10 @@ void do_slave(int myrank, int nprocs, char hostname[]){
 	  fprintf(stderr, "[%6d] slave: ERROR, atom populations did not converge for pixel (x,y) = [%4d,%4d]\n", myrank, x, y);
 	}
       
+	/* --- Update instrumental profile if needed --- */
+	
+	for(int kk = 0; kk<nreg; kk++) inst[kk]->update((size_t)(input.ipix + pixel));
+
 	
 	/* --- Degrade --- */
 

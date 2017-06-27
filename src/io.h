@@ -193,6 +193,7 @@ class io{
       std::cerr << inam << "writing ["<<vname << "] (t="<< irec <<") to "<<file<<std::endl;
 
     } else if(nun == 0){
+      var.fillNaN(0.0);
       ivar.putVar(&var.d[0]);
       std::cerr << inam << "writing ["<<vname << "] to "<<file<<std::endl;
 

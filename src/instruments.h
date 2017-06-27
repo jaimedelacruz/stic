@@ -9,12 +9,13 @@
 
 class instrument{
  public:
+  size_t ipix;
   //
   instrument(){};
   virtual ~instrument(void){};
   virtual void degrade(mat<double> &syn, bool spectral = true, bool spatial = true, int ntt = -1){};
   virtual void degrade(double *syn, int ns){};
-
+  virtual void update(size_t ipix){};
 };
 
 

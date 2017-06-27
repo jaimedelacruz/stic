@@ -318,7 +318,10 @@ template <class T> class mat {
     for(size_t ii=0; ii<nel; ii++) if(std::isnan(d[ii])) return true;
     return false;
   }
-  
+
+  void fillNaN(const T val = 0){
+    for(size_t ii=0; ii<nel; ii++) if(std::isnan(d[ii])) d[ii] = 0.0;
+  }
 
 };
  
