@@ -304,31 +304,31 @@ iput_t read_input(std::string filename, bool verbose){
 	}
 	set = true;
       }
-      else if(key == "nodes_b"){
+      else if(key == "nodes_blong"){
 	std::vector<std::string> param = strsplit(field,",");
 	if(param.size() == 1) {
 	  double dum = std::stoi(param[0]);
 	  int nn = 1;
 	  if(int(dum+0.5) == 0) nn = 0;
-	  input.nodes.b.resize(nn, dum);
+	  input.nodes.bl.resize(nn, dum);
 	} 
 	else if(param.size() > 1){
-	  input.nodes.b.resize(param.size());
-	  for(int ii = 0; ii<(int)param.size(); ii++) input.nodes.b[ii] = std::stod(param[ii]);
+	  input.nodes.bl.resize(param.size());
+	  for(int ii = 0; ii<(int)param.size(); ii++) input.nodes.bl[ii] = std::stod(param[ii]);
 	}
 	set = true;
       }
-      else if(key == "nodes_inc"){
+      else if(key == "nodes_bhor"){
 	std::vector<std::string> param = strsplit(field,",");
 	if(param.size() == 1) {
 	  double dum = std::stoi(param[0]);
 	  int nn = 1;
 	  if(int(dum+0.5) == 0) nn = 0;
-	  input.nodes.inc.resize(nn, dum);
+	  input.nodes.bh.resize(nn, dum);
 	} 
 	else if(param.size() > 1){
-	  input.nodes.inc.resize(param.size());
-	  for(int ii = 0; ii<(int)param.size(); ii++) input.nodes.inc[ii] = std::stod(param[ii]);
+	  input.nodes.bh.resize(param.size());
+	  for(int ii = 0; ii<(int)param.size(); ii++) input.nodes.bh[ii] = std::stod(param[ii]);
 	}
 	set = true;
       }
@@ -385,11 +385,11 @@ iput_t read_input(std::string filename, bool verbose){
   if(input.nodes.v.size() == 1) input.nodes.nnodes += input.nodes.v[0];
   else input.nodes.nnodes += input.nodes.v.size();
   
-  if(input.nodes.b.size() == 1) input.nodes.nnodes += input.nodes.b[0];
-  else input.nodes.nnodes += input.nodes.b.size();
+  if(input.nodes.bl.size() == 1) input.nodes.nnodes += input.nodes.bl[0];
+  else input.nodes.nnodes += input.nodes.bl.size();
   
-  if(input.nodes.inc.size() == 1) input.nodes.nnodes += input.nodes.inc[0];
-  else input.nodes.nnodes += input.nodes.inc.size();
+  if(input.nodes.bh.size() == 1) input.nodes.nnodes += input.nodes.bh[0];
+  else input.nodes.nnodes += input.nodes.bh.size();
   
   if(input.nodes.azi.size() == 1) input.nodes.nnodes += input.nodes.azi[0];
   else input.nodes.nnodes += input.nodes.azi.size();
@@ -615,37 +615,37 @@ int set_nodes(nodes_t &n, double min, double max, bool verbose){
     n.tosend += 1;
   }
   
-  /* --- b --- */
-  nn = n.b.size();
-  if(nn > 0) n.b_off = k;
-  else n.b_off = -1;
+  /* --- blong --- */
+  nn = n.bl.size();
+  if(nn > 0) n.bl_off = k;
+  else n.bl_off = -1;
   
   if(nn == 1){
-    nn = n.b[0];
-    n.b.resize(nn);
-    equidist(n.b, min, max);
+    nn = n.bl[0];
+    n.bl.resize(nn);
+    equidist(n.bl, min, max);
   }
-  for(int ii = 0; ii<nn; ii++) n.ntype[k++] = b_node;
-  if(verbose) cout << inam << "B -> "<< formatVect<double>(n.b)<<endl;
-  if(n.b.size() > 0) n.toinv[3] = 1;
+  for(int ii = 0; ii<nn; ii++) n.ntype[k++] = bl_node;
+  if(verbose) cout << inam << "Blong -> "<< formatVect<double>(n.bl)<<endl;
+  if(n.bl.size() > 0) n.toinv[3] = 1;
   else{
     n.toinv[3] = 0;
     n.tosend += 1;
   }
   
-  /* --- inc --- */
-  nn = n.inc.size();
-  if(nn > 0) n.inc_off = k;
-  else n.inc_off = -1;
+  /* --- bhor --- */
+  nn = n.bh.size();
+  if(nn > 0) n.bh_off = k;
+  else n.bh_off = -1;
   
   if(nn == 1){
-    nn = n.inc[0];
-    n.inc.resize(nn);
-    equidist(n.inc, min, max);
+    nn = n.bh[0];
+    n.bh.resize(nn);
+    equidist(n.bh, min, max);
   }
-  for(int ii = 0; ii<nn; ii++) n.ntype[k++] = inc_node;
-  if(verbose) cout << inam << "Inc -> "<< formatVect<double>(n.inc)<<endl;
-  if(n.inc.size() > 0) n.toinv[4] = 1;
+  for(int ii = 0; ii<nn; ii++) n.ntype[k++] = bh_node;
+  if(verbose) cout << inam << "Bhor -> "<< formatVect<double>(n.bh)<<endl;
+  if(n.bh.size() > 0) n.toinv[4] = 1;
   else{
     n.toinv[4] = 0;
     n.tosend += 1;
@@ -742,40 +742,40 @@ int set_nodes(nodes_t &n, vector<double> &itau,  int dint, bool verbose){
     n.tosend += 1;
   }
   
-  /* --- b --- */
-  nn = n.b.size();
-  if(nn > 0) n.b_off = k;
-  else n.b_off = -1;
+  /* --- blong --- */
+  nn = n.bl.size();
+  if(nn > 0) n.bl_off = k;
+  else n.bl_off = -1;
   
   if(nn == 1){
-    nn = n.b[0];
-    n.b.resize(nn);
-    equidist(n.b, itau, ((nn >=3) && (dint == 3))?true:false);
-  }else if(nn > 1) for(int ii = 0; ii<nn; ii++) n.b[ii] = nodeLocation(itau, n.b[ii]);
+    nn = n.bl[0];
+    n.bl.resize(nn);
+    equidist(n.bl, itau, ((nn >=3) && (dint == 3))?true:false);
+  }else if(nn > 1) for(int ii = 0; ii<nn; ii++) n.bl[ii] = nodeLocation(itau, n.bl[ii]);
   
-  for(int ii = 0; ii<nn; ii++) n.ntype[k++] = b_node;
-  if(verbose) cout << inam << "B -> "<< formatVect<double>(n.b)<<endl;
-  if(n.b.size() > 0) n.toinv[3] = 1;
+  for(int ii = 0; ii<nn; ii++) n.ntype[k++] = bl_node;
+  if(verbose) cout << inam << "Blong -> "<< formatVect<double>(n.bl)<<endl;
+  if(n.bl.size() > 0) n.toinv[3] = 1;
   else{
     n.toinv[3] = 0;
     n.tosend += 1;
   }
   
-  /* --- inc --- */
-  nn = n.inc.size();
-  if(nn > 0) n.inc_off = k;
-  else n.inc_off = -1;
+  /* --- bhor --- */
+  nn = n.bh.size();
+  if(nn > 0) n.bh_off = k;
+  else n.bh_off = -1;
   
   if(nn == 1){
-    nn = n.inc[0];
-    n.inc.resize(nn);
-    equidist(n.inc, itau, ((nn >=3) && (dint == 3))?true:false);
-  }else if(nn > 1) for(int ii = 0; ii<nn; ii++) n.inc[ii] = nodeLocation(itau, n.inc[ii]);
+    nn = n.bh[0];
+    n.bh.resize(nn);
+    equidist(n.bh, itau, ((nn >=3) && (dint == 3))?true:false);
+  }else if(nn > 1) for(int ii = 0; ii<nn; ii++) n.bh[ii] = nodeLocation(itau, n.bh[ii]);
 
   
-  for(int ii = 0; ii<nn; ii++) n.ntype[k++] = inc_node;
-  if(verbose) cout << inam << "Inc -> "<< formatVect<double>(n.inc)<<endl;
-  if(n.inc.size() > 0) n.toinv[4] = 1;
+  for(int ii = 0; ii<nn; ii++) n.ntype[k++] = bh_node;
+  if(verbose) cout << inam << "Bhor -> "<< formatVect<double>(n.bh)<<endl;
+  if(n.bh.size() > 0) n.toinv[4] = 1;
   else{
     n.toinv[4] = 0;
     n.tosend += 1;

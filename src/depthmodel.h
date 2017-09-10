@@ -16,8 +16,8 @@
 class mdepth{
  public:
   //-------------------------------------------
-  double *temp, *nne, *rho, *pgas, *b,
-    *inc, *azi, *v, *vturb, *ltau,
+  double *temp, *nne, *rho, *pgas, *bl,
+    *bh, *azi, *v, *vturb, *ltau,
     *z, *pel, *tau, *cmass;
   int ndep;
   mat<double> cub;
@@ -57,7 +57,7 @@ typedef mdepth mdepth_t;
 /* --- Class MDEPTHALL --- */
 class mdepthall{
  public:
-  mat<double> temp, nne, rho, pgas, b, inc,
+  mat<double> temp, nne, rho, pgas, bl, bh,
     azi, v, vturb, ltau, z, pel, boundary;
   int ndep, btype;
   ceos eos;

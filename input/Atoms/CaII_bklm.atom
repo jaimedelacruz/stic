@@ -16,8 +16,8 @@
 # j   i       f     type  Nlambda symmetr  qcore  qwing  vdWapprx          vdWaals            radiative   Stark
 #                                                                       H            He
 # H & K
-  3   0  3.412E-01   PRD 100     ASYMM   30.0  1500.0  BARKLEM   234.   0.223  1.00   0.00   1.48E08  1.0E-00
-  4   0  6.807E-01   PRD 100     ASYMM   30.0  1500.0  BARKLEM   234.   0.223  1.00   0.00   1.50E08  1.0E-00
+  3   0  3.412E-01   PRD 96     ASYMM   30.0  1500.0  BARKLEM   234.   0.223  1.00   0.00   1.48E08  1.0E-00
+  4   0  6.807E-01   PRD 96     ASYMM   30.0  1500.0  BARKLEM   234.   0.223  1.00   0.00   1.50E08  1.0E-00
 
 # Infrared triplet
 #       lambda = 866.2141 [nm]
@@ -25,7 +25,7 @@
 #       lambda = 849.8023 [nm]
   4   1  1.219E-02   VOIGT  40     ASYMM    4.0   150.0  BARKLEM   291.0  0.275   1.00   0.00   1.50E08  1.0E-00
 #       lambda = 854.2091 [nm]
-  4   2  7.242E-02   VOIGT  80     ASYMM    4.0   200.0  BARKLEM   291.0  0.275   1.00   0.00   1.50E08  1.0E-00
+  4   2  7.242E-02   VOIGT  70     ASYMM    4.0   200.0  BARKLEM   291.0  0.275   1.00   0.00   1.50E08  1.0E-00
 
 # Photoionization rates
 

@@ -131,14 +131,14 @@ void comm_send_parameters(iput_t &input){
     if(nnodes > 0) status = MPI_Bcast(&input.nodes.vturb[0],     nnodes,    MPI_DOUBLE, 0, MPI_COMM_WORLD);
     
     // nodes in b
-    nnodes = (int)input.nodes.b.size();
+    nnodes = (int)input.nodes.bl.size();
     status = MPI_Bcast(&nnodes,     1,    MPI_INT, 0, MPI_COMM_WORLD);
-    if(nnodes > 0) status = MPI_Bcast(&input.nodes.b[0],     nnodes,    MPI_DOUBLE, 0, MPI_COMM_WORLD);
+    if(nnodes > 0) status = MPI_Bcast(&input.nodes.bl[0],     nnodes,    MPI_DOUBLE, 0, MPI_COMM_WORLD);
     
     // nodes in inc
-    nnodes = (int)input.nodes.inc.size();
+    nnodes = (int)input.nodes.bh.size();
     status = MPI_Bcast(&nnodes,     1,    MPI_INT, 0, MPI_COMM_WORLD);
-    if(nnodes > 0) status = MPI_Bcast(&input.nodes.inc[0],     nnodes,    MPI_DOUBLE, 0, MPI_COMM_WORLD);
+    if(nnodes > 0) status = MPI_Bcast(&input.nodes.bh[0],     nnodes,    MPI_DOUBLE, 0, MPI_COMM_WORLD);
     
     // nodes in azi
     nnodes = (int)input.nodes.azi.size();
@@ -266,14 +266,14 @@ void comm_recv_parameters(iput_t &input){
     
     status = MPI_Bcast(&nnodes,     1,    MPI_INT, 0, MPI_COMM_WORLD);
     if(nnodes > 0){
-      input.nodes.b.resize(nnodes);
-      status = MPI_Bcast(&input.nodes.b[0],     nnodes,    MPI_DOUBLE, 0, MPI_COMM_WORLD);
+      input.nodes.bl.resize(nnodes);
+      status = MPI_Bcast(&input.nodes.bl[0],     nnodes,    MPI_DOUBLE, 0, MPI_COMM_WORLD);
     }
     
     status = MPI_Bcast(&nnodes,     1,    MPI_INT, 0, MPI_COMM_WORLD);
     if(nnodes > 0){
-      input.nodes.inc.resize(nnodes);
-      status = MPI_Bcast(&input.nodes.inc[0],     nnodes,    MPI_DOUBLE, 0, MPI_COMM_WORLD);
+      input.nodes.bh.resize(nnodes);
+      status = MPI_Bcast(&input.nodes.bh[0],     nnodes,    MPI_DOUBLE, 0, MPI_COMM_WORLD);
     }
     
     status = MPI_Bcast(&nnodes,     1,    MPI_INT, 0, MPI_COMM_WORLD);

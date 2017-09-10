@@ -39,8 +39,8 @@ enum nodes_type_t{
   temp_node,
   v_node,
   vturb_node,
-  b_node,
-  inc_node,
+  bl_node,
+  bh_node,
   azi_node,
   pgas_node
 };
@@ -48,12 +48,12 @@ enum nodes_type_t{
 
 /* --- nodes struct --- */
 struct nodes{
-  int nnodes, temp_off, v_off, vturb_off, b_off, inc_off, azi_off, pgas_off, tosend, bound;
+  int nnodes, temp_off, v_off, vturb_off, bl_off, bh_off, azi_off, pgas_off, tosend, bound;
   std::vector<double> temp;
   std::vector<double> v;
   std::vector<double> vturb;
-  std::vector<double> b;
-  std::vector<double> inc;
+  std::vector<double> bl;
+  std::vector<double> bh;
   std::vector<double> azi;
   std::vector<nodes_type_t> ntype;
   int toinv[7];

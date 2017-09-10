@@ -150,7 +150,6 @@ if __name__ == "__main__":
 
     # Now fill-in weights for the inversion. In practice this should be the noise level
     # But we also use it to mask all the points that were not observed.
-
     fe_1.weights[:,:] = 1.e16 # Very high value means weight zero
     fe_1.weights[ife,:] = 0.005
     fe_1.weights[ife,1:3] /= 4.5 # Some more weight for Q&U
@@ -160,11 +159,13 @@ if __name__ == "__main__":
     ca_8.weights[ic8,:] = 0.004
     ca_8.weights[ic8,1:3] /= 7.0 # Some more weight for Q&U
     ca_8.weights[ic8,3] /= 4.0    # Some more weight for V
-
+    ca_8.weights[ic8[9:12],0] /= 2.0
+    
     ca_k.weights[:,:] = 1.e16 # Very high value means weight zero
     ca_k.weights[ick,0] = 0.002
+    ca_8.weights[ick[19:22],0] /= 2.0
     ca_k.weights[-1,0] = 0.004 # Continuum point
-
+    
 
     # Now combine all regions in one object.
     # The "sum" operator is overloaded to merge regions

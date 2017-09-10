@@ -24,8 +24,8 @@ void mdepth::setsize(int n){
   temp =  &cub(0,0);
   v =     &cub(1,0);
   vturb = &cub(2,0);
-  b =     &cub(3,0);
-  inc =   &cub(4,0);
+  bl =    &cub(3,0);
+  bh  =   &cub(4,0);
   azi =   &cub(5,0);
   pgas =  &cub(6,0);
   rho  =  &cub(7,0);
@@ -116,13 +116,13 @@ void mdepth::expand(nodes_t &n, double *p, int interpol){
   }
   
   if(n.toinv[3]){
-    int len = (int)n.b.size();
-    nodes2depth(len, &n.b[0], &p[n.b_off], ndep, &ltau[0], &b[0], interpol);
+    int len = (int)n.bl.size();
+    nodes2depth(len, &n.bl[0], &p[n.bl_off], ndep, &ltau[0], &bl[0], interpol);
   }
   
   if(n.toinv[4]){
-    int len = (int)n.inc.size();
-    nodes2depth(len, &n.inc[0], &p[n.inc_off], ndep, &ltau[0], &inc[0], interpol);
+    int len = (int)n.bh.size();
+    nodes2depth(len, &n.bh[0], &p[n.bh_off], ndep, &ltau[0], &bh[0], interpol);
   }
   
   if(n.toinv[5]){
@@ -347,14 +347,14 @@ void mdepthall::model_parameters(mat<double> &tmp, nodes_t &n, int nt){
       compress(ndep, &ltau(yy,xx,0), &vturb(yy,xx,0), nn, &n.vturb[0], &tmp(yy,xx,k));
       k += nn;
 
-      // B
-      nn = (int)n.b.size();
-      compress(ndep, &ltau(yy,xx,0), &b(yy,xx,0), nn, &n.b[0], &tmp(yy,xx,k));
+      // Bl
+      nn = (int)n.bl.size();
+      compress(ndep, &ltau(yy,xx,0), &bl(yy,xx,0), nn, &n.bl[0], &tmp(yy,xx,k));
       k += nn;
 	
-      // Inc
-      nn = (int)n.inc.size();
-      compress(ndep, &ltau(yy,xx,0), &inc(yy,xx,0), nn, &n.inc[0], &tmp(yy,xx,k));
+      // Bh
+      nn = (int)n.bh.size();
+      compress(ndep, &ltau(yy,xx,0), &bh(yy,xx,0), nn, &n.bh[0], &tmp(yy,xx,k));
       k += nn;
       
       // azi
@@ -397,14 +397,14 @@ void mdepthall::model_parameters2(mat<double> &tmp, nodes_t &n, int nt){
       compress(ndep, &cub(yy,xx,9,0), &cub(yy,xx,2,0), nn, &n.vturb[0], &tmp(yy,xx,k));
       k += nn;
 
-      // B
-      nn = (int)n.b.size();
-      compress(ndep, &cub(yy,xx,9,0), &cub(yy,xx,3,0), nn, &n.b[0], &tmp(yy,xx,k));
+      // Blong
+      nn = (int)n.bl.size();
+      compress(ndep, &cub(yy,xx,9,0), &cub(yy,xx,3,0), nn, &n.bl[0], &tmp(yy,xx,k));
       k += nn;
 	
-      // Inc
-      nn = (int)n.inc.size();
-      compress(ndep, &cub(yy,xx,9,0), &cub(yy,xx,4,0), nn, &n.inc[0], &tmp(yy,xx,k));
+      // Bhor
+      nn = (int)n.bh.size();
+      compress(ndep, &cub(yy,xx,9,0), &cub(yy,xx,4,0), nn, &n.bh[0], &tmp(yy,xx,k));
       k += nn;
       
       // azi
@@ -481,7 +481,7 @@ int mdepthall::read_model2(std::string &filename, int tstep, bool require_tau){
 
 
    /* --- Read B --- */
-   if(ifile.is_var_defined("b")){
+   if(ifile.is_var_defined("blong")){
      ifile.read_Tstep<double>("b", tmp, tstep);
      for(int yy = 0; yy< dims[0]; yy++)
        for(int xx = 0; xx < dims[1]; xx++)
@@ -492,7 +492,7 @@ int mdepthall::read_model2(std::string &filename, int tstep, bool require_tau){
 
 
    /* --- Read inc --- */
-   if(ifile.is_var_defined("inc")){
+   if(ifile.is_var_defined("bhor")){
     ifile.read_Tstep<double>("inc", tmp, tstep);
     for(int yy = 0; yy< dims[0]; yy++)
        for(int xx = 0; xx < dims[1]; xx++)
@@ -705,17 +705,17 @@ void mdepthall::expandAtmos(nodes_t &n, mat<double> &pars, int interpolation){
       }
 
       
-      /* --- B --- */
+      /* --- Blong --- */
       if(n.toinv[3]){
-	int len = (int)n.b.size();
-	expand(len, &n.b[0], &pars(yy,xx,n.b_off), ndep, &cub(yy,xx,9,0), &cub(yy,xx,3,0), interpolation);
+	int len = (int)n.bl.size();
+	expand(len, &n.bl[0], &pars(yy,xx,n.bl_off), ndep, &cub(yy,xx,9,0), &cub(yy,xx,3,0), interpolation);
       }
 
 
       /* --- Inc --- */
       if(n.toinv[4]){
-	int len =(int)n.inc.size();
-	expand(len, &n.inc[0], &pars(yy,xx,n.inc_off), ndep, &cub(yy,xx,9,0), &cub(yy,xx,4,0), interpolation);
+	int len =(int)n.bh.size();
+	expand(len, &n.bh[0], &pars(yy,xx,n.bh_off), ndep, &cub(yy,xx,9,0), &cub(yy,xx,4,0), interpolation);
       }
 
 
@@ -751,8 +751,8 @@ void mdepthall::write_model(string &filename, int tstep){
      ofile.initVar<float>(string("temp"),    {"time","y", "x", "ndep"});
      ofile.initVar<float>(string("vlos"),    {"time","y", "x", "ndep"});
      ofile.initVar<float>(string("vturb"),   {"time","y", "x", "ndep"});
-     ofile.initVar<float>(string("b"),       {"time","y", "x", "ndep"});
-     ofile.initVar<float>(string("inc"),     {"time","y", "x", "ndep"});
+     ofile.initVar<float>(string("blong"),       {"time","y", "x", "ndep"});
+     ofile.initVar<float>(string("bhor"),     {"time","y", "x", "ndep"});
      ofile.initVar<float>(string("azi"),     {"time","y", "x", "ndep"});
      ofile.initVar<float>(string("ltau500"), {"time","y", "x", "ndep"});
      ofile.initVar<float>(string("pgas"),    {"time","y", "x", "ndep"});
@@ -766,8 +766,8 @@ void mdepthall::write_model(string &filename, int tstep){
   ofile.write_Tstep(string("temp"),    temp,  tstep);
   ofile.write_Tstep(string("vlos"),    v,     tstep);
   ofile.write_Tstep(string("vturb"),   vturb, tstep);
-  ofile.write_Tstep(string("b"),       b,     tstep);
-  ofile.write_Tstep(string("inc"),     inc,   tstep);
+  ofile.write_Tstep(string("blong"),    bl,     tstep);
+  ofile.write_Tstep(string("bhor"),     bh,   tstep);
   ofile.write_Tstep(string("azi"),     azi,   tstep);
   ofile.write_Tstep(string("ltau500"), ltau,  tstep);
   ofile.write_Tstep(string("pgas"),    pgas,  tstep);
@@ -803,15 +803,15 @@ void mdepthall::write_model2(string &filename, int tstep){
     ofile.initVar<float>(string("vlos"),    {"time","y", "x", "ndep"});
     ofile.initVar<float>(string("temp"),    {"time","y", "x", "ndep"});
     ofile.initVar<float>(string("vturb"),   {"time","y", "x", "ndep"});
-    ofile.initVar<float>(string("b"),       {"time","y", "x", "ndep"});
-    ofile.initVar<float>(string("inc"),     {"time","y", "x", "ndep"});
+    ofile.initVar<float>(string("blong"),       {"time","y", "x", "ndep"});
+    ofile.initVar<float>(string("bhor"),     {"time","y", "x", "ndep"});
     ofile.initVar<float>(string("azi"),     {"time","y", "x", "ndep"});
     ofile.initVar<float>(string("ltau500"), {"time","y", "x", "ndep"});
     ofile.initVar<float>(string("z"),       {"time","y", "x", "ndep"});
     ofile.initVar<float>(string("pgas"),    {"time","y", "x", "ndep"});
-    //file.initVar<float>(string("rho"),     {"time","y", "x", "ndep"});
+    ofile.initVar<float>(string("rho"),     {"time","y", "x", "ndep"});
     ofile.initVar<float>(string("nne"),     {"time","y", "x", "ndep"});
-    //ofile.initVar<float>(string("cmass"),     {"time","y", "x", "ndep"});
+    ofile.initVar<float>(string("cmass"),     {"time","y", "x", "ndep"});
 
     firsttime = false;
     
@@ -841,12 +841,12 @@ void mdepthall::write_model2(string &filename, int tstep){
   for(int yy=0; yy<dims[1]; yy++)
     for(int xx = 0;xx<dims[2];xx++)
       memcpy(&tmp(yy,xx,0), &cub(yy,xx,3,0), dims[3]*sizeof(double));
-  ofile.write_Tstep<double>(string("b"),       tmp,     tstep);
+  ofile.write_Tstep<double>(string("blong"),       tmp,     tstep);
 
   for(int yy=0; yy<dims[1]; yy++)
     for(int xx = 0;xx<dims[2];xx++)
       memcpy(&tmp(yy,xx,0), &cub(yy,xx,4,0), dims[3]*sizeof(double));
-  ofile.write_Tstep<double>(string("inc"),     tmp,   tstep);
+  ofile.write_Tstep<double>(string("bhor"),     tmp,   tstep);
 
   for(int yy=0; yy<dims[1]; yy++)
     for(int xx = 0;xx<dims[2];xx++)
@@ -869,24 +869,24 @@ void mdepthall::write_model2(string &filename, int tstep){
       memcpy(&tmp(yy,xx,0), &cub(yy,xx,6,0), dims[3]*sizeof(double));
   ofile.write_Tstep<double>(string("pgas"),    tmp,  tstep);
   
-  /*
+  
   for(int yy=0; yy<dims[1]; yy++)
     for(int xx = 0;xx<dims[2];xx++)
       memcpy(&tmp(yy,xx,0), &cub(yy,xx,7,0), dims[3]*sizeof(double));
   ofile.write_Tstep<double>(string("rho"),    tmp,  tstep);
-  */
+  
   
   for(int yy=0; yy<dims[1]; yy++)
     for(int xx = 0;xx<dims[2];xx++)
       memcpy(&tmp(yy,xx,0), &cub(yy,xx,8,0), dims[3]*sizeof(double));
   ofile.write_Tstep<double>(string("nne"),    tmp,  tstep);
 
-  /*
+  
   for(int yy=0; yy<dims[1]; yy++)
     for(int xx = 0;xx<dims[2];xx++)
       memcpy(&tmp(yy,xx,0), &cub(yy,xx,11,0), dims[3]*sizeof(double));
   ofile.write_Tstep<double>(string("cmass"),    tmp,  tstep);
-  */
+ 
 
   
 }

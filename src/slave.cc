@@ -77,7 +77,6 @@ void do_slave(int myrank, int nprocs, char hostname[]){
     if(atmos->input.regions[kk].inst == "spectral") inst[kk] = new   spectral(atmos->input.regions[kk], 1);
     else if(atmos->input.regions[kk].inst == "fpi") inst[kk] = new       sfpi(atmos->input.regions[kk], 1);
     else if(atmos->input.regions[kk].inst == "fpigen") inst[kk] = new sfpigen(atmos->input.regions[kk], 1);
-
     else inst[kk] = new instrument();
   }
   atmos->inst = &inst[0];

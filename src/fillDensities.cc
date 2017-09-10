@@ -76,10 +76,10 @@ int main(int narg, char *argv[])
 
   bool keep_nne = false;
   if(fabs(m.cub(0,0,8,1) - m.cub(0,0,8,0)) > 0.0) keep_nne = true;
-
+  
   
   vector<string> names = {"Pgas","Dens", "Nelect"};
-  cerr<<"EOS: using ["<<names[touse]<<"]"<<endl;
+  cerr<<"EOS: using ["<<names[touse]<<"] -> Keep_nne = ["<<keep_nne<<"]"<<endl;
   fprintf(stderr,"avmol=%e, totalAbund=%e\n", m.eos.avmol, m.eos.totalAbund);
 
   

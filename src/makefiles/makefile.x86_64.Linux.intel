@@ -22,10 +22,10 @@ LINKER = $(MPFC)
 #
 # OPTIMIZATION
 #
-OPTS =  -Ofast -xCORE-AVX2 -mkl=sequential -g  
+OPTS =  -Ofast -m64 -mkl=sequential -g -xCORE-AVX-I 
 CXXFLAGS = $(OPTS) -std=c++11 -gxx-name=g++-4.9 -fPIC #-Wno-literal-suffix
 CFLAGS = $(OPTS) -DHAVE_F90 -fPIC #-fstack-security-check
-FFLAGS = -Ofast -xCORE-AVX-I -mkl -g #-static-intel
+FFLAGS = -Ofast -xCORE-AVX-I -m64 -mkl -g -static-intel
 AR = xiar
 OPENMP = -fopenmp
 

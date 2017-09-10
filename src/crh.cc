@@ -17,9 +17,9 @@ extern "C" {
 using namespace std;
 using namespace phyc;
 //
-const double crh::pmax[7]  = {80000., 50.e5, 12e5, 5000.0, PI, PI, 15.0};
-const double crh::pmin[7]  = {2700. ,-50.e5,  +0.0,   +0.0,  +0.0,  +0.0, 0.1};
-const double crh::pscal[7] = {1200. , 6.0e5, 6.0e5, 2000.0, PI, PI, 10.0};
+const double crh::pmax[7]  = {80000., 50.e5, 12e5, 5000.0, 5000., PI, 15.0};
+const double crh::pmin[7]  = {2700. ,-50.e5,  +0.0,-5000.0,  +0.0,  +0.0, 0.1};
+const double crh::pscal[7] = {1200. , 6.0e5, 6.0e5, 1000.0, 1000.0, PI, 10.0};
 const double crh::pstep[7] = {1.e-1 , 1.e-1, 1.0e-1, 2.0e-1, 1.0e-1, 1.0e-1, 1.0e-1};
 
 /* ----------------------------------------------------------------*/
@@ -33,8 +33,8 @@ vector<double> crh::get_max_limits(nodes_t &n){
     if     (n.ntype[k] == temp_node ) mmax[k] = pmax[0];
     else if(n.ntype[k] == v_node    ) mmax[k] = pmax[1];
     else if(n.ntype[k] == vturb_node) mmax[k] = pmax[2];
-    else if(n.ntype[k] == b_node    ) mmax[k] = pmax[3];
-    else if(n.ntype[k] == inc_node  ) mmax[k] = pmax[4];
+    else if(n.ntype[k] == bl_node    ) mmax[k] = pmax[3];
+    else if(n.ntype[k] == bh_node  ) mmax[k] = pmax[4];
     else if(n.ntype[k] == azi_node  ) mmax[k] = pmax[5];
     else if(n.ntype[k] == pgas_node ) mmax[k] = pmax[6];
     else                              mmax[k] = 0;
@@ -54,8 +54,8 @@ vector<double> crh::get_min_limits(nodes_t &n){
     if     (n.ntype[k] == temp_node ) mmin[k] = pmin[0];
     else if(n.ntype[k] == v_node    ) mmin[k] = pmin[1];
     else if(n.ntype[k] == vturb_node) mmin[k] = pmin[2];
-    else if(n.ntype[k] == b_node    ) mmin[k] = pmin[3];
-    else if(n.ntype[k] == inc_node  ) mmin[k] = pmin[4];
+    else if(n.ntype[k] == bl_node    ) mmin[k] = pmin[3];
+    else if(n.ntype[k] == bh_node  ) mmin[k] = pmin[4];
     else if(n.ntype[k] == azi_node  ) mmin[k] = pmin[5];
     else if(n.ntype[k] == pgas_node ) mmin[k] = pmin[6];
     else                              mmin[k] = 0;
@@ -74,8 +74,8 @@ vector<double> crh::get_scaling(nodes_t &n){
     if     (n.ntype[k] == temp_node ) scal[k] = pscal[0];
     else if(n.ntype[k] == v_node    ) scal[k] = pscal[1];
     else if(n.ntype[k] == vturb_node) scal[k] = pscal[2];
-    else if(n.ntype[k] == b_node    ) scal[k] = pscal[3];
-    else if(n.ntype[k] == inc_node  ) scal[k] = pscal[4];
+    else if(n.ntype[k] == bl_node    ) scal[k] = pscal[3];
+    else if(n.ntype[k] == bh_node  ) scal[k] = pscal[4];
     else if(n.ntype[k] == azi_node  ) scal[k] = pscal[5];
     else if(n.ntype[k] == pgas_node ) scal[k] = pscal[6];
     else                              scal[k] = 1.0;
@@ -107,8 +107,8 @@ vector<double> crh::get_steps(nodes_t &n){
     if     (n.ntype[k] == temp_node ) step[k] = ipstep[0];
     else if(n.ntype[k] == v_node    ) step[k] = ipstep[1];
     else if(n.ntype[k] == vturb_node) step[k] = ipstep[2];
-    else if(n.ntype[k] == b_node    ) step[k] = ipstep[3];
-    else if(n.ntype[k] == inc_node  ) step[k] = ipstep[4];
+    else if(n.ntype[k] == bl_node    ) step[k] = ipstep[3];
+    else if(n.ntype[k] == bh_node  ) step[k] = ipstep[4];
     else if(n.ntype[k] == azi_node  ) step[k] = ipstep[5];
     else if(n.ntype[k] == pgas_node ) step[k] = ipstep[6];
     else                              step[k] = 1.0;
@@ -203,7 +203,9 @@ bool crh::synth(mdepth_t &m_in, double *syn, cprof_solver sol, bool save_pops){
   frac.resize(m.ndep,0.0);
   part.resize(m.ndep,0.0);
   nhtot.resize(m.ndep,0.0);
+  double *B = new double [m.ndep], *inc = new double [m.ndep];
 
+  
   
   /* --- Init storage for RH spectra --- */
   
@@ -239,7 +241,11 @@ bool crh::synth(mdepth_t &m_in, double *syn, cprof_solver sol, bool save_pops){
     m.z[kk] *= 1.0e-2;    // CM_TO_M
     m.nne[kk] *= 1.e6;    // 1 / CM_TO_M**3
     m.tau[kk] = pow(10.0, m.ltau[kk]);
-    m.b[kk] *= 1.0e-4; // B in tesla
+    //m.b[kk] *= 1.0e-4;
+    B[kk] = sqrt(m.bl[kk]*m.bl[kk] + m.bh[kk]*m.bh[kk]) * 1.0e-4 ; // B in tesla
+    if(B[kk] >= 1.e-22) 
+      inc[kk] = acos(m.bl[kk] * 1.0e-4 / B[kk]);
+    else inc[kk] = 0.0;
   }
 
   int savep = 0, hydrostat = 0;
@@ -249,10 +255,12 @@ bool crh::synth(mdepth_t &m_in, double *syn, cprof_solver sol, bool save_pops){
   /* --- Call RH --- */
   
   bool conv = rhf1d(input.mu, m.ndep, &m.temp[0], &m.rho[0], &m.nne[0], &m.vturb[0], &m.v[0],
-		     &m.b[0], &m.inc[0], &m.azi[0], &m.z[0], &nhtot[0], &m.tau[0],
+		     &B[0], &inc[0], &m.azi[0], &m.z[0], &nhtot[0], &m.tau[0],
 		    &m.cmass[0], 4.44, (bool_t)true, &sp, &save_pop, nlambda, &lambda[0],
 		    input.myrank, savep, (int)input.verbose, &hydrostat);
   
+  delete [] B;
+  delete [] inc;
 
   /* --- Did not converge? --- */
 
@@ -365,8 +373,8 @@ void crh::checkBounds(mdepth_t &m)
       m.temp[ii] =  std::max(pmin[0], std::min(m.temp[ii],  pmax[0]));
       m.v[ii] =     std::max(pmin[1], std::min(m.v[ii],     pmax[1]));
       m.vturb[ii] = std::max(pmin[2], std::min(m.vturb[ii], pmax[2]));
-      m.b[ii] =     std::max(pmin[3], std::min(m.b[ii],     pmax[3]));
-      m.inc[ii] =   std::max(pmin[4], std::min(m.inc[ii],   pmax[4]));
+      m.bl[ii] =     std::max(pmin[3], std::min(m.bl[ii],     pmax[3]));
+      m.bh[ii] =   std::max(pmin[4], std::min(m.bh[ii],   pmax[4]));
       m.azi[ii] =   std::max(pmin[5], std::min(m.azi[ii],   pmax[5]));
     }
   

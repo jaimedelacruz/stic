@@ -60,7 +60,7 @@
 # Parameters for Ng convergence acceleration (all are KEYWORD_OPTIONAL)
 # (default for NG_ORDER = 0 --> no acceleration)
 
-  NG_DELAY  = 10
+  NG_DELAY  = 8
   NG_ORDER  = 2
   NG_PERIOD = 6
 
@@ -72,7 +72,7 @@
 # all lines will be treated in CRD.
 
   PRD_N_MAX_ITER = 2
-  PRD_ITER_LIMIT = 1.0E-3
+  PRD_ITER_LIMIT = 1.0E-4
 
 # PRD_NG_?? are the Ng accelleration parameters for PRD iterations
 # (all are KEYWORD_OPTIONAL).
@@ -152,7 +152,7 @@
 # Typical value of ``micro-turbulence'' in [km/s]. Used in getlambda.c
 # to convert doppler units to real wavelengths.
 
-  VMICRO_CHAR = 6.0
+  VMICRO_CHAR = 4.0
 
 # Treshold value of macroscopic velocity in [km/s] above which line
 # absorption coefficients are calculated seperately for the different mu
@@ -221,7 +221,7 @@ S_INTERPOLATION_STOKES = DELO_BEZIER3
 # Number of lambda iterations in the beginning
 # (DEFAULT is 0), helps to converge problematic pixels
 #
-N_LAMBDA_ITER = 2
+N_LAMBDA_ITER = 0
 
 
 # COL SWITCH

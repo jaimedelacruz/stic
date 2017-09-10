@@ -20,9 +20,9 @@
 using namespace std;
 using namespace phyc;
 //
-const double clte::pmax[7]  = {50000., 20.e5, 7.0e5, 5000.0, PI, PI, 100.0};
-const double clte::pmin[7]  = {2050. ,-20.e5,  +0.0,   +0.0,  +0.0,  +0.0, 0.01};
-const double clte::pscal[7] = {500. , 1.0e5, 1.0e5, 500.0, PI, PI, 1.0};
+const double clte::pmax[7]  = {50000., 20.e5, 7.0e5, 5000.0, 5000.0, PI, 100.0};
+const double clte::pmin[7]  = {2050. ,-20.e5,  +0.0,-5000.0,  +0.0,  +0.0, 0.01};
+const double clte::pscal[7] = {500. , 1.0e5, 1.0e5, 500.0, 500.0, PI, 1.0};
 const double clte::pstep[7] = {1.e0 , 1.e0, 1.0e0, 1.0e0, 1.0e0, 1.0e0, 1.0e0};
 //
 const double clte::lte_const = PI*EE*EE/(ME*CC); // In units of freq.
@@ -40,8 +40,8 @@ vector<double> clte::get_max_limits(nodes_t &n){
     if     (n.ntype[k] == temp_node ) mmax[k] = pmax[0];
     else if(n.ntype[k] == v_node    ) mmax[k] = pmax[1];
     else if(n.ntype[k] == vturb_node) mmax[k] = pmax[2];
-    else if(n.ntype[k] == b_node    ) mmax[k] = pmax[3];
-    else if(n.ntype[k] == inc_node  ) mmax[k] = pmax[4];
+    else if(n.ntype[k] == bl_node    ) mmax[k] = pmax[3];
+    else if(n.ntype[k] == bh_node  ) mmax[k] = pmax[4];
     else if(n.ntype[k] == azi_node  ) mmax[k] = pmax[5];
     else if(n.ntype[k] == pgas_node ) mmax[k] = pmax[6];
     else                              mmax[k] = 0;
@@ -57,8 +57,8 @@ vector<double> clte::get_min_limits(nodes_t &n){
     if     (n.ntype[k] == temp_node ) mmin[k] = pmin[0];
     else if(n.ntype[k] == v_node    ) mmin[k] = pmin[1];
     else if(n.ntype[k] == vturb_node) mmin[k] = pmin[2];
-    else if(n.ntype[k] == b_node    ) mmin[k] = pmin[3];
-    else if(n.ntype[k] == inc_node  ) mmin[k] = pmin[4];
+    else if(n.ntype[k] == bl_node    ) mmin[k] = pmin[3];
+    else if(n.ntype[k] == bh_node  ) mmin[k] = pmin[4];
     else if(n.ntype[k] == azi_node  ) mmin[k] = pmin[5];
     else if(n.ntype[k] == pgas_node ) mmin[k] = pmin[6];
     else                              mmin[k] = 0;
@@ -74,8 +74,8 @@ vector<double> clte::get_scaling(nodes_t &n){
     if     (n.ntype[k] == temp_node ) scal[k] = pscal[0];
     else if(n.ntype[k] == v_node    ) scal[k] = pscal[1];
     else if(n.ntype[k] == vturb_node) scal[k] = pscal[2];
-    else if(n.ntype[k] == b_node    ) scal[k] = pscal[3];
-    else if(n.ntype[k] == inc_node  ) scal[k] = pscal[4];
+    else if(n.ntype[k] == bl_node    ) scal[k] = pscal[3];
+    else if(n.ntype[k] == bh_node  ) scal[k] = pscal[4];
     else if(n.ntype[k] == azi_node  ) scal[k] = pscal[5];
     else if(n.ntype[k] == pgas_node ) scal[k] = pscal[6];
     else                              scal[k] = 1.0;
@@ -104,8 +104,8 @@ vector<double> clte::get_steps(nodes_t &n){
     if     (n.ntype[k] == temp_node ) step[k] = ipstep[0];
     else if(n.ntype[k] == v_node    ) step[k] = ipstep[1];
     else if(n.ntype[k] == vturb_node) step[k] = ipstep[2];
-    else if(n.ntype[k] == b_node    ) step[k] = ipstep[3];
-    else if(n.ntype[k] == inc_node  ) step[k] = ipstep[4];
+    else if(n.ntype[k] == bl_node    ) step[k] = ipstep[3];
+    else if(n.ntype[k] == bh_node  ) step[k] = ipstep[4];
     else if(n.ntype[k] == azi_node  ) step[k] = ipstep[5];
     else if(n.ntype[k] == pgas_node ) step[k] = ipstep[6];
     else                              step[k] = 1.0;
@@ -243,10 +243,13 @@ bool clte::synth(mdepth &m, double *syn, cprof_solver sol, bool store_pops){
 	    damping = prof.damp(li, m.temp[k], m.vturb[k], m.nne[k], nh, nhe, dlnu);
 
 	    /* --- Compute Voigt-Faraday Profiles, stored in variables of the prof.class --- */
-	    prof.zeeman_profile(it.nu[w], li, m.v[k], m.b[k], dlnu, damping);
+
+	    double b = sqrt(m.bl[k] * m.bl[k] + m.bh[k] * m.bh[k]);
+	    prof.zeeman_profile(it.nu[w], li, m.v[k], b, dlnu, damping);
 
 	    /* --- Now get the terms of the ABS. Matrix, stored internally in the cprofile class --- */
-	    prof.zeeman_opacity( m.inc[k], m.azi[k], lineop, k, w + it.off);
+	    double inc = acos(m.bl[k] / b);
+	    prof.zeeman_opacity( inc, m.azi[k], lineop, k, w + it.off);
       
 	  } // lines
       } // w
@@ -310,8 +313,8 @@ void clte::checkBounds(mdepth_t &m)
       m.temp[ii] =  std::max(pmin[0], std::min(m.temp[ii],  pmax[0]));
       m.v[ii] =     std::max(pmin[1], std::min(m.v[ii],     pmax[1]));
       m.vturb[ii] = std::max(pmin[2], std::min(m.vturb[ii], pmax[2]));
-      m.b[ii] =     std::max(pmin[3], std::min(m.b[ii],     pmax[3]));
-      m.inc[ii] =   std::max(pmin[4], std::min(m.inc[ii],   pmax[4]));
+      m.bl[ii] =     std::max(pmin[3], std::min(m.bl[ii],     pmax[3]));
+      m.bh[ii] =   std::max(pmin[4], std::min(m.bh[ii],   pmax[4]));
       m.azi[ii] =   std::max(pmin[5], std::min(m.azi[ii],   pmax[5]));
     }
   

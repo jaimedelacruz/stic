@@ -21,8 +21,8 @@
 /* --- Maximum number of iterations and minimum accuracy for hydrostatic
        equilibrium calculations --                     -------------- */
 
-#define N_MAX_HSE_ITER    100
-#define HSE_ITER_LIMIT    1.0E-3
+#define N_MAX_HSE_ITER    20
+#define HSE_ITER_LIMIT    1.0E-2
 
 
 /* --- Structure definitions --                        -------------- */

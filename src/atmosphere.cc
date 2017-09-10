@@ -27,8 +27,8 @@ vector<double> atmos::get_max_change(nodes_t &n){
     if     (n.ntype[k] == temp_node ) maxc[k] = maxchange[0];
     else if(n.ntype[k] == v_node    ) maxc[k] = maxchange[1];
     else if(n.ntype[k] == vturb_node) maxc[k] = maxchange[2];
-    else if(n.ntype[k] == b_node    ) maxc[k] = maxchange[3];
-    else if(n.ntype[k] == inc_node  ) maxc[k] = maxchange[4];
+    else if(n.ntype[k] == bl_node    ) maxc[k] = maxchange[3];
+    else if(n.ntype[k] == bh_node  ) maxc[k] = maxchange[4];
     else if(n.ntype[k] == azi_node  ) maxc[k] = maxchange[5];
     else if(n.ntype[k] == pgas_node ) maxc[k] = maxchange[6];
     else                              maxc[k] = 0;
@@ -210,10 +210,10 @@ void atmos::randomizeParameters(nodes_t &n, int npar, double *pars){
       pertu =  (rnum - 0.5) * scal[pp];
     else if(n.ntype[pp] == vturb_node){
       pertu =  (rnum - 0.75) * 2.e5;
-    }else if(n.ntype[pp] == b_node)
+    }else if(n.ntype[pp] == bl_node)
       pertu =  (rnum-0.35) * scal[pp];
-    else if(n.ntype[pp] == inc_node)
-      pertu =  (rnum-0.5) * phyc::PI;
+    else if(n.ntype[pp] == bh_node)
+      pertu =  (rnum-0.5) * scal[pp];
     else if(n.ntype[pp] == azi_node)
       pertu =  (rnum-0.5) * phyc::PI;   
     else if(n.ntype[pp] == pgas_node){
@@ -315,7 +315,7 @@ return penalty*c;///ltau_range;
 
 void getDregul2(double *m, int npar, double *dregul, nodes_t &n)
 {
-  const double weights[7] = {0.05, 7.0, 2.0, 1.0, 1.0, 1.0, 1.5};
+  const double weights[7] = {0.0001, 7.0, 2.0, 1.0, 1.0, 1.0, 1.5};
   double penalty = 0.0, *ltau = NULL, we = 0.0;
   nodes_type_t ntype = none_node;
   int off = 0;
@@ -390,13 +390,13 @@ void getDregul2(double *m, int npar, double *dregul, nodes_t &n)
   }
 
   
-  /* --- Penalize B? --- */
+  /* --- Penalize Blong? --- */
   
   if(n.toinv[3] && (n.regul_type[3] > 0)){ // B
-    int nn = (int)n.b.size();
-    ntype = b_node;
-    off = (int)n.b_off;
-    ltau =  &n.b[0];
+    int nn = (int)n.bl.size();
+    ntype = bl_node;
+    off = (int)n.bl_off;
+    ltau =  &n.bl[0];
     we = weights[3];
 
     switch(n.regul_type[3]){
@@ -414,13 +414,13 @@ void getDregul2(double *m, int npar, double *dregul, nodes_t &n)
     }
   }
 
-  /* --- Penalize inc? --- */
+  /* --- Penalize Bhor? --- */
   
   if(n.toinv[4] && (n.regul_type[4] > 0)){ // inc
-    int nn = (int)n.inc.size();
-    ntype = inc_node;
-    off = (int)n.inc_off;
-    ltau =  &n.inc[0];
+    int nn = (int)n.bh.size();
+    ntype = bh_node;
+    off = (int)n.bh_off;
+    ltau =  &n.bh[0];
     we = weights[4];
 
     switch(n.regul_type[4]){
@@ -429,6 +429,9 @@ void getDregul2(double *m, int npar, double *dregul, nodes_t &n)
       break;
     case(2):
       penalty += const_dregul(nn, ltau, &m[off], we, &dregul[off], mth::mean(nn, &m[off]), true);
+      break;
+    case(3):
+      penalty += const_dregul(nn, ltau, &m[off], we, &dregul[off], 0.0, false);	    
       break;
     default:
       break;

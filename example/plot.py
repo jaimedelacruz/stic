@@ -50,8 +50,14 @@ ax1.plot(i.dat[0,0,0,:,ss],'.', color='black')
 ax1.plot(o.dat[0,0,0,:,ss], color='orangered')
 ax1.set_ylabel('Intensity')
 ax1.set_xlabel(r'Wavelength [$\mathrm{\AA}$]')
-ax1.set_ylim(0.05, 0.9)
 
+if(ss == 0):
+    ax1.set_ylim(0.05, 0.9)
+elif(ss == 1 or ss == 2):
+    ax1.set_ylim(-0.055, 0.005)
+else:
+    ax1.set_ylim(-0.03, 0.03)
+     
 ax2.plot(m.ltau.squeeze(), m.temp.squeeze(), 'k-')
 ax2.set_ylim(3000,12000)
 
