@@ -28,7 +28,7 @@ class model:
     def __init__(self,  file=None, nx=0, ny=0, ndep=0, nt=0, verb = True):
         self.dtype = 'float64'
         self.vnames = np.asarray(['ltau500', 'z', 'temp', 'pgas', 'rho', 'vlos', \
-                         'nne', 'pel', 'B', 'inc', 'azi', 'vturb'])
+                                  'nne', 'pel', 'blong', 'bhor', 'azi', 'vturb', 'B', 'inc'])
         if(file != None):
             self.read(file)
         else:
@@ -49,8 +49,8 @@ class model:
         self.temp =  np.zeros((nt, ny, nx, ndep), order='c', dtype=self.dtype)
         self.vlos =  np.zeros((nt, ny, nx, ndep), order='c', dtype=self.dtype)
         self.vturb = np.zeros((nt, ny, nx, ndep), order='c', dtype=self.dtype)
-        self.B =     np.zeros((nt, ny, nx, ndep), order='c', dtype=self.dtype)
-        self.inc =   np.zeros((nt, ny, nx, ndep), order='c', dtype=self.dtype)
+        self.Bln =     np.zeros((nt, ny, nx, ndep), order='c', dtype=self.dtype)
+        self.Bho =   np.zeros((nt, ny, nx, ndep), order='c', dtype=self.dtype)
         self.azi =   np.zeros((nt, ny, nx, ndep), order='c', dtype=self.dtype)
         self.pgas =  np.zeros((nt, ny, nx, ndep), order='c', dtype=self.dtype)
         self.rho =   np.zeros((nt, ny, nx, ndep), order='c', dtype=self.dtype)
@@ -93,8 +93,8 @@ class model:
         m.nne[:,:,:,:] = self.nne[t0:t1,y0:y1,x0:x1,z0:z1]
         m.vlos[:,:,:,:] = self.vlos[t0:t1,y0:y1,x0:x1,z0:z1]
         m.vturb[:,:,:,:] = self.vturb[t0:t1,y0:y1,x0:x1,z0:z1]
-        m.B[:,:,:,:] = self.B[t0:t1,y0:y1,x0:x1,z0:z1]
-        m.inc[:,:,:,:] = self.inc[t0:t1,y0:y1,x0:x1,z0:z1]
+        m.Bln[:,:,:,:] = self.Bln[t0:t1,y0:y1,x0:x1,z0:z1]
+        m.Bho[:,:,:,:] = self.Bho[t0:t1,y0:y1,x0:x1,z0:z1]
         m.azi[:,:,:,:] = self.azi[t0:t1,y0:y1,x0:x1,z0:z1]
         m.cmass[:,:,:,:] = self.cmass[t0:t1,y0:y1,x0:x1,z0:z1]
         #
@@ -123,7 +123,7 @@ class model:
                 m[tt,:,:,kk] = inte(xx1, yy1)
         return m
     
-    def scale(self, ny=1, nx=1, fac=-1):
+    def scale(self, ny=1, nx=1, fac=1):
 
         
         m = model(nx=nx, ny=ny, nt=self.nt, ndep=self.ndep)
@@ -133,8 +133,8 @@ class model:
         m.temp[:,:,:,:] = self._intVar(self.temp, nx=nx, ny=ny, fac=fac)
         m.vlos[:,:,:,:] = self._intVar(self.vlos*1.e-5, nx=nx, ny=ny, fac=fac)*1.e5
         m.vturb[:,:,:,:] = self._intVar(self.vturb*1.e-5, nx=nx, ny=ny, fac=fac)*1.e5
-        m.B[:,:,:,:] = self._intVar(self.B, nx=nx, ny=ny, fac=fac)
-        m.inc[:,:,:,:] = self._intVar(self.inc, nx=nx, ny=ny, fac=fac)
+        m.Bln[:,:,:,:] = self._intVar(self.Bln, nx=nx, ny=ny, fac=fac)
+        m.Bho[:,:,:,:] = self._intVar(self.Bho, nx=nx, ny=ny, fac=fac)
         m.azi[:,:,:,:] = self._intVar(self.azi, nx=nx, ny=ny, fac=fac)
         m.pgas[:,:,:,:] = self._intVar(self.pgas, nx=nx, ny=ny, fac=fac)
         m.nne[:,:,:,:] = self._intVar(self.nne, nx=nx, ny=ny, fac=fac)
@@ -195,10 +195,10 @@ class model:
                 self.vlos[:] = self._readVar1(file, "vlos", x0, x1, y0, y1, t0, t1)
             if(len(np.where(var == 'vturb')[0]) == 1):
                 self.vturb[:] = self._readVar1(file, "vturb", x0, x1, y0, y1, t0, t1)
-            if(len(np.where(var == 'b')[0]) == 1):
-                self.B[:] = self._readVar1(file, "b", x0, x1, y0, y1, t0, t1)
-            if(len(np.where(var == 'inc')[0]) == 1):
-                self.inc[:] = self._readVar1(file, "inc", x0, x1, y0, y1, t0, t1)
+            if(len(np.where(var == 'blong')[0]) == 1):
+                self.Bln[:] = self._readVar1(file, "blong", x0, x1, y0, y1, t0, t1)
+            if(len(np.where(var == 'bhor')[0]) == 1):
+                self.Bho[:] = self._readVar1(file, "bhor", x0, x1, y0, y1, t0, t1)
             if(len(np.where(var == 'azi')[0]) == 1):
                 self.azi[:] = self._readVar1(file, "azi", x0, x1, y0, y1, t0, t1)
             if(len(np.where(var == 'nne')[0]) == 1):
@@ -214,7 +214,15 @@ class model:
             if(len(np.where(var == 'cmass')[0]) == 1):
                 self.cmass[:] = self._readVar1(file, "cmass", x0, x1, y0, y1, t0, t1)
 
+            # Backwaards compatibility
             
+            if((len(np.where(var == 'b')[0]) == 1) and (len(np.where(var == 'inc')[0]) == 1)):
+                tmp = self._readVar1(file, "b", x0, x1, y0, y1, t0, t1)
+                tmp1= self._readVar1(file, "inc", x0, x1, y0, y1, t0, t1)
+                
+                self.Bln[:] = tmp * np.cos(tmp1)
+                self.Bho[:] = tmp * np.sin(tmp1)
+                
             
     def _readVar1(self, file, vname, x0, x1, y0, y1, t0, t1):
         nc_fid = nf(file, 'r')
@@ -326,7 +334,7 @@ class model:
         
         return(res)
     
-    def _smoothVar(self, nnodes, var, tau, psf, median, t0=0, t1=-1):
+    def _smoothVar(self, nnodes, var, tau, psf, median, t0=0, t1=-1, convolve=False):
 
         if(t1 == -1): t1 = self.nt
 
@@ -350,9 +358,11 @@ class model:
                 if(len(ivar[ii].squeeze().shape) == 1):
                     idx = np.where(psf == psf.max())
                     ipsf = psf[idx[0], :].squeeze()
-                    ivar[ii,:,:] = mt.convolve(ivar[ii].squeeze(), ipsf/ipsf.sum()).reshape(ivar.shape[1::])
+                    if(convolve):
+                        ivar[ii,:,:] = mt.convolve(ivar[ii].squeeze(), ipsf/ipsf.sum()).reshape(ivar.shape[1::])
                 else:
-                    ivar[ii,:,:] = im.fftconvol2d(ivar[ii,:,:].squeeze(), psf, padding = 1).reshape(ivar.shape[1::])
+                    if(convolve):
+                        ivar[ii,:,:] = im.fftconvol2d(ivar[ii,:,:].squeeze(), psf, padding = 1).reshape(ivar.shape[1::])
             ivar = np.copy(ivar.transpose((1,2,0)), order='c')
 
             # interpolate depth
@@ -370,36 +380,41 @@ class model:
                         res[tt,yy,xx,:] = np.interp(tau, itau, ivar[yy,xx,:]) #mt.hermpol(itau, ivar[yy,xx,:], tau)
         return(res)
     
-    def smooth(self, ntemp=0, nvlos=0, nvturb=0, nB=0, ninc=0, nazi=0, npgas=0, fwhm = 1.0, t0=0, t1=-1, median = -1):
+    def smooth(self, ntemp=0, nvlos=0, nvturb=0, nB=0, ninc=0, nazi=0, npgas=0, fwhm = 0.0, t0=0, t1=-1, median = -1):
         
         # Get Gaussian PSF to smooth the vars
-        npsf = max(int(fwhm), 3)
-        if(not is_odd(npsf)): npsf -= 1
-        
-        npsf2 = float(npsf/2)
-        sig2  = (fwhm / (2.0 * np.sqrt(2.0 * np.log(2.0))))**2
-        psf = np.zeros((npsf,npsf), dtype='float64', order='c')
-        for yy in range(npsf):
-            for xx in range(npsf):
-                psf[yy,xx] = np.exp(-0.5 * ((xx-npsf2)**2 + (yy-npsf2)**2) / sig2)
-        psf /= np.sum(psf)
+        if(fwhm == 0):
+            convolve=False
+            psf = np.zeros((1,1), dtype='float64')+1.0
+        else:
+            convolve = True
+            npsf = min(int(fwhm*1.5), 3)
+            if(not is_odd(npsf)): npsf -= 1
+            
+            npsf2 = float(npsf/2)
+            sig2  = (fwhm / (2.0 * np.sqrt(2.0 * np.log(2.0))))**2
+            psf = np.zeros((npsf,npsf), dtype='float64', order='c')
+            for yy in range(npsf):
+                for xx in range(npsf):
+                    psf[yy,xx] = np.exp(-0.5 * ((xx-npsf2)**2 + (yy-npsf2)**2) / sig2)
+            psf /= np.sum(psf)
         tau = self.ltau[0,0,0,:]
 
         # Smooth vars
         if(ntemp > 0):
-            self.temp[:] = self._smoothVar(ntemp, self.temp, tau, psf, median, t0=t0, t1=t1)
+            self.temp[:] = self._smoothVar(ntemp, self.temp, tau, psf, median, t0=t0, t1=t1, convolve=convolve)
         if(nvlos > 0):
-            self.vlos[:] = self._smoothVar(nvlos, self.vlos, tau, psf, median, t0=t0, t1=t1)   
+            self.vlos[:] = self._smoothVar(nvlos, self.vlos, tau, psf, median, t0=t0, t1=t1, convolve=convolve)   
         if(nvturb > 0):
-            self.vturb[:] = self._smoothVar(nvturb, self.vturb, tau, psf, median, t0=t0, t1=t1)
+            self.vturb[:] = self._smoothVar(nvturb, self.vturb, tau, psf, median, t0=t0, t1=t1, convolve=convolve)
         if(nB > 0):
-            self.B[:] = self._smoothVar(nB, self.B, tau, psf, median, t0=t0, t1=t1)
+            self.B[:] = self._smoothVar(nB, self.B, tau, psf, median, t0=t0, t1=t1, convolve=convolve)
         if(ninc > 0):
-            self.inc[:] = self._smoothVar(ninc, self.inc, tau, psf, median, t0=t0, t1=t1)
+            self.inc[:] = self._smoothVar(ninc, self.inc, tau, psf, median, t0=t0, t1=t1, convolve=convolve)
         if(nazi > 0):
-            self.azi[:] = self._smoothVar(nazi, self.azi, tau, psf, median, t0=t0, t1=t1)
+            self.azi[:] = self._smoothVar(nazi, self.azi, tau, psf, median, t0=t0, t1=t1, convolve=convolve)
         if(npgas > 0):
-            self.pgas[:] = 10.0**self._smoothVar(npgas, np.log10(self.pgas), tau, psf, median, t0=t0, t1=t1)
+            self.pgas[:] = 10.0**self._smoothVar(npgas, np.log10(self.pgas), tau, psf, median, t0=t0, t1=t1, convolve=convolve)
 
     def write(self, filename, write_all=True, t0 = 0, \
               t1 = -1, x0=0, x1=-1, y0=0, y1=-1, z0 = 0, z1 = -1):
