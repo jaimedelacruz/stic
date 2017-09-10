@@ -479,26 +479,44 @@ int mdepthall::read_model2(std::string &filename, int tstep, bool require_tau){
    }
 
 
-
-   /* --- Read B --- */
+   
+   /* --- Read blong --- */
    if(ifile.is_var_defined("blong")){
-     ifile.read_Tstep<double>("b", tmp, tstep);
+     ifile.read_Tstep<double>("blong", tmp, tstep);
      for(int yy = 0; yy< dims[0]; yy++)
        for(int xx = 0; xx < dims[1]; xx++)
 	 memcpy(&cub(yy,xx,3,0), &tmp(yy,xx,0), dims[2]*sizeof(double));
-   }
+     
    
    
 
 
-   /* --- Read inc --- */
-   if(ifile.is_var_defined("bhor")){
-    ifile.read_Tstep<double>("inc", tmp, tstep);
-    for(int yy = 0; yy< dims[0]; yy++)
-       for(int xx = 0; xx < dims[1]; xx++)
-	 memcpy(&cub(yy,xx,4,0), &tmp(yy,xx,0), dims[2]*sizeof(double));
-   }
+     /* --- Read bhor --- */
+     if(ifile.is_var_defined("bhor")){
+       ifile.read_Tstep<double>("bhor", tmp, tstep);
+       for(int yy = 0; yy< dims[0]; yy++)
+	 for(int xx = 0; xx < dims[1]; xx++)
+	   memcpy(&cub(yy,xx,4,0), &tmp(yy,xx,0), dims[2]*sizeof(double));
+     }
+   }else{
 
+     /* --- Are B and inc defined? -> Backwards compatibility  --- */
+     
+     mat<double> tmp1;
+
+     if(ifile.is_var_defined("b") && ifile.is_var_defined("inc")){
+       
+       ifile.read_Tstep<double>("b", tmp, tstep);
+       ifile.read_Tstep<double>("inc", tmp1, tstep);
+       
+       for(int yy = 0; yy< dims[0]; yy++)
+	 for(int xx = 0; xx < dims[1]; xx++)
+	   for(int zz = 0; zz< dims[2]; zz++){
+	     cub(yy,xx,3,0) = tmp(yy,xx,zz) * cos(tmp1(yy,xx,zz));
+	     cub(yy,xx,4,0) = tmp(yy,xx,zz) * sin(tmp1(yy,xx,zz));
+	   }
+     }
+   }
 
 
 
