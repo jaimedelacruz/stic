@@ -60,9 +60,9 @@
 # Parameters for Ng convergence acceleration (all are KEYWORD_OPTIONAL)
 # (default for NG_ORDER = 0 --> no acceleration)
 
-  NG_DELAY  = 8
+  NG_DELAY  = 9
   NG_ORDER  = 2
-  NG_PERIOD = 6
+  NG_PERIOD = 7
 
 # PRD specific parameters. PRD_N_MAX_ITER is the maximum number of
 # PRD iterations per main iteration. PRD_ITER_LIMIT is the convergence

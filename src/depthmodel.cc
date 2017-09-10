@@ -10,7 +10,7 @@
 using namespace std;
 
 /* --- Default boundary condition (if none provided) --- */
-const double mdepth::boundary_pgas_default = 1.e-1;
+const double mdepth::boundary_pgas_default = 7.e-1;
 
 void mdepth::setsize(int n){
 
@@ -401,12 +401,13 @@ void mdepthall::model_parameters2(mat<double> &tmp, nodes_t &n, int nt){
       nn = (int)n.bl.size();
       compress(ndep, &cub(yy,xx,9,0), &cub(yy,xx,3,0), nn, &n.bl[0], &tmp(yy,xx,k));
       k += nn;
-	
+      
+      
       // Bhor
       nn = (int)n.bh.size();
       compress(ndep, &cub(yy,xx,9,0), &cub(yy,xx,4,0), nn, &n.bh[0], &tmp(yy,xx,k));
       k += nn;
-      
+
       // azi
       nn = (int)n.azi.size();
       compress(ndep, &cub(yy,xx,9,0), &cub(yy,xx,5,0), nn, &n.azi[0], &tmp(yy,xx,k));
@@ -448,7 +449,7 @@ int mdepthall::read_model2(std::string &filename, int tstep, bool require_tau){
   if(ifile.is_var_defined("temp")){
     ifile.read_Tstep<double>("temp", tmp, tstep);
 
-    /* --- Copy to consecutive arary --- */
+    /* --- Copy to consecutive array --- */
     for(int yy = 0; yy< dims[0]; yy++)
       for(int xx = 0; xx < dims[1]; xx++)
 	memcpy(&cub(yy,xx,0,0), &tmp(yy,xx,0), dims[2]*sizeof(double));
@@ -512,8 +513,8 @@ int mdepthall::read_model2(std::string &filename, int tstep, bool require_tau){
        for(int yy = 0; yy< dims[0]; yy++)
 	 for(int xx = 0; xx < dims[1]; xx++)
 	   for(int zz = 0; zz< dims[2]; zz++){
-	     cub(yy,xx,3,0) = tmp(yy,xx,zz) * cos(tmp1(yy,xx,zz));
-	     cub(yy,xx,4,0) = tmp(yy,xx,zz) * sin(tmp1(yy,xx,zz));
+	     cub(yy,xx,3,zz) = tmp(yy,xx,zz) * cos(tmp1(yy,xx,zz));
+	     cub(yy,xx,4,zz) = tmp(yy,xx,zz) * sin(tmp1(yy,xx,zz));
 	   }
      }
    }
@@ -730,7 +731,7 @@ void mdepthall::expandAtmos(nodes_t &n, mat<double> &pars, int interpolation){
       }
 
 
-      /* --- Inc --- */
+      /* --- Bhor --- */
       if(n.toinv[4]){
 	int len =(int)n.bh.size();
 	expand(len, &n.bh[0], &pars(yy,xx,n.bh_off), ndep, &cub(yy,xx,9,0), &cub(yy,xx,4,0), interpolation);

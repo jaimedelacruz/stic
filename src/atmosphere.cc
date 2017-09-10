@@ -14,7 +14,7 @@
 //
 using namespace std;
 //
-const double atmos::maxchange[7] = {3000., 5.0e5, 1.5e5, 600., phyc::PI/5, phyc::PI/5, 0.6};
+const double atmos::maxchange[7] = {3000., 5.0e5, 1.5e5, 600., 600., phyc::PI/5, 0.6};
 
 
 

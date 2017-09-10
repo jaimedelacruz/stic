@@ -130,12 +130,12 @@ void comm_send_parameters(iput_t &input){
     status = MPI_Bcast(&nnodes,     1,    MPI_INT, 0, MPI_COMM_WORLD);
     if(nnodes > 0) status = MPI_Bcast(&input.nodes.vturb[0],     nnodes,    MPI_DOUBLE, 0, MPI_COMM_WORLD);
     
-    // nodes in b
+    // nodes in blo
     nnodes = (int)input.nodes.bl.size();
     status = MPI_Bcast(&nnodes,     1,    MPI_INT, 0, MPI_COMM_WORLD);
     if(nnodes > 0) status = MPI_Bcast(&input.nodes.bl[0],     nnodes,    MPI_DOUBLE, 0, MPI_COMM_WORLD);
     
-    // nodes in inc
+    // nodes in bhor
     nnodes = (int)input.nodes.bh.size();
     status = MPI_Bcast(&nnodes,     1,    MPI_INT, 0, MPI_COMM_WORLD);
     if(nnodes > 0) status = MPI_Bcast(&input.nodes.bh[0],     nnodes,    MPI_DOUBLE, 0, MPI_COMM_WORLD);

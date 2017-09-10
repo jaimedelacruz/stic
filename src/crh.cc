@@ -20,7 +20,7 @@ using namespace phyc;
 const double crh::pmax[7]  = {80000., 50.e5, 12e5, 5000.0, 5000., PI, 15.0};
 const double crh::pmin[7]  = {2700. ,-50.e5,  +0.0,-5000.0,  +0.0,  +0.0, 0.1};
 const double crh::pscal[7] = {1200. , 6.0e5, 6.0e5, 1000.0, 1000.0, PI, 10.0};
-const double crh::pstep[7] = {1.e-1 , 1.e-1, 1.0e-1, 2.0e-1, 1.0e-1, 1.0e-1, 1.0e-1};
+const double crh::pstep[7] = {1.e-1 , 1.e-1, 1.0e-1, 2.0e-1, 2.0e-1, 1.0e-1, 1.0e-1};
 
 /* ----------------------------------------------------------------*/
 
@@ -243,9 +243,11 @@ bool crh::synth(mdepth_t &m_in, double *syn, cprof_solver sol, bool save_pops){
     m.tau[kk] = pow(10.0, m.ltau[kk]);
     //m.b[kk] *= 1.0e-4;
     B[kk] = sqrt(m.bl[kk]*m.bl[kk] + m.bh[kk]*m.bh[kk]) * 1.0e-4 ; // B in tesla
-    if(B[kk] >= 1.e-22) 
+    if(B[kk] > 0.0) 
       inc[kk] = acos(m.bl[kk] * 1.0e-4 / B[kk]);
     else inc[kk] = 0.0;
+    if(std::isnan(inc[kk])) inc[kk] = 0.0;
+    
   }
 
   int savep = 0, hydrostat = 0;
