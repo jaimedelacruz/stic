@@ -380,7 +380,7 @@ class model:
                         res[tt,yy,xx,:] = np.interp(tau, itau, ivar[yy,xx,:]) #mt.hermpol(itau, ivar[yy,xx,:], tau)
         return(res)
     
-    def smooth(self, ntemp=0, nvlos=0, nvturb=0, nB=0, ninc=0, nazi=0, npgas=0, fwhm = 0.0, t0=0, t1=-1, median = -1):
+    def smooth(self, ntemp=0, nvlos=0, nvturb=0, nBln=0, nBho=0, nazi=0, npgas=0, fwhm = 0.0, t0=0, t1=-1, median = -1):
         
         # Get Gaussian PSF to smooth the vars
         if(fwhm == 0):
@@ -407,10 +407,10 @@ class model:
             self.vlos[:] = self._smoothVar(nvlos, self.vlos, tau, psf, median, t0=t0, t1=t1, convolve=convolve)   
         if(nvturb > 0):
             self.vturb[:] = self._smoothVar(nvturb, self.vturb, tau, psf, median, t0=t0, t1=t1, convolve=convolve)
-        if(nB > 0):
-            self.B[:] = self._smoothVar(nB, self.B, tau, psf, median, t0=t0, t1=t1, convolve=convolve)
-        if(ninc > 0):
-            self.inc[:] = self._smoothVar(ninc, self.inc, tau, psf, median, t0=t0, t1=t1, convolve=convolve)
+        if(nBln > 0):
+            self.Bln[:] = self._smoothVar(nB, self.Bln, tau, psf, median, t0=t0, t1=t1, convolve=convolve)
+        if(nBho > 0):
+            self.Bho[:] = self._smoothVar(nBho, self.Bho, tau, psf, median, t0=t0, t1=t1, convolve=convolve)
         if(nazi > 0):
             self.azi[:] = self._smoothVar(nazi, self.azi, tau, psf, median, t0=t0, t1=t1, convolve=convolve)
         if(npgas > 0):
@@ -453,8 +453,8 @@ class model:
         par2 = ncfile.createVariable('temp','f4',('time','y','x','ndep'))
         par3 = ncfile.createVariable('pgas','f4',('time','y','x','ndep'))
         par4 = ncfile.createVariable('vlos','f4',('time','y','x','ndep'))
-        par5 = ncfile.createVariable('b','f4',('time','y','x','ndep'))
-        par6 = ncfile.createVariable('inc','f4',('time','y','x','ndep'))
+        par5 = ncfile.createVariable('blong','f4',('time','y','x','ndep'))
+        par6 = ncfile.createVariable('bhor','f4',('time','y','x','ndep'))
         par7 = ncfile.createVariable('azi','f4',('time','y','x','ndep'))
         par8 = ncfile.createVariable('vturb','f4',('time','y','x','ndep'))
         par9 = ncfile.createVariable('cmass','f4',('time','y','x','ndep'))
@@ -471,8 +471,8 @@ class model:
             par2[tt] = self.temp[tt,y0:y1, x0:x1, z0:z1]
             par3[tt] = self.pgas[tt,y0:y1, x0:x1, z0:z1]
             par4[tt] = self.vlos[tt,y0:y1, x0:x1, z0:z1]
-            par5[tt] = self.B[tt,y0:y1, x0:x1, z0:z1]
-            par6[tt] = self.inc[tt,y0:y1, x0:x1, z0:z1]
+            par5[tt] = self.blong[tt,y0:y1, x0:x1, z0:z1]
+            par6[tt] = self.bhor[tt,y0:y1, x0:x1, z0:z1]
             par7[tt] = self.azi[tt,y0:y1, x0:x1, z0:z1]
             par8[tt] = self.vturb[tt,y0:y1, x0:x1, z0:z1]
             par9[tt] = self.cmass[tt,y0:y1, x0:x1, z0:z1]
@@ -504,10 +504,10 @@ class model:
                   (inte.interp2d(yy,xx,self.vlos[tt,:,:,kk], kind='linear'))(yy1,xx1)
                 nm.vturb[tt,:,:,kk] = \
                   (inte.interp2d(yy,xx,self.vturb[tt,:,:,kk], kind='linear'))(yy1,xx1)
-                nm.B[tt,:,:,kk] = \
-                  (inte.interp2d(yy,xx,self.B[tt,:,:,kk], kind='linear'))(yy1,xx1)
-                nm.inc[tt,:,:,kk] = \
-                  (inte.interp2d(yy,xx,self.inc[tt,:,:,kk], kind='linear'))(yy1,xx1)
+                nm.Bln[tt,:,:,kk] = \
+                  (inte.interp2d(yy,xx,self.Bln[tt,:,:,kk], kind='linear'))(yy1,xx1)
+                nm.Bho[tt,:,:,kk] = \
+                  (inte.interp2d(yy,xx,self.Bho[tt,:,:,kk], kind='linear'))(yy1,xx1)
                 nm.azi[tt,:,:,kk] = \
                   (inte.interp2d(yy,xx,self.azi[tt,:,:,kk], kind='linear'))(yy1,xx1)
                 nm.pgas[tt,:,:,kk] = \
@@ -538,8 +538,8 @@ class model:
                 m2.temp[tt,:,:,ii] = im.rebin(self.temp[tt,:,:,ii], (ny, nx))
                 m2.vlos[tt,:,:,ii] = im.rebin(self.vlos[tt,:,:,ii], (ny, nx))
                 m2.vturb[tt,:,:,ii] = im.rebin(self.vturb[tt,:,:,ii], (ny, nx))
-                m2.B[tt,:,:,ii] = im.rebin(self.B[tt,:,:,ii], (ny, nx))
-                m2.inc[tt,:,:,ii] = im.rebin(self.inc[tt,:,:,ii], (ny, nx))
+                m2.Bln[tt,:,:,ii] = im.rebin(self.Bln[tt,:,:,ii], (ny, nx))
+                m2.Bho[tt,:,:,ii] = im.rebin(self.Bho[tt,:,:,ii], (ny, nx))
                 m2.azi[tt,:,:,ii] = im.rebin(self.azi[tt,:,:,ii], (ny, nx))
                 m2.pgas[tt,:,:,ii] = im.rebin(self.pgas[tt,:,:,ii], (ny, nx))
                 m2.rho[tt,:,:,ii] = im.rebin(self.rho[tt,:,:,ii], (ny, nx))
