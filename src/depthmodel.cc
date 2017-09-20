@@ -12,6 +12,33 @@ using namespace std;
 /* --- Default boundary condition (if none provided) --- */
 const double mdepth::boundary_pgas_default = 7.e-1;
 
+/* ------------------------------------------------------ */
+
+std::vector<double> mdepth::model2vector()
+{
+  vector<double> res(ndep*13, 0.0);
+  
+  if(ndep >0)
+    memcpy(&res[0], &cub(0,0), ndep*13*sizeof(double));
+
+  return res; 
+}
+
+/* ------------------------------------------------------ */
+
+void mdepth::vector2model(std::vector<double> &vec)
+{
+
+  
+  int nn = (int)vec.size()/13;
+  if(ndep != nn) setsize(nn);
+
+  memcpy(&cub(0,0), &vec[0], 13*ndep*sizeof(double));
+
+}
+
+/* ------------------------------------------------------ */
+
 void mdepth::setsize(int n){
 
   /* --- resize --- */

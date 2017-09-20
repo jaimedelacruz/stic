@@ -48,6 +48,10 @@ class mdepth{
   void zero(void);
   void fill_densities(ceos &eos, int keep_nne = 0);
   mdepth& operator= ( mdepth &m);
+
+  std::vector<double> model2vector();
+  void vector2model(std::vector<double> &vec);
+  
 //-------------------------------------------
 };
 typedef mdepth mdepth_t;

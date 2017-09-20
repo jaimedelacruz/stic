@@ -47,7 +47,7 @@ void comm_get_buffer_size(iput_t &input){
       input.buffer_size1 = (input.nw_tot*4*sizeof(double) +                    
 			    input.nw_tot*4*input.npar*sizeof(double) + // Derivatives
 			    1*sizeof(double)) * input.npack +// perturbation to the parameter
-	                    1*input.npack*input.ndep*sizeof(double)+ // Send back the pressure scale
+	                    13*input.npack*input.ndep*sizeof(double)+ // Send back the pressure scale
 	                    6*sizeof(int); // xx, yy, ipix, npacked, iproc 
       break;
     default:
@@ -639,15 +639,12 @@ void comm_master_unpack_data(int &iproc, iput_t input, mat<double> &obs, mat<dou
 			    len, MPI_DOUBLE, MPI_COMM_WORLD );
 	irec += nPacked;
 
-	len = input.ndep;
+	len = input.ndep*13;
 	for(int ii=0;ii<nPacked;ii++){
 	  comm_get_xy(pix++, input.nx, yy, xx);
-	  status = MPI_Unpack(buffer, input.buffer_size1, &pos, &m.cub(yy,xx,6,0),
-			      len, MPI_DOUBLE, MPI_COMM_WORLD );
-	  status = MPI_Unpack(buffer, input.buffer_size1, &pos, &m.cub(yy,xx,8,0),
-			      len, MPI_DOUBLE, MPI_COMM_WORLD );
-	  status = MPI_Unpack(buffer, input.buffer_size1, &pos, &m.cub(yy,xx,10,0),
-			      len, MPI_DOUBLE, MPI_COMM_WORLD );
+	  status = MPI_Unpack(buffer, input.buffer_size1, &pos, &m.cub(yy,xx,0,0),
+			      len, MPI_DOUBLE, MPI_COMM_WORLD);
+
 	}
 	break;
       }
@@ -682,18 +679,14 @@ void comm_master_unpack_data(int &iproc, iput_t input, mat<double> &obs, mat<dou
 	status = MPI_Unpack(buffer, input.buffer_size1, &pos, &obs(yy,xx,0,0), len,
 			    MPI_DOUBLE, MPI_COMM_WORLD );
 
-	len = input.ndep;
+	len = input.ndep*13;
 	int mypix = pix, iyy=0, ixx=0;
 	
 	for(int ii = 0; ii< nPacked;ii++){
 	  comm_get_xy(mypix++, nx, iyy, ixx);
+	  status = MPI_Unpack(buffer, input.buffer_size1, &pos, &m.cub(yy,xx,0,0),
+			      len, MPI_DOUBLE, MPI_COMM_WORLD);
 	  //cerr<<mypix-1<<" "<<iyy<<" "<<ixx<<endl;
-	  status = MPI_Unpack(buffer, input.buffer_size1, &pos, &m.cub(iyy,ixx,6,0), len,
-			      MPI_DOUBLE, MPI_COMM_WORLD );
-	  status = MPI_Unpack(buffer, input.buffer_size1, &pos, &m.cub(yy,xx,8,0),
-			      len, MPI_DOUBLE, MPI_COMM_WORLD );
-	  status = MPI_Unpack(buffer, input.buffer_size1, &pos, &m.cub(yy,xx,10,0),
-			      len, MPI_DOUBLE, MPI_COMM_WORLD );
 	}
 	  
 	if(cgrad > 0){
@@ -748,15 +741,12 @@ void comm_slave_pack_data(iput_t &input, mat<double> &obs, mat<double> &pars, ma
       status = MPI_Pack(&pars.d[0], len,  MPI_DOUBLE, &buffer[0], input.buffer_size1,
 			&pos, MPI_COMM_WORLD);
       
-      // gas pressure
-      len = input.ndep;
+      // model
+      len = input.ndep*13;
       for(int pp=0; pp<nPacked; pp++){
-	status = MPI_Pack(&m[pp].pgas[0], len,  MPI_DOUBLE, &buffer[0], input.buffer_size1,
+	vector<double> vec = m[pp].model2vector();
+	status = MPI_Pack(&vec[0], len,  MPI_DOUBLE, &buffer[0], input.buffer_size1,
 			  &pos, MPI_COMM_WORLD);
-	status = MPI_Pack(&m[pp].nne[0], len,  MPI_DOUBLE, &buffer[0], input.buffer_size1,
-			  &pos, MPI_COMM_WORLD);
-	status = MPI_Pack(&m[pp].z[0], len,  MPI_DOUBLE, &buffer[0], input.buffer_size1,
-			  &pos, MPI_COMM_WORLD);	
       }
       break;
       
@@ -781,13 +771,10 @@ void comm_slave_pack_data(iput_t &input, mat<double> &obs, mat<double> &pars, ma
       status = MPI_Pack(&obs.d[0], len,  MPI_DOUBLE, &buffer[0], input.buffer_size1, &pos, MPI_COMM_WORLD);
 
       // gas pressure
-      len = input.ndep;
+      len = input.ndep*13;
       for(int pp=0; pp<nPacked; pp++){
-	status = MPI_Pack(&m[pp].cub(6,0), len,  MPI_DOUBLE, &buffer[0], input.buffer_size1,
-			  &pos, MPI_COMM_WORLD);
-	status = MPI_Pack(&m[pp].nne[0], len,  MPI_DOUBLE, &buffer[0], input.buffer_size1,
-			  &pos, MPI_COMM_WORLD);
-	status = MPI_Pack(&m[pp].z[0], len,  MPI_DOUBLE, &buffer[0], input.buffer_size1,
+	vector<double> vec = m[pp].model2vector();
+	status = MPI_Pack(&vec[0], len,  MPI_DOUBLE, &buffer[0], input.buffer_size1,
 			  &pos, MPI_COMM_WORLD);
       }
       
