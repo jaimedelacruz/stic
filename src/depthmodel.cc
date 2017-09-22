@@ -123,38 +123,83 @@ void mdepth::nne_enhance(nodes_t &nodes, int n, double *pars, ceos &eos){
 
 }
 
-void mdepth::expand(nodes_t &n, double *p, int interpol){
+void mdepth::expand(nodes_t &n, double *p, int interpol, int mtype){
   
   // int ndep = (int)cub.size(1);
-  
-  if(n.toinv[0]){
-    int len = (int)n.temp.size();
-    nodes2depth(len, &n.temp[0], &p[n.temp_off], ndep, &ltau[0], &temp[0], interpol);
-  }
-  
-  if(n.toinv[1]){
-    int len = (int)n.v.size();
-    nodes2depth(len, &n.v[0], &p[n.v_off], ndep, &ltau[0], &v[0], interpol);
-  }
-  
-  if(n.toinv[2]){
-    int len = (int)n.vturb.size();
-    nodes2depth(len, &n.vturb[0], &p[n.vturb_off], ndep, &ltau[0], &vturb[0], interpol);
-  }
-  
-  if(n.toinv[3]){
-    int len = (int)n.bl.size();
-    nodes2depth(len, &n.bl[0], &p[n.bl_off], ndep, &ltau[0], &bl[0], interpol);
-  }
-  
-  if(n.toinv[4]){
-    int len = (int)n.bh.size();
-    nodes2depth(len, &n.bh[0], &p[n.bh_off], ndep, &ltau[0], &bh[0], interpol);
-  }
-  
-  if(n.toinv[5]){
-    int len = (int)n.azi.size();
-    nodes2depth(len, &n.azi[0], &p[n.azi_off], ndep, &ltau[0], &azi[0], interpol);
+  if(mtype == 0){ // Nodes are the actual value of the model
+    
+    if(n.toinv[0]){
+      int len = (int)n.temp.size();
+      nodes2depth(len, &n.temp[0], &p[n.temp_off], ndep, &ltau[0], &temp[0], interpol);
+    }
+    
+    if(n.toinv[1]){
+      int len = (int)n.v.size();
+      nodes2depth(len, &n.v[0], &p[n.v_off], ndep, &ltau[0], &v[0], interpol);
+    }
+    
+    if(n.toinv[2]){
+      int len = (int)n.vturb.size();
+      nodes2depth(len, &n.vturb[0], &p[n.vturb_off], ndep, &ltau[0], &vturb[0], interpol);
+    }
+    
+    if(n.toinv[3]){
+      int len = (int)n.bl.size();
+      nodes2depth(len, &n.bl[0], &p[n.bl_off], ndep, &ltau[0], &bl[0], interpol);
+    }
+    
+    if(n.toinv[4]){
+      int len = (int)n.bh.size();
+      nodes2depth(len, &n.bh[0], &p[n.bh_off], ndep, &ltau[0], &bh[0], interpol);
+    }
+    
+    if(n.toinv[5]){
+      int len = (int)n.azi.size();
+      nodes2depth(len, &n.azi[0], &p[n.azi_off], ndep, &ltau[0], &azi[0], interpol);
+    }
+  }else{ // NICOLE/SIR behaviour: node is a correction
+
+    double *tmp = new double [ndep];
+
+    
+    if(n.toinv[0]){
+      int len = (int)n.temp.size();
+      nodes2depth(len, &n.temp[0], &p[n.temp_off], ndep, &ltau[0], tmp, interpol);
+      for(int ii=0;ii<ndep;ii++) temp[ii] += tmp[ii];
+    }
+
+    
+    if(n.toinv[1]){
+      int len = (int)n.v.size();
+      nodes2depth(len, &n.v[0], &p[n.v_off], ndep, &ltau[0], tmp, interpol);
+      for(int ii=0;ii<ndep;ii++) v[ii] += tmp[ii];
+    }
+
+    if(n.toinv[2]){
+      int len = (int)n.vturb.size();
+      nodes2depth(len, &n.vturb[0], &p[n.vturb_off], ndep, &ltau[0], tmp, interpol);
+      for(int ii=0;ii<ndep;ii++) vturb[ii] += tmp[ii];
+    }
+    
+    if(n.toinv[3]){
+      int len = (int)n.bl.size();
+      nodes2depth(len, &n.bl[0], &p[n.bl_off], ndep, &ltau[0], tmp, interpol);
+      for(int ii=0;ii<ndep;ii++) bl[ii] += tmp[ii];
+    }     
+
+    if(n.toinv[4]){
+      int len = (int)n.bh.size();
+      nodes2depth(len, &n.bh[0], &p[n.bh_off], ndep, &ltau[0], tmp, interpol);
+      for(int ii=0;ii<ndep;ii++) bh[ii] += tmp[ii];
+    }
+
+    if(n.toinv[5]){
+      int len = (int)n.azi.size();
+      nodes2depth(len, &n.azi[0], &p[n.azi_off], ndep, &ltau[0], tmp, interpol);
+      for(int ii=0;ii<ndep;ii++) azi[ii] += tmp[ii];
+    }
+    
+    delete [] tmp;
   }
   
   if(n.toinv[6]){
@@ -163,7 +208,7 @@ void mdepth::expand(nodes_t &n, double *p, int interpol){
     else if(n.bound == 3) nne[0]  = bound_val*p[n.pgas_off];
     else pgas[0] =  boundary_pgas_default*p[n.pgas_off];
   }//else fprintf(stderr, "bound=%1d, val=%e\n", n.bound, bound_val);
-
+  
   
   
   return;

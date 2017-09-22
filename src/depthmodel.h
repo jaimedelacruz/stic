@@ -39,7 +39,7 @@ class mdepth{
 
   /* --- prototypes ---*/
   void setsize(int n);
-  void nodes2depth(int n, double *x, double *y, int nn, double *xx, double *yy, int interpol = 0);
+  void nodes2depth(int n, double *x, double *y, int nn, double *xx, double *yy, int interpol, int mtype = 0);
   void expand(nodes_t &nodes, double *p, int interpol = 0);
   void fixBoundary(int boundary, ceos &eos);
   void nne_enhance(nodes_t &nodes, int n, double *pars, ceos &eos);

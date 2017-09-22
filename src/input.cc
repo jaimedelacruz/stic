@@ -100,6 +100,8 @@ iput_t read_input(std::string filename, bool verbose){
   input.svd_split = 1;
   input.regularize = 0.0;
   input.random_first = 0;
+  input.depth_model = 0;
+
   memset(input.nodes.regul_type, 0, 6*sizeof(int));
   
   // Open File and read
@@ -149,6 +151,10 @@ iput_t read_input(std::string filename, bool verbose){
       }
       else if(key == "mpi_pack"){
 	input.npack = atoi(field.c_str());
+	set = true;
+      }
+      else if(key == "depth_model"){
+	input.depth_model = atoi(field.c_str());
 	set = true;
       }
       else if(key == "rt_solver"){
