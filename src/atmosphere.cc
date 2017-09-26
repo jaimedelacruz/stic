@@ -91,7 +91,7 @@ void atmos::responseFunction(int npar, mdepth_t &m_in, double *pars, int nd, dou
       memcpy(&out[0], &syn[0], nd*sizeof(double));
     } else{
       ipars[pp] = pval + up;
-      m.expand(input.nodes, &ipars[0], input.dint);
+      m.expand(input.nodes, &ipars[0], input.dint, input.depth_model);
       checkBounds(m);
 
       /* -- recompute Hydro Eq. ? --- */
@@ -112,7 +112,7 @@ void atmos::responseFunction(int npar, mdepth_t &m_in, double *pars, int nd, dou
       memcpy(&spec[0], &syn[0], nd*sizeof(double));
     } else{
       ipars[pp] = pval + down;
-      m.expand(input.nodes, &ipars[0], input.dint);
+      m.expand(input.nodes, &ipars[0], input.dint, input.depth_model);
       checkBounds(m);
 
       // if(input.nodes.ntype[pp] == temp_node && input.thydro == 1)
@@ -161,7 +161,7 @@ void atmos::responseFunction(int npar, mdepth_t &m_in, double *pars, int nd, dou
     
     /* --- Synth --- */
     
-    m.expand(input.nodes, &ipars[0],  input.dint);
+    m.expand(input.nodes, &ipars[0],  input.dint, input.depth_model);
     checkBounds(m);
 
     //  if((input.nodes.ntype[pp] == temp_node) && (input.thydro == 1))
@@ -497,7 +497,7 @@ int getChi2(int npar1, int nd, double *pars1, double *dev, double **derivs, void
   for(int pp = 0; pp<npar1; pp++)
     ipars[pp] = pars1[pp] * atm.scal[pp]; 
   
-  m.expand(atm.input.nodes, &ipars[0], atm.input.dint);
+  m.expand(atm.input.nodes, &ipars[0], atm.input.dint, atm.input.depth_model);
   atm.checkBounds(m);
   m.getPressureScale(atm.input.boundary, atm.eos);
 
@@ -690,7 +690,7 @@ double atmos::fitModel2(mdepth_t &m, int npar, double *pars, int nobs, double *o
     pars[pp] = bestPars[pp] * scal[pp];
   
   memset(&isyn[0],0,ndata*sizeof(double));
-  m.expand(input.nodes, &pars[0], input.dint);
+  m.expand(input.nodes, &pars[0], input.dint, input.depth_model);
   checkBounds(m);
   m.getPressureScale(input.boundary, eos); 
   synth( m , &isyn[0], (cprof_solver)input.solver, false);

@@ -76,18 +76,18 @@ mdepth& mdepth::operator= (  mdepth &m)
   return *this;
 }
 
-void mdepth::nodes2depth(int n, double *x, double *y, int nn, double *xx, double *yy, int interpol)
+void mdepth::nodes2depth(int n, double *x, double *y, int nn, double *xx, double *yy, int interpol, bool extrapolate)
 {
   if     (n <  1)           return;
   else if(n == 1)           for(int kk=0; kk<nn; kk++) yy[kk] = y[0];
-  else if(n == 2)            linpol<double,double>(n, x, y, nn, xx, yy, true);
+  else if(n == 2)            linpol<double,double>(n, x, y, nn, xx, yy, extrapolate);
   else if(n >= 3){
-    if     (interpol == 0)   linpol<double,double>(n, x, y, nn, xx, yy, true);
-    else if(interpol == 1)  bezpol2<double,double>(n, x, y, nn, xx, yy, true);
-    else if(interpol == 2)  hermpol<double,double>(n, x, y, nn, xx, yy, true);
+    if     (interpol == 0)   linpol<double,double>(n, x, y, nn, xx, yy, extrapolate);
+    else if(interpol == 1)  bezpol2<double,double>(n, x, y, nn, xx, yy, extrapolate);
+    else if(interpol == 2)  hermpol<double,double>(n, x, y, nn, xx, yy, extrapolate);
     else if(interpol == 3){
       if(n > 3) vlint<double,double>(n, x, y, nn, xx, yy);
-      else      linpol<double,double>(n, x, y, nn, xx, yy, true);
+      else      linpol<double,double>(n, x, y, nn, xx, yy, extrapolate);
     }
   }
 }
@@ -130,32 +130,32 @@ void mdepth::expand(nodes_t &n, double *p, int interpol, int mtype){
     
     if(n.toinv[0]){
       int len = (int)n.temp.size();
-      nodes2depth(len, &n.temp[0], &p[n.temp_off], ndep, &ltau[0], &temp[0], interpol);
+      nodes2depth(len, &n.temp[0], &p[n.temp_off], ndep, &ltau[0], &temp[0], interpol, true);
     }
     
     if(n.toinv[1]){
       int len = (int)n.v.size();
-      nodes2depth(len, &n.v[0], &p[n.v_off], ndep, &ltau[0], &v[0], interpol);
+      nodes2depth(len, &n.v[0], &p[n.v_off], ndep, &ltau[0], &v[0], interpol, false);
     }
     
     if(n.toinv[2]){
       int len = (int)n.vturb.size();
-      nodes2depth(len, &n.vturb[0], &p[n.vturb_off], ndep, &ltau[0], &vturb[0], interpol);
+      nodes2depth(len, &n.vturb[0], &p[n.vturb_off], ndep, &ltau[0], &vturb[0], interpol, false);
     }
     
     if(n.toinv[3]){
       int len = (int)n.bl.size();
-      nodes2depth(len, &n.bl[0], &p[n.bl_off], ndep, &ltau[0], &bl[0], interpol);
+      nodes2depth(len, &n.bl[0], &p[n.bl_off], ndep, &ltau[0], &bl[0], interpol, false);
     }
     
     if(n.toinv[4]){
       int len = (int)n.bh.size();
-      nodes2depth(len, &n.bh[0], &p[n.bh_off], ndep, &ltau[0], &bh[0], interpol);
+      nodes2depth(len, &n.bh[0], &p[n.bh_off], ndep, &ltau[0], &bh[0], interpol, false);
     }
     
     if(n.toinv[5]){
       int len = (int)n.azi.size();
-      nodes2depth(len, &n.azi[0], &p[n.azi_off], ndep, &ltau[0], &azi[0], interpol);
+      nodes2depth(len, &n.azi[0], &p[n.azi_off], ndep, &ltau[0], &azi[0], interpol, false);
     }
   }else{ // NICOLE/SIR behaviour: node is a correction
 
@@ -164,38 +164,38 @@ void mdepth::expand(nodes_t &n, double *p, int interpol, int mtype){
     
     if(n.toinv[0]){
       int len = (int)n.temp.size();
-      nodes2depth(len, &n.temp[0], &p[n.temp_off], ndep, &ltau[0], tmp, interpol);
+      nodes2depth(len, &n.temp[0], &p[n.temp_off], ndep, &ltau[0], tmp, interpol, true);
       for(int ii=0;ii<ndep;ii++) temp[ii] += tmp[ii];
     }
 
     
     if(n.toinv[1]){
       int len = (int)n.v.size();
-      nodes2depth(len, &n.v[0], &p[n.v_off], ndep, &ltau[0], tmp, interpol);
+      nodes2depth(len, &n.v[0], &p[n.v_off], ndep, &ltau[0], tmp, interpol, false);
       for(int ii=0;ii<ndep;ii++) v[ii] += tmp[ii];
     }
 
     if(n.toinv[2]){
       int len = (int)n.vturb.size();
-      nodes2depth(len, &n.vturb[0], &p[n.vturb_off], ndep, &ltau[0], tmp, interpol);
+      nodes2depth(len, &n.vturb[0], &p[n.vturb_off], ndep, &ltau[0], tmp, interpol, false);
       for(int ii=0;ii<ndep;ii++) vturb[ii] += tmp[ii];
     }
     
     if(n.toinv[3]){
       int len = (int)n.bl.size();
-      nodes2depth(len, &n.bl[0], &p[n.bl_off], ndep, &ltau[0], tmp, interpol);
+      nodes2depth(len, &n.bl[0], &p[n.bl_off], ndep, &ltau[0], tmp, interpol, false);
       for(int ii=0;ii<ndep;ii++) bl[ii] += tmp[ii];
     }     
 
     if(n.toinv[4]){
       int len = (int)n.bh.size();
-      nodes2depth(len, &n.bh[0], &p[n.bh_off], ndep, &ltau[0], tmp, interpol);
+      nodes2depth(len, &n.bh[0], &p[n.bh_off], ndep, &ltau[0], tmp, interpol, false);
       for(int ii=0;ii<ndep;ii++) bh[ii] += tmp[ii];
     }
 
     if(n.toinv[5]){
       int len = (int)n.azi.size();
-      nodes2depth(len, &n.azi[0], &p[n.azi_off], ndep, &ltau[0], tmp, interpol);
+      nodes2depth(len, &n.azi[0], &p[n.azi_off], ndep, &ltau[0], tmp, interpol, false);
       for(int ii=0;ii<ndep;ii++) azi[ii] += tmp[ii];
     }
     

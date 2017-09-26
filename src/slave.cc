@@ -210,11 +210,12 @@ void do_slave(int myrank, int nprocs, char hostname[]){
 	
 	/* --- Expand the nodes into a depth stratified atmosphere --- */
 	
-	it.expand(input.nodes, &pars(pixel,0));
+	it.expand(input.nodes, &pars(pixel,0), input.dint, input.depth_model);
 	atmos->checkBounds(it);
 
 	
 	/* --- Log tau to tau --- */
+	
 	for(int kk = 0; kk < input.ndep; kk++)
 	  it.tau[kk] = pow(10.0, it.ltau[kk]); 
 
