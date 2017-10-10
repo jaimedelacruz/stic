@@ -43,10 +43,12 @@ class mdepth{
   void expand(nodes_t &nodes, double *p, int interpol, int mtype = 0);
   void fixBoundary(int boundary, ceos &eos);
   void nne_enhance(nodes_t &nodes, int n, double *pars, ceos &eos);
-  void getPressureScale(int boundary, ceos &eos);
+  void getPressureScale(int depth_t, int boundary, ceos &eos);
   void getScales(ceos &eos, int bound);
   void zero(void);
   void fill_densities(ceos &eos, int keep_nne = 0);
+  void hydrostatic(ceos &eos, int depth_t);
+  
   mdepth& operator= ( mdepth &m);
 
   std::vector<double> model2vector();

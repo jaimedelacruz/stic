@@ -86,6 +86,7 @@ iput_t read_input(std::string filename, bool verbose){
   input.dpar = 1.e-2; // Default
   input.nw_tot = 0;
   input.nodes.nnodes = 0;
+  input.nodes.depth_t = 0;
   input.verbose = false; // default
   memset(&input.nodes.toinv[0],0, 7*sizeof(int));
   input.solver = 0;
@@ -101,7 +102,7 @@ iput_t read_input(std::string filename, bool verbose){
   input.regularize = 0.0;
   input.random_first = 0;
   input.depth_model = 0;
-
+  
   memset(input.nodes.regul_type, 0, 6*sizeof(int));
   
   // Open File and read
@@ -175,6 +176,10 @@ iput_t read_input(std::string filename, bool verbose){
       }
       else if(key == "regularize"){
 	input.regularize = atof(field.c_str());
+	set = true;
+      }
+      else if(key == "depth_t"){
+	input.nodes.depth_t = atoi(field.c_str());
 	set = true;
       }
       else if(key == "regularization_type"){
@@ -557,130 +562,130 @@ double inv_convl(double lambda_air){
   return lambda_vacuum;
 }
 
-int set_nodes(nodes_t &n, double min, double max, bool verbose){
-  int nn = n.nnodes;
-  string inam = "set_nodes: ";
+// int set_nodes(nodes_t &n, double min, double max, bool verbose){
+//   int nn = n.nnodes;
+//   string inam = "set_nodes: ";
 
-  /* --- resize array for the node type --- */
-  n.ntype.resize(nn, none_node);
-  int k = 0;
-  n.tosend = 0;
+//   /* --- resize array for the node type --- */
+//   n.ntype.resize(nn, none_node);
+//   int k = 0;
+//   n.tosend = 0;
   
-  /* --- temp --- */
-  nn = n.temp.size();
-  if(nn > 0) n.temp_off = k;
-  else n.temp_off = -1;
+//   /* --- temp --- */
+//   nn = n.temp.size();
+//   if(nn > 0) n.temp_off = k;
+//   else n.temp_off = -1;
   
-  if(nn == 1){
-    nn = n.temp[0];
-    n.temp.resize(nn);
-    equidist(n.temp, min, max);
-  }
-  for(int ii = 0; ii<nn; ii++) n.ntype[k++] = temp_node;
-  if(verbose) cout << inam << "Temp -> "<< formatVect<double>(n.temp)<<endl;
+//   if(nn == 1){
+//     nn = n.temp[0];
+//     n.temp.resize(nn);
+//     equidist(n.temp, min, max);
+//   }
+//   for(int ii = 0; ii<nn; ii++) n.ntype[k++] = temp_node;
+//   if(verbose) cout << inam << "Temp -> "<< formatVect<double>(n.temp)<<endl;
 
-  if(n.temp.size() > 0) n.toinv[0] = 1;
-  else{
-    n.toinv[0] = 0;
-    n.tosend += 1;
-  }
+//   if(n.temp.size() > 0) n.toinv[0] = 1;
+//   else{
+//     n.toinv[0] = 0;
+//     n.tosend += 1;
+//   }
   
-  /* --- vlos --- */
-  nn = n.v.size();
-  if(nn > 0) n.v_off = k;
-  else n.v_off = -1;
+//   /* --- vlos --- */
+//   nn = n.v.size();
+//   if(nn > 0) n.v_off = k;
+//   else n.v_off = -1;
 
-  if(nn == 1){
-    nn = n.v[0];
-    n.v.resize(nn);
-    equidist(n.v, min, max);
-  }
-  for(int ii = 0; ii<nn; ii++) n.ntype[k++] = v_node;
-  if(verbose) cout << inam << "Vlos -> "<< formatVect<double>(n.v)<<endl;
-  if(n.v.size() > 0) n.toinv[1] = 1;
-  else{
-    n.toinv[1] = 0;
-    n.tosend += 1;
-  }
+//   if(nn == 1){
+//     nn = n.v[0];
+//     n.v.resize(nn);
+//     equidist(n.v, min, max);
+//   }
+//   for(int ii = 0; ii<nn; ii++) n.ntype[k++] = v_node;
+//   if(verbose) cout << inam << "Vlos -> "<< formatVect<double>(n.v)<<endl;
+//   if(n.v.size() > 0) n.toinv[1] = 1;
+//   else{
+//     n.toinv[1] = 0;
+//     n.tosend += 1;
+//   }
   
-  /* --- vturb --- */
-  nn = n.vturb.size();
-  if(nn > 0) n.vturb_off = k;
-  else n.vturb_off = -1;
+//   /* --- vturb --- */
+//   nn = n.vturb.size();
+//   if(nn > 0) n.vturb_off = k;
+//   else n.vturb_off = -1;
 
-  if(nn == 1){
-    nn = n.vturb[0];
-    n.vturb.resize(nn);
-    equidist(n.vturb, min, max);
-  }
-  for(int ii = 0; ii<nn; ii++) n.ntype[k++] = vturb_node;
-  if(verbose) cout << inam << "Vturb -> "<< formatVect<double>(n.vturb)<<endl;
-  if(n.vturb.size() > 0) n.toinv[2] = 1;
-  else{
-    n.toinv[2] = 0;
-    n.tosend += 1;
-  }
+//   if(nn == 1){
+//     nn = n.vturb[0];
+//     n.vturb.resize(nn);
+//     equidist(n.vturb, min, max);
+//   }
+//   for(int ii = 0; ii<nn; ii++) n.ntype[k++] = vturb_node;
+//   if(verbose) cout << inam << "Vturb -> "<< formatVect<double>(n.vturb)<<endl;
+//   if(n.vturb.size() > 0) n.toinv[2] = 1;
+//   else{
+//     n.toinv[2] = 0;
+//     n.tosend += 1;
+//   }
   
-  /* --- blong --- */
-  nn = n.bl.size();
-  if(nn > 0) n.bl_off = k;
-  else n.bl_off = -1;
+//   /* --- blong --- */
+//   nn = n.bl.size();
+//   if(nn > 0) n.bl_off = k;
+//   else n.bl_off = -1;
   
-  if(nn == 1){
-    nn = n.bl[0];
-    n.bl.resize(nn);
-    equidist(n.bl, min, max);
-  }
-  for(int ii = 0; ii<nn; ii++) n.ntype[k++] = bl_node;
-  if(verbose) cout << inam << "Blong -> "<< formatVect<double>(n.bl)<<endl;
-  if(n.bl.size() > 0) n.toinv[3] = 1;
-  else{
-    n.toinv[3] = 0;
-    n.tosend += 1;
-  }
+//   if(nn == 1){
+//     nn = n.bl[0];
+//     n.bl.resize(nn);
+//     equidist(n.bl, min, max);
+//   }
+//   for(int ii = 0; ii<nn; ii++) n.ntype[k++] = bl_node;
+//   if(verbose) cout << inam << "Blong -> "<< formatVect<double>(n.bl)<<endl;
+//   if(n.bl.size() > 0) n.toinv[3] = 1;
+//   else{
+//     n.toinv[3] = 0;
+//     n.tosend += 1;
+//   }
   
-  /* --- bhor --- */
-  nn = n.bh.size();
-  if(nn > 0) n.bh_off = k;
-  else n.bh_off = -1;
+//   /* --- bhor --- */
+//   nn = n.bh.size();
+//   if(nn > 0) n.bh_off = k;
+//   else n.bh_off = -1;
   
-  if(nn == 1){
-    nn = n.bh[0];
-    n.bh.resize(nn);
-    equidist(n.bh, min, max);
-  }
-  for(int ii = 0; ii<nn; ii++) n.ntype[k++] = bh_node;
-  if(verbose) cout << inam << "Bhor -> "<< formatVect<double>(n.bh)<<endl;
-  if(n.bh.size() > 0) n.toinv[4] = 1;
-  else{
-    n.toinv[4] = 0;
-    n.tosend += 1;
-  }
+//   if(nn == 1){
+//     nn = n.bh[0];
+//     n.bh.resize(nn);
+//     equidist(n.bh, min, max);
+//   }
+//   for(int ii = 0; ii<nn; ii++) n.ntype[k++] = bh_node;
+//   if(verbose) cout << inam << "Bhor -> "<< formatVect<double>(n.bh)<<endl;
+//   if(n.bh.size() > 0) n.toinv[4] = 1;
+//   else{
+//     n.toinv[4] = 0;
+//     n.tosend += 1;
+//   }
   
-  /* --- azi --- */
-  nn = n.azi.size();
-  if(nn > 0) n.azi_off = k;
-  else n.azi_off = -1;
+//   /* --- azi --- */
+//   nn = n.azi.size();
+//   if(nn > 0) n.azi_off = k;
+//   else n.azi_off = -1;
   
-  if(nn == 1){
-    nn = n.azi[0];
-    n.azi.resize(nn);
-    equidist(n.azi, min, max);
-  }
-  for(int ii = 0; ii<nn; ii++) n.ntype[k++] = azi_node;
-  if(verbose) cout << inam << "Azi -> "<< formatVect<double>(n.azi)<<endl;
-  if(n.azi.size() > 0) n.toinv[5] = 1;
-  else{
-    n.toinv[5] = 0;
-    n.tosend += 1;
-  }
+//   if(nn == 1){
+//     nn = n.azi[0];
+//     n.azi.resize(nn);
+//     equidist(n.azi, min, max);
+//   }
+//   for(int ii = 0; ii<nn; ii++) n.ntype[k++] = azi_node;
+//   if(verbose) cout << inam << "Azi -> "<< formatVect<double>(n.azi)<<endl;
+//   if(n.azi.size() > 0) n.toinv[5] = 1;
+//   else{
+//     n.toinv[5] = 0;
+//     n.tosend += 1;
+//   }
   
   
-  return n.nnodes;
+//   return n.nnodes;
   
-}
+// }
 
-int set_nodes(nodes_t &n, vector<double> &itau,  int dint, bool verbose){
+int set_nodes(nodes_t &n, vector<double> &itau, int dint, bool verbose){
   int nn = n.nnodes;
   string inam = "set_nodes: ";
 

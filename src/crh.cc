@@ -233,7 +233,9 @@ bool crh::synth(mdepth_t &m_in, double *syn, cprof_solver sol, bool save_pops){
     //nhtot[kk] = m.rho[kk] / (phyc::AMU * eos.avmol) *  eos.ABUND[0] / eos.totalAbund * 1.e6;
     
     /* --- Convert units to SI --- */
-    
+
+    if(m.cmass[kk] >= 1.e-20)
+      m.cmass[kk] = pow(10., m.cmass[kk]); // CMass should be in log10 scale
     m.cmass[kk] *= 10.0; // *= G_TO_KG / CM_TO_M**2
     m.rho[kk] *= 1000.; // G_TO_KG / CM_TO_M**3
     m.v[kk] *= -1.e-2; // CM_TO_M and change the sign so upflows are positive
@@ -241,7 +243,7 @@ bool crh::synth(mdepth_t &m_in, double *syn, cprof_solver sol, bool save_pops){
     m.z[kk] *= 1.0e-2;    // CM_TO_M
     m.nne[kk] *= 1.e6;    // 1 / CM_TO_M**3
     m.tau[kk] = pow(10.0, m.ltau[kk]);
-    //m.b[kk] *= 1.0e-4;
+
     B[kk] = sqrt(m.bl[kk]*m.bl[kk] + m.bh[kk]*m.bh[kk]) * 1.0e-4 ; // B in tesla
     if(B[kk] > 0.0) 
       inc[kk] = acos(m.bl[kk] * 1.0e-4 / B[kk]);

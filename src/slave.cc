@@ -149,7 +149,7 @@ void do_slave(int myrank, int nprocs, char hostname[]){
 
 	/* --- Call equation of state or hydrostatic equilibrium ? --- */
 
-	if(input.thydro) it.getPressureScale(input.boundary, atmos->eos);
+	if(input.thydro) it.getPressureScale(input.nodes.depth_t, input.boundary, atmos->eos);
 	else it.fill_densities(atmos->eos, input.keep_nne);
 
 	
@@ -220,7 +220,7 @@ void do_slave(int myrank, int nprocs, char hostname[]){
 	  it.tau[kk] = pow(10.0, it.ltau[kk]); 
 
 	/* --- get pressure scale assuming hydrostatic eq. --- */
-	it.getPressureScale(input.boundary, atmos->eos); // Hydrostatic eq. to derive pressure scale
+	it.getPressureScale(input.nodes.depth_t, input.boundary, atmos->eos); // Hydrostatic eq. to derive pressure scale
 	//it.nne_enhance(input.nodes, input.npar, &pars(pixel,0), atmos->eos);
 
 	memcpy(&pgas_saved[0], &it.pgas[0], input.ndep*sizeof(double)); // Store pgas

@@ -76,6 +76,27 @@ mdepth& mdepth::operator= (  mdepth &m)
   return *this;
 }
 
+
+/* ------------------------------------------------------------------ */
+
+//void ceos::hydrostatic_cmass(int ndep, double *tau, double *t, double *Pg, double *rho, double *nel,
+//			     double *z, double *cmass, double *ltau
+
+void mdepth::hydrostatic(ceos &eos, int depth_m)
+{
+
+  if(depth_m == 0)   
+    eos.hydrostatic((int)ndep, &tau[0], &temp[0], &pgas[0], &rho[0], &nne[0], &pel[0],
+		    &z[0], &cmass[0], pgas[0], (float)1.e-5);
+  else
+    eos.hydrostatic_cmass((int)ndep, tau, temp, pgas, rho, nne, z, cmass, ltau);
+  
+  
+}
+
+/* ------------------------------------------------------------------ */
+
+
 void mdepth::nodes2depth(int n, double *x, double *y, int nn, double *xx, double *yy, int interpol, bool extrapolate)
 {
   if     (n <  1)           return;
@@ -125,37 +146,41 @@ void mdepth::nne_enhance(nodes_t &nodes, int n, double *pars, ceos &eos){
 
 void mdepth::expand(nodes_t &n, double *p, int interpol, int mtype){
   
-  // int ndep = (int)cub.size(1);
+  double *dep = NULL;
+  if(n.depth_t == 0) dep = ltau;
+  else               dep = cmass;
+
+  
   if(mtype == 0){ // Nodes are the actual value of the model
     
     if(n.toinv[0]){
       int len = (int)n.temp.size();
-      nodes2depth(len, &n.temp[0], &p[n.temp_off], ndep, &ltau[0], &temp[0], interpol, true);
+      nodes2depth(len, &n.temp[0], &p[n.temp_off], ndep, dep, &temp[0], interpol, true);
     }
     
     if(n.toinv[1]){
       int len = (int)n.v.size();
-      nodes2depth(len, &n.v[0], &p[n.v_off], ndep, &ltau[0], &v[0], interpol, false);
+      nodes2depth(len, &n.v[0], &p[n.v_off], ndep, dep, &v[0], interpol, false);
     }
     
     if(n.toinv[2]){
       int len = (int)n.vturb.size();
-      nodes2depth(len, &n.vturb[0], &p[n.vturb_off], ndep, &ltau[0], &vturb[0], interpol, false);
+      nodes2depth(len, &n.vturb[0], &p[n.vturb_off], ndep, dep, &vturb[0], interpol, false);
     }
     
     if(n.toinv[3]){
       int len = (int)n.bl.size();
-      nodes2depth(len, &n.bl[0], &p[n.bl_off], ndep, &ltau[0], &bl[0], interpol, false);
+      nodes2depth(len, &n.bl[0], &p[n.bl_off], ndep, dep, &bl[0], interpol, false);
     }
     
     if(n.toinv[4]){
       int len = (int)n.bh.size();
-      nodes2depth(len, &n.bh[0], &p[n.bh_off], ndep, &ltau[0], &bh[0], interpol, false);
+      nodes2depth(len, &n.bh[0], &p[n.bh_off], ndep, dep, &bh[0], interpol, false);
     }
     
     if(n.toinv[5]){
       int len = (int)n.azi.size();
-      nodes2depth(len, &n.azi[0], &p[n.azi_off], ndep, &ltau[0], &azi[0], interpol, false);
+      nodes2depth(len, &n.azi[0], &p[n.azi_off], ndep, dep, &azi[0], interpol, false);
     }
   }else{ // NICOLE/SIR behaviour: node is a correction
 
@@ -164,38 +189,38 @@ void mdepth::expand(nodes_t &n, double *p, int interpol, int mtype){
     
     if(n.toinv[0]){
       int len = (int)n.temp.size();
-      nodes2depth(len, &n.temp[0], &p[n.temp_off], ndep, &ltau[0], tmp, interpol, true);
+      nodes2depth(len, &n.temp[0], &p[n.temp_off], ndep, dep, tmp, interpol, true);
       for(int ii=0;ii<ndep;ii++) temp[ii] += tmp[ii];
     }
 
     
     if(n.toinv[1]){
       int len = (int)n.v.size();
-      nodes2depth(len, &n.v[0], &p[n.v_off], ndep, &ltau[0], tmp, interpol, false);
+      nodes2depth(len, &n.v[0], &p[n.v_off], ndep, dep, tmp, interpol, false);
       for(int ii=0;ii<ndep;ii++) v[ii] += tmp[ii];
     }
 
     if(n.toinv[2]){
       int len = (int)n.vturb.size();
-      nodes2depth(len, &n.vturb[0], &p[n.vturb_off], ndep, &ltau[0], tmp, interpol, false);
+      nodes2depth(len, &n.vturb[0], &p[n.vturb_off], ndep, dep, tmp, interpol, false);
       for(int ii=0;ii<ndep;ii++) vturb[ii] += tmp[ii];
     }
     
     if(n.toinv[3]){
       int len = (int)n.bl.size();
-      nodes2depth(len, &n.bl[0], &p[n.bl_off], ndep, &ltau[0], tmp, interpol, false);
+      nodes2depth(len, &n.bl[0], &p[n.bl_off], ndep, dep, tmp, interpol, false);
       for(int ii=0;ii<ndep;ii++) bl[ii] += tmp[ii];
     }     
 
     if(n.toinv[4]){
       int len = (int)n.bh.size();
-      nodes2depth(len, &n.bh[0], &p[n.bh_off], ndep, &ltau[0], tmp, interpol, false);
+      nodes2depth(len, &n.bh[0], &p[n.bh_off], ndep, dep, tmp, interpol, false);
       for(int ii=0;ii<ndep;ii++) bh[ii] += tmp[ii];
     }
 
     if(n.toinv[5]){
       int len = (int)n.azi.size();
-      nodes2depth(len, &n.azi[0], &p[n.azi_off], ndep, &ltau[0], tmp, interpol, false);
+      nodes2depth(len, &n.azi[0], &p[n.azi_off], ndep, dep, tmp, interpol, false);
       for(int ii=0;ii<ndep;ii++) azi[ii] += tmp[ii];
     }
     
@@ -208,7 +233,6 @@ void mdepth::expand(nodes_t &n, double *p, int interpol, int mtype){
     else if(n.bound == 3) nne[0]  = bound_val*p[n.pgas_off];
     else pgas[0] =  boundary_pgas_default*p[n.pgas_off];
   }//else fprintf(stderr, "bound=%1d, val=%e\n", n.bound, bound_val);
-  
   
   
   return;
@@ -340,16 +364,17 @@ void mdepth::fixBoundary(int boundary, ceos &eos){
   
 }
 
-void mdepth::getPressureScale(int boundary, ceos &eos){
+void mdepth::getPressureScale(int depth_t, int boundary, ceos &eos){
 
   /* --- If pgas was not given, convert rho or nne or pel to pgas --- */
   
   fixBoundary(boundary, eos);
 
+  
   /* --- Solve hydrostatic eq. --- */
   
-  eos.hydrostatic((int)ndep, &tau[0], &temp[0], &pgas[0], &rho[0], &nne[0], &pel[0],
-		  &z[0], &cmass[0], pgas[0], (float)1.e-5);
+  hydrostatic(eos, depth_t);
+  
 }
 
 
@@ -447,7 +472,10 @@ void mdepthall::model_parameters2(mat<double> &tmp, nodes_t &n, int nt){
   int ndep = cub.size(3);
     
   tmp.set({ny, nx, nnodes});
-    
+
+  int idx = ((n.depth_t == 0)?9:11);
+  
+  
   for(int yy = 0; yy < ny; yy++)
     for(int xx = 0; xx < nx; xx++){
 
@@ -456,33 +484,33 @@ void mdepthall::model_parameters2(mat<double> &tmp, nodes_t &n, int nt){
 	
       // Temp
       nn = (int)n.temp.size();
-      compress(ndep, &cub(yy,xx,9,0), &cub(yy,xx,0,0), nn, &n.temp[0], &tmp(yy,xx,k));
+      compress(ndep, &cub(yy,xx,idx,0), &cub(yy,xx,0,0), nn, &n.temp[0], &tmp(yy,xx,k));
       k += nn;
 
       // v_los
       nn = (int)n.v.size();
-      compress(ndep, &cub(yy,xx,9,0), &cub(yy,xx,1,0), nn, &n.v[0], &tmp(yy,xx,k));
+      compress(ndep, &cub(yy,xx,idx,0), &cub(yy,xx,1,0), nn, &n.v[0], &tmp(yy,xx,k));
       k += nn;
 
       // vturb
       nn = (int)n.vturb.size();
-      compress(ndep, &cub(yy,xx,9,0), &cub(yy,xx,2,0), nn, &n.vturb[0], &tmp(yy,xx,k));
+      compress(ndep, &cub(yy,xx,idx,0), &cub(yy,xx,2,0), nn, &n.vturb[0], &tmp(yy,xx,k));
       k += nn;
 
       // Blong
       nn = (int)n.bl.size();
-      compress(ndep, &cub(yy,xx,9,0), &cub(yy,xx,3,0), nn, &n.bl[0], &tmp(yy,xx,k));
+      compress(ndep, &cub(yy,xx,idx,0), &cub(yy,xx,3,0), nn, &n.bl[0], &tmp(yy,xx,k));
       k += nn;
       
       
       // Bhor
       nn = (int)n.bh.size();
-      compress(ndep, &cub(yy,xx,9,0), &cub(yy,xx,4,0), nn, &n.bh[0], &tmp(yy,xx,k));
+      compress(ndep, &cub(yy,xx,idx,0), &cub(yy,xx,4,0), nn, &n.bh[0], &tmp(yy,xx,k));
       k += nn;
 
       // azi
       nn = (int)n.azi.size();
-      compress(ndep, &cub(yy,xx,9,0), &cub(yy,xx,5,0), nn, &n.azi[0], &tmp(yy,xx,k));
+      compress(ndep, &cub(yy,xx,idx,0), &cub(yy,xx,5,0), nn, &n.azi[0], &tmp(yy,xx,k));
       k += nn;
 
       // Pgas boundary
@@ -697,7 +725,9 @@ int mdepthall::read_model2(std::string &filename, int tstep, bool require_tau){
    
    /* -- Read cmass? --- */
    
+   bool set_cmass = false;
    if(ifile.is_var_defined("cmass")){
+     set_cmass = true;
      ifile.read_Tstep<double>("cmass", tmp, tstep);
      for(int yy=0; yy<dims[0]; yy++)
        for(int xx = 0;xx<dims[1]; xx++)
@@ -705,9 +735,9 @@ int mdepthall::read_model2(std::string &filename, int tstep, bool require_tau){
    }
 
    
-   if(set_ltau == false){
+   if(set_ltau == false && set_cmass == false){
     std::cerr << inam << "ERROR, "<<filename
-	      <<" does not contain a depth-scale [ltau500], exiting"
+	      <<" does not contain a depth-scale [ltau500] or [cmass], exiting"
 	      <<std::endl;
     exit(0);
   }
@@ -773,40 +803,42 @@ void mdepthall::expandAtmos(nodes_t &n, mat<double> &pars, int interpolation){
   int ny = pars.size(0);
   int nx = pars.size(1);
 
+  int idx = ((n.depth_t == 0)?9:11);
+  
   for(int yy = 0; yy< ny; yy++) for(int xx=0;xx<nx;xx++){
 
       /* --- temperature --- */
       if(n.toinv[0]){
 	int len = (int)n.temp.size();
-	expand(len, &n.temp[0], &pars(yy,xx,n.temp_off), ndep, &cub(yy,xx,9,0), &cub(yy,xx,0,0), interpolation);
+	expand(len, &n.temp[0], &pars(yy,xx,n.temp_off), ndep, &cub(yy,xx,idx,0), &cub(yy,xx,0,0), interpolation);
       }
 
 
       /* --- vlos --- */
       if(n.toinv[1]){
 	int len = (int)n.v.size();
-	expand(len, &n.v[0], &pars(yy,xx,n.v_off), ndep, &cub(yy,xx,9,0), &cub(yy,xx,1,0), interpolation);
+	expand(len, &n.v[0], &pars(yy,xx,n.v_off), ndep, &cub(yy,xx,idx,0), &cub(yy,xx,1,0), interpolation);
       }
 
 
       /* --- vturb --- */
       if(n.toinv[2]){
 	int len = (int)n.vturb.size();
-	expand(len, &n.vturb[0], &pars(yy,xx,n.vturb_off), ndep, &cub(yy,xx,9,0), &cub(yy,xx,2,0), interpolation);
+	expand(len, &n.vturb[0], &pars(yy,xx,n.vturb_off), ndep, &cub(yy,xx,idx,0), &cub(yy,xx,2,0), interpolation);
       }
 
       
       /* --- Blong --- */
       if(n.toinv[3]){
 	int len = (int)n.bl.size();
-	expand(len, &n.bl[0], &pars(yy,xx,n.bl_off), ndep, &cub(yy,xx,9,0), &cub(yy,xx,3,0), interpolation);
+	expand(len, &n.bl[0], &pars(yy,xx,n.bl_off), ndep, &cub(yy,xx,idx,0), &cub(yy,xx,3,0), interpolation);
       }
 
 
       /* --- Bhor --- */
       if(n.toinv[4]){
 	int len =(int)n.bh.size();
-	expand(len, &n.bh[0], &pars(yy,xx,n.bh_off), ndep, &cub(yy,xx,9,0), &cub(yy,xx,4,0), interpolation);
+	expand(len, &n.bh[0], &pars(yy,xx,n.bh_off), ndep, &cub(yy,xx,idx,0), &cub(yy,xx,4,0), interpolation);
       }
 
 
@@ -814,7 +846,7 @@ void mdepthall::expandAtmos(nodes_t &n, mat<double> &pars, int interpolation){
       /* --- Azi --- */
       if(n.toinv[5]){
 	int len = (int)n.azi.size();
-	expand(len, &n.azi[0], &pars(yy,xx,n.azi_off), ndep, &cub(yy,xx,9,0), &cub(yy,xx,5,0), interpolation);
+	expand(len, &n.azi[0], &pars(yy,xx,n.azi_off), ndep, &cub(yy,xx,idx,0), &cub(yy,xx,5,0), interpolation);
       }
       
     } // xx & yy
@@ -981,3 +1013,5 @@ void mdepthall::write_model2(string &filename, int tstep){
 
   
 }
+
+

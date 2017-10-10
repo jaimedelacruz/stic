@@ -97,7 +97,7 @@ void atmos::responseFunction(int npar, mdepth_t &m_in, double *pars, int nd, dou
       /* -- recompute Hydro Eq. ? --- */
       
       //if(input.nodes.ntype[pp] == temp_node && input.thydro == 1)
-	m.getPressureScale(input.boundary, eos);
+	m.getPressureScale(input.nodes.depth_t, input.boundary, eos);
 	//m.nne_enhance(input.nodes, npar, &ipars[0], eos);
 
       synth(m, &out[0], (cprof_solver)input.solver, store_pops);
@@ -116,7 +116,7 @@ void atmos::responseFunction(int npar, mdepth_t &m_in, double *pars, int nd, dou
       checkBounds(m);
 
       // if(input.nodes.ntype[pp] == temp_node && input.thydro == 1)
-	m.getPressureScale(input.boundary, eos);
+      m.getPressureScale(input.nodes.depth_t, input.boundary, eos);
 	//m.nne_enhance(input.nodes, npar, &ipars[0], eos);
 
       synth(m, &spec[0], (cprof_solver)input.solver, store_pops);
@@ -165,7 +165,7 @@ void atmos::responseFunction(int npar, mdepth_t &m_in, double *pars, int nd, dou
     checkBounds(m);
 
     //  if((input.nodes.ntype[pp] == temp_node) && (input.thydro == 1))
-    m.getPressureScale(input.boundary, eos);
+    m.getPressureScale(input.nodes.depth_t, input.boundary, eos);
     //m.nne_enhance(input.nodes, npar, &ipars[0], eos);
       
     synth(m, &out[0], (cprof_solver)input.solver, store_pops);
@@ -499,7 +499,7 @@ int getChi2(int npar1, int nd, double *pars1, double *dev, double **derivs, void
   
   m.expand(atm.input.nodes, &ipars[0], atm.input.dint, atm.input.depth_model);
   atm.checkBounds(m);
-  m.getPressureScale(atm.input.boundary, atm.eos);
+  m.getPressureScale(atm.input.nodes.depth_t, atm.input.boundary, atm.eos);
 
   
   /* --- Compute synthetic spetra --- */
@@ -692,7 +692,7 @@ double atmos::fitModel2(mdepth_t &m, int npar, double *pars, int nobs, double *o
   memset(&isyn[0],0,ndata*sizeof(double));
   m.expand(input.nodes, &pars[0], input.dint, input.depth_model);
   checkBounds(m);
-  m.getPressureScale(input.boundary, eos); 
+  m.getPressureScale(input.nodes.depth_t , input.boundary, eos); 
   synth( m , &isyn[0], (cprof_solver)input.solver, false);
   spectralDegrade(input.ns, (int)1, input.nw_tot, &isyn[0]);
 

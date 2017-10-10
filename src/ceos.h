@@ -141,6 +141,9 @@ class ceos{
 
   void  hydrostatic      (int ndep, double *tau, double *t, double *Pg, double *rho,
 			  double *nel, double *pel,  double *z, double *cmass, double pgas_bound, float tol = 1.0e-5);
+
+  void hydrostatic_cmass(int ndep, double *tau, double *t, double *Pg, double *rho, double *nel,
+			 double *z, double *cmass, double *ltau);
   
   void  hydrostatic      (int ndep, float *tau, float *t, float *Pg, float *rho,
 			  float *nel, float *pel, float pgas_bound, float tol = 1.0e-5);

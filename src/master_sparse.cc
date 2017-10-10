@@ -266,10 +266,15 @@ void do_master_sparse(int myrank, int nprocs,  char hostname[]){
     //input.npar = set_nodes(input.nodes,  mmin, mmax, input.verbose);
     
     {
-      vector<double> itau;
-      itau.resize(input.ndep);
-      for(int ii=0;ii<input.ndep;ii++) itau[ii] = im.cub(0,0,9,ii);
-      input.npar = set_nodes(input.nodes, itau, input.dint, input.verbose);
+      vector<double> idep(input.ndep, 0.0);
+
+      if(input.nodes.depth_t == 0)
+	memcpy(&idep[0], &im.cub(0,0,9,0), input.ndep*sizeof(double));
+      else
+	memcpy(&idep[0], &im.cub(0,0,11,0), input.ndep*sizeof(double));
+      
+      input.npar = set_nodes(input.nodes, idep, input.dint, input.verbose);
+
     }
     
   } // if inversion

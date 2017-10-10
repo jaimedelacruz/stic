@@ -48,7 +48,7 @@ enum nodes_type_t{
 
 /* --- nodes struct --- */
 struct nodes{
-  int nnodes, temp_off, v_off, vturb_off, bl_off, bh_off, azi_off, pgas_off, tosend, bound;
+  int nnodes, temp_off, v_off, vturb_off, bl_off, bh_off, azi_off, pgas_off, tosend, bound,depth_t;
   std::vector<double> temp;
   std::vector<double> v;
   std::vector<double> vturb;
@@ -96,7 +96,7 @@ std::vector<double> fill_lambdas(iput_t &input, bool air = false);
 void equidist(std::vector<double> &var, double min, double max);
 void equidist(std::vector<double> &var, std::vector<double> &itau, bool cent_grid = false);
 double nodeLocation(std::vector<double> &itau, double iloc);
-int set_nodes(nodes_t &n, double min, double max, bool verbose = false);
+//int set_nodes(nodes_t &n, double min, double max, bool verbose = false);
 int set_nodes(nodes_t &n, std::vector<double> &itau, int dint, bool verbose = false);
 
 /*--- Convert from air -> vacuum and viceversa --- */

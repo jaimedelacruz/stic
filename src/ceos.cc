@@ -1566,3 +1566,62 @@ void ceos::readAbund(std::string file)
   initAbundances(ab, false);
   
 }
+
+
+
+void ceos::hydrostatic_cmass(int ndep, double *tau, double *t, double *Pg, double *rho, double *nel,
+			     double *z, double *cmass, double *ltau){
+
+
+  const string inam = "ceos::hydrostatic_cmass: ";
+  double wav = 5000.0; 
+  double dum, kappa_old, kappa, cm, ocm;
+  int  nw = 1;
+  
+  
+  /* --- Init vars --- */
+
+  cm = pow(10.0, cmass[0]);
+  Pg[0] = gravity * cm;
+  contOpacity_TPg(t[0], Pg[0], nw, &wav, &kappa, &dum);
+  rho[0] = RHOest, nel[0] = xne;
+
+  z[0] = 0.0;
+  tau[0] = 0.0; //kappa / rho[0] * cm, ltau[0] = log10(tau[0]);
+
+  
+  for(int k = 1; k<ndep; k++){
+    kappa_old = kappa;
+    ocm = cm;
+
+    
+    /* --- Solve Gas pressure --- */
+    
+    cm = pow(10.0, cmass[k]);
+    Pg[k] = gravity * cm;
+
+
+    /* --- Fill other scales and variables --- */
+    
+    contOpacity_TPg(t[k], Pg[k], nw, &wav, &kappa, &dum);
+    rho[k] = RHOest, nel[k] = xne;
+
+    double dz =  2.0 * (cm - ocm) / (rho[k-1] + rho[k]);
+    z[k] = z[k-1] - dz;
+    tau[k] = tau[k-1] + dz * 0.5 * (kappa + kappa_old), ltau[k] = log10(tau[k]);
+  }
+
+  double toff = exp(2.0 * log(tau[1]) - log(tau[2]));
+	    
+	    
+  for(int k = 0; k < ndep; k++){
+    tau[k] += toff;
+    ltau[k] = log10(tau[k]);
+  }
+  
+  //   for(int k = 0; k<ndep; k++)
+  //  fprintf(stderr,"[%3d] %f  %f  %f  %e  %e\n", k, cmass[k], ltau[k], z[k]*1.e-5, t[k], Pg[k]);
+
+  //exit(0);
+
+}
