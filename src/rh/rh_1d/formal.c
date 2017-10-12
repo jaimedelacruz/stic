@@ -26,6 +26,7 @@
 #include "xdr.h"
 #include "bezier.h"
 
+
 /* --- Function prototypes --                          -------------- */
 
 void loadBackground(int la, int mu, bool_t to_obs);
@@ -49,14 +50,16 @@ double Formal(int nspect, bool_t eval_operator, bool_t redistribute, int iter)
   bool_t   initialize, boundbound, polarized_as, polarized_c,
            PRD_angle_dep, to_obs, solveStokes, angle_dep;
   enum     FeautrierOrder F_order;     
-  int      Nrays = atmos.Nrays,lamuk;
+  int      Nrays = atmos.Nrays,lamuk, ref_index = 0;
   long     Nspace = atmos.Nspace;
   long int idx,idx0;
   double  *I, *chi, *S, **Ipol, **Spol, *Psi, *Jdag, wmu, dJmax, dJ,
           *J20dag, musq, threemu1, threemu2, *J, *J20, *lambda, sign,
-          lambda_gas,lambda_prv,lambda_nxt,fac,dl,frac;
+    lambda_gas,lambda_prv,lambda_nxt,fac,dl,frac;
   ActiveSet *as;
+ 
 
+  
   /* --- Retrieve active set as of transitions at wavelength nspect - */
 
   as = &spectrum.as[nspect];
@@ -191,9 +194,12 @@ double Formal(int nspect, bool_t eval_operator, bool_t redistribute, int iter)
               Spol[1][k] += threemu2 * as->sca_c[k]*J20dag[k];
 	    }
 	  }
-	  for (n = 0;  n < 4;  n++) {
-	    for (k = 0;  k < Nspace;  k++)
+	  for (n = 0;  n < 4;  n++) 
+	    for (k = 0;  k < Nspace;  k++){
 	      Spol[n][k] /= chi[k];
+	 
+	    //  chi[k] /= chi_c[k];
+	      
 	  }
 	  if (input.S_interpolation_stokes == DELO_BEZIER3)
 	    PiecewiseStokesBezier3(nspect, mu, to_obs, chi, Spol, Ipol, Psi);
@@ -201,8 +207,10 @@ double Formal(int nspect, bool_t eval_operator, bool_t redistribute, int iter)
 	    PiecewiseStokes(nspect, mu, to_obs, chi, Spol, Ipol, Psi);
 	  
 	} else {
-	  for (k = 0;  k < Nspace;  k++)
+	  for (k = 0;  k < Nspace;  k++){
 	    S[k] /= chi[k];
+	    //   chi[k] /= chi_c[k];
+	  }
 
 	  if (input.S_interpolation == BEZIER3)
 	    Piecewise_Bezier3(nspect, mu, to_obs, chi, S, I, Psi);
@@ -392,6 +400,8 @@ double Formal(int nspect, bool_t eval_operator, bool_t redistribute, int iter)
   }
 
   free(Jdag);
+  // free(chi_c);
+  
   if (input.limit_memory) free(J);
   if (input.backgr_pol) {
     free(J20dag);

@@ -152,6 +152,12 @@ void do_slave(int myrank, int nprocs, char hostname[]){
 	if(input.thydro) it.getPressureScale(input.nodes.depth_t, input.boundary, atmos->eos);
 	else it.fill_densities(atmos->eos, input.keep_nne);
 
+
+	/* --- Get scales (depth_t has cmass and z switched compared to getScales) --- */
+
+	if     (input.nodes.depth_t == 0) it.getScales(atmos->eos, 0); // LTAU500
+	else if(input.nodes.depth_t == 1) it.getScales(atmos->eos, 2); // CMASS
+	else if(input.nodes.depth_t == 3) it.getScales(atmos->eos, 1); // Z
 	
 	
 	/* --- Synthesize spectra --- */

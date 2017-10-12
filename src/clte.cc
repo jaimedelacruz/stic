@@ -278,6 +278,7 @@ bool clte::synth(mdepth &m, double *syn, cprof_solver sol, bool store_pops){
 	prof.fv[k] = prof.mfv[k][w+it.off] / iki;
 
 	/* --- If the height scale is tau_500 then normalize ki by the opacity at 500 nm --- */
+	
 	if((sol == bez_ltau || (sol == lin_ltau))) prof.ki[k] /= prof.mki[k][nw-1];
       } // k
 

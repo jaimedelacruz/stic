@@ -234,7 +234,7 @@ bool crh::synth(mdepth_t &m_in, double *syn, cprof_solver sol, bool save_pops){
     
     /* --- Convert units to SI --- */
 
-    if(m.cmass[kk] >= 1.e-20)
+    if(fabs(m.cmass[kk]) >= 1.e-20)
       m.cmass[kk] = pow(10., m.cmass[kk]); // CMass should be in log10 scale
     m.cmass[kk] *= 10.0; // *= G_TO_KG / CM_TO_M**2
     m.rho[kk] *= 1000.; // G_TO_KG / CM_TO_M**3

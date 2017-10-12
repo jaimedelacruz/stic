@@ -60,12 +60,13 @@ void DUMMYatmos(Atmosphere *atmos, Geometry *geometry, bool_t firsttime)
 
   geometry->vboundary[BOTTOM] = THERMALIZED;
   geometry->scale =  GEOMETRIC;
-  //geometry->scale = COLUMN_MASS;
+  geometry->scale = COLUMN_MASS;
+  //geometry->scale = TAU500;
   
   // Nread = sscanf("dummyATM", "%s", atmos->ID);
   
   // getLine(atmos->fp_atmos, MULTI_COMMENT_CHAR, inputLine, exit_on_EOF=TRUE);
-  Nread += sscanf("H", "%20s", scaleStr); // Only the first character is needed;
+  Nread += sscanf("M", "%20s", scaleStr); // Only the first character is needed;
  
   /* --- Keep duplicates of some of the geometrical quantities in
          Atmos structure --                            -------------- */

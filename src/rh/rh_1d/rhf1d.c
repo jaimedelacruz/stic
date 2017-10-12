@@ -173,8 +173,9 @@ bool_t rhf1d(float muz, int rhs_ndep, double *rhs_T, double *rhs_rho,
   
   UpdateAtmosDep();
   Background_j(write_analyze_output=FALSE, equilibria_only=FALSE);
-  convertScales(&atmos, &geometry);
+  //convertScales(&atmos, &geometry);
 
+  //for(i=0;i<atmos.Nspace;i++) printf("[%3d] %e\n", i, geometry.tau_ref[i]);
   
   if(!mpi.stop){
     
@@ -185,7 +186,7 @@ bool_t rhf1d(float muz, int rhs_ndep, double *rhs_T, double *rhs_rho,
     read_populations(save_pop);
     initScatter();
     
-    getCPU(1, TIME_POLL, "Total Initialize");
+    //getCPU(1, TIME_POLL, "Total Initialize");
     
     
     /* --- Solve radiative transfer for active ingredients -- --------- */

@@ -26,6 +26,7 @@
 #include "atmos.h"
 #include "geometry.h"
 #include "spectrum.h"
+#include "scl_opac.h"
 
 
 /* --- Function prototypes --                          -------------- */
@@ -37,6 +38,10 @@ extern Geometry geometry;
 extern Atmosphere atmos;
 extern Spectrum spectrum;
 extern char messageStr[];
+
+/* --------------------------------------------------------------- */
+
+/* --------------------------------------------------------------- */
 
 
 void har_mean_deriv(double* wprime,double dsup,double dsdn, 
@@ -69,6 +74,9 @@ void Piecewise_1D(int nspect, int mu, bool_t to_obs,
   double dtau_uw, dtau_dw, dS_uw, I_upw, dS_dw, c1, c2, w[3],
          zmu, Bnu[2];
 
+  double *z = geometry.cmass;
+  double *chi1 = scl_opac(Ndep, chi);
+  
   zmu = 0.5 / geometry.muz[mu];
 
   /* --- Distinguish between rays going from BOTTOM to TOP
@@ -83,8 +91,8 @@ void Piecewise_1D(int nspect, int mu, bool_t to_obs,
     k_start = 0;
     k_end   = Ndep-1;
   }
-  dtau_uw = zmu * (chi[k_start] + chi[k_start+dk]) *
-    fabs(geometry.height[k_start] - geometry.height[k_start+dk]);
+  dtau_uw = zmu * (chi1[k_start] + chi1[k_start+dk]) *
+    fabs(z[k_start] - z[k_start+dk]);
   dS_uw = (S[k_start] - S[k_start+dk]) / dtau_uw;
 
   /* --- Boundary conditions --                        -------------- */
@@ -126,8 +134,8 @@ void Piecewise_1D(int nspect, int mu, bool_t to_obs,
 
       /* --- Piecewise quadratic here --               -------------- */ 
 
-      dtau_dw = zmu * (chi[k] + chi[k+dk]) *
-	fabs(geometry.height[k] - geometry.height[k+dk]);
+      dtau_dw = zmu * (chi1[k] + chi1[k+dk]) *
+	fabs(z[k] - z[k+dk]);
       dS_dw   = (S[k] - S[k+dk]) / dtau_dw;
 
 
@@ -169,6 +177,9 @@ void Piecewise_1D(int nspect, int mu, bool_t to_obs,
     dS_uw   = dS_dw;
     dtau_uw = dtau_dw;
   }
+
+  free(chi1);
+  
 }
 /* ------- end ---------------------------- Piecewise_1D.c ---------- */
 
@@ -185,7 +196,11 @@ void PieceBezier_1D(int nspect, int mu, bool_t to_obs,
     zmu, Bnu[2], psi_uw, psi_0, psi_dw, Sc;
 
   zmu = 0.5 / geometry.muz[mu];
+  
+  double *z = geometry.cmass;
+  double *chi1 = scl_opac(Ndep, chi);
 
+  
   /* --- Distinguish between rays going from BOTTOM to TOP
          (to_obs == TRUE), and vice versa --      -------------- */
 
@@ -198,8 +213,8 @@ void PieceBezier_1D(int nspect, int mu, bool_t to_obs,
     k_start = 0;
     k_end   = Ndep-1;
   }
-  dtau_uw = zmu * (chi[k_start] + chi[k_start+dk]) *
-    fabs(geometry.height[k_start] - geometry.height[k_start+dk]);
+  dtau_uw = zmu * (chi1[k_start] + chi1[k_start+dk]) *
+    fabs(z[k_start] - z[k_start+dk]);
   dS_uw = (S[k_start] - S[k_start+dk]) / dtau_uw;
   
   /* --- Boundary conditions --                        -------------- */
@@ -240,8 +255,8 @@ void PieceBezier_1D(int nspect, int mu, bool_t to_obs,
     }
   }
 
-  dtau_uw = zmu * (chi[k_start] + chi[k_start+dk]) *
-    fabs(geometry.height[k_start] - geometry.height[k_start+dk]);
+  dtau_uw = zmu * (chi1[k_start] + chi1[k_start+dk]) *
+    fabs(z[k_start] - z[k_start+dk]);
   dS_uw = (S[k_start] - S[k_start+dk]) / dtau_uw;
  
   I[k_start]            = I_uw;
@@ -252,8 +267,8 @@ void PieceBezier_1D(int nspect, int mu, bool_t to_obs,
   for (k = k_start+dk;  k != k_end;  k += dk) {
     U3(dtau_uw, U);
 
-    dtau_dw = zmu * (chi[k] + chi[k+dk]) *
-      fabs(geometry.height[k] - geometry.height[k+dk]);
+    dtau_dw = zmu * (chi1[k] + chi1[k+dk]) *
+      fabs(z[k] - z[k+dk]);
     dS_dw   = (S[k] - S[k+dk]) / dtau_dw;
 
     if (dS_uw * dS_dw < 0.0) {
@@ -299,6 +314,9 @@ void PieceBezier_1D(int nspect, int mu, bool_t to_obs,
   I[k_end] = (1.0 - U[0]) * I_uw + psi_uw*S[k_end-dk] + psi_0*S[k_end];
 
   if (Psi) Psi[k_end] = psi_0;
+  free(chi1);
+
+  
 }
 /* ------- end ---------------------------- PieceBezier_1D.c -------- */
 
@@ -312,7 +330,9 @@ void Piecewise_Hermite_1D(int nspect, int mu, bool_t to_obs,
          zmu, Bnu[2];
   double dsup,dsdn,dt,dt2,dt3,ex,alpha,beta,alphaprim,betaprim,dsup2;
   double dS_up,dS_c,dchi_up,dchi_c,dchi_dn,dsdn2,dtau_up2;
-
+  double *z = geometry.cmass;
+  double *chi1 = scl_opac(Ndep, chi);
+  
   zmu = 0.5 / geometry.muz[mu];
 
   /* --- Distinguish between rays going from BOTTOM to TOP
@@ -327,8 +347,8 @@ void Piecewise_Hermite_1D(int nspect, int mu, bool_t to_obs,
     k_start = 0;
     k_end   = Ndep-1;
   }
-  dtau_uw = zmu * (chi[k_start] + chi[k_start+dk]) *
-    fabs(geometry.height[k_start] - geometry.height[k_start+dk]);
+  dtau_uw = zmu * (chi1[k_start] + chi1[k_start+dk]) *
+    fabs(z[k_start] - z[k_start+dk]);
   dS_uw = (S[k_start] - S[k_start+dk]) / dtau_uw;
 
   /* --- Boundary conditions --                        -------------- */
@@ -364,13 +384,13 @@ void Piecewise_Hermite_1D(int nspect, int mu, bool_t to_obs,
   /* set variables for first iteration to allow simple 
      shift for all next iterations */
   k=k_start+dk;
-  dsup = fabs(geometry.height[k] - geometry.height[k-dk]) / geometry.muz[mu];
-  dsdn = fabs(geometry.height[k+dk] - geometry.height[k]) / geometry.muz[mu];
-  dchi_up= (chi[k] - chi[k-dk])/dsup;
+  dsup = fabs(z[k] - z[k-dk]) / geometry.muz[mu];
+  dsdn = fabs(z[k+dk] - z[k]) / geometry.muz[mu];
+  dchi_up= (chi1[k] - chi1[k-dk])/dsup;
   /*  dchi/ds at central point */
-  har_mean_deriv(&dchi_c,dsup,dsdn,chi[k-dk],chi[k],chi[k+dk]);
+  har_mean_deriv(&dchi_c,dsup,dsdn,chi1[k-dk],chi1[k],chi1[k+dk]);
   /* upwind path_length */
-  dtau_uw = 0.5 * dsup * (chi[k-dk]+chi[k])  + 1./12. * dsup*dsup * (dchi_up - dchi_c );
+  dtau_uw = 0.5 * dsup * (chi1[k-dk]+chi1[k])  + 1./12. * dsup*dsup * (dchi_up - dchi_c );
   /* dS/dtau at upwind point */
   dS_up=(S[k]-S[k-dk])/dtau_uw;
 
@@ -381,18 +401,18 @@ void Piecewise_Hermite_1D(int nspect, int mu, bool_t to_obs,
     if (k != k_end) {
 
       /* downwind path length */
-       dsdn = fabs(geometry.height[k+dk] - geometry.height[k]   ) / geometry.muz[mu];
+       dsdn = fabs(z[k+dk] - z[k]   ) / geometry.muz[mu];
        
       /* dchi/ds at downwind point */
        if (fabs(k-k_end)>1) {
-	 dsdn2=fabs(geometry.height[k+2*dk] - geometry.height[k+dk])/geometry.muz[mu];
-	 har_mean_deriv(&dchi_dn,dsdn,dsdn2,chi[k],chi[k+dk],chi[k+2*dk]);       
+	 dsdn2=fabs(z[k+2*dk] - z[k+dk])/geometry.muz[mu];
+	 har_mean_deriv(&dchi_dn,dsdn,dsdn2,chi1[k],chi1[k+dk],chi1[k+2*dk]);       
        } else {
-	 dchi_dn=(chi[k+dk]-chi[k])/dsdn;
+	 dchi_dn=(chi1[k+dk]-chi1[k])/dsdn;
        }
 
       /* downwind optical path length */
-       dtau_dw = 0.5 * dsdn * (chi[k]+chi[k+dk]) + 1./12.* dsdn * dsdn * (dchi_c  - dchi_dn) ;
+       dtau_dw = 0.5 * dsdn * (chi1[k]+chi1[k+dk]) + 1./12.* dsdn * dsdn * (dchi_c  - dchi_dn) ;
 
       dt=dtau_uw;
       dt2=dt*dt;
@@ -425,8 +445,8 @@ void Piecewise_Hermite_1D(int nspect, int mu, bool_t to_obs,
 	
     /* --- Piecewise linear integration at end of ray -- ---------- */
     
-      dtau_uw = zmu * (chi[k] + chi[k-dk]) *
-	fabs(geometry.height[k] - geometry.height[k-dk]);
+      dtau_uw = zmu * (chi1[k] + chi1[k-dk]) *
+	fabs(z[k] - z[k-dk]);
       dS_uw = (S[k] - S[k-dk]) / dtau_uw;
       w3(dtau_uw, w);
       I[k] = (1.0 - w[0])*I_upw + w[0]*S[k] + w[1]*dS_uw;
@@ -442,6 +462,9 @@ void Piecewise_Hermite_1D(int nspect, int mu, bool_t to_obs,
     dS_up = dS_c;
 
   }
+
+  free(chi1);
+  
 }
 /* ------- end -------------------- Piecewise_Hermite_1D.c ---------- */
 

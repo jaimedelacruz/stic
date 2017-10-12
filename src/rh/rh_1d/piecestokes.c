@@ -34,6 +34,7 @@
 #include "geometry.h"
 #include "spectrum.h"
 #include "rhf1d.h"
+#include "scl_opac.h"
 
 /* --- Function prototypes --                          -------------- */
 
@@ -49,7 +50,6 @@ extern char messageStr[];
 extern MPI_t mpi;
 
 
-
 /* ------- begin -------------------------- PiecewiseStokes.c ------- */
 
 void PiecewiseStokes(int nspect, int mu, bool_t to_obs,
@@ -61,6 +61,9 @@ void PiecewiseStokes(int nspect, int mu, bool_t to_obs,
   int    Ndep = geometry.Ndep, k_start, k_end, dk;
   double dtau_uw, dtau_dw = 0.0, dS_uw[4], dS_dw[4], c1, c2, w[3],
     I_upw[4], zmu, P[4], Bnu[2], Q[4][4], **R, K[4][4], K_upw[4][4];
+
+  double *z = geometry.cmass;
+  double *chi_I1 = scl_opac(Ndep, chi_I);
 
   zmu = 0.5 / geometry.muz[mu];
   R = matrix_double(4, 4);
@@ -74,8 +77,8 @@ void PiecewiseStokes(int nspect, int mu, bool_t to_obs,
     k_start = 0;
     k_end   = Ndep-1;
   }
-  dtau_uw = zmu * (chi_I[k_start] + chi_I[k_start+dk]) *
-    fabs(geometry.height[k_start] - geometry.height[k_start+dk]);
+  dtau_uw = zmu * (chi_I1[k_start] + chi_I1[k_start+dk]) *
+    fabs(z[k_start] - z[k_start+dk]);
 
   StokesK(nspect, k_start, chi_I[k_start], K_upw);
 
@@ -126,8 +129,8 @@ void PiecewiseStokes(int nspect, int mu, bool_t to_obs,
     StokesK(nspect, k, chi_I[k], K);
 
     if (k != k_end) {
-      dtau_dw = zmu * (chi_I[k] + chi_I[k+dk]) *
-	fabs(geometry.height[k] - geometry.height[k+dk]);
+      dtau_dw = zmu * (chi_I1[k] + chi_I1[k+dk]) *
+	fabs(z[k] - z[k+dk]);
 
       for (n = 0;  n < 4;  n++) {
 	dS_dw[n] = (S[n][k] - S[n][k+dk]) / dtau_dw;
@@ -181,5 +184,6 @@ void PiecewiseStokes(int nspect, int mu, bool_t to_obs,
     }
   }
   freeMatrix((void **) R);
+  free(chi_I1);
 }
 /* ------- end ---------------------------- PiecewiseStokes.c ------- */

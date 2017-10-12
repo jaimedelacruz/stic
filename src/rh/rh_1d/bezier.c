@@ -28,6 +28,7 @@
 #include "geometry.h"
 #include "spectrum.h"
 #include "bezier.h"
+#include "scl_opac.h"
 
 /* --- Macros --                          -------------- */
 
@@ -285,7 +286,7 @@ void PiecewiseStokesBezier3(int nspect, int mu, bool_t to_obs,
   const char routineName[] = "PiecewiseStokesBezier3";
   register int k, n, m, i, j;
   
-  int    Ndep = geometry.Ndep, k_start, k_end, dk, k_last;
+  int    Ndep = geometry.Ndep, k_start, k_end, dk, k_last, ref_index;
   double dtau_uw, dtau_dw = 0.0, c1, c2, w[3], dsdn2, dchi_dn,
     I_upw[4], Bnu[2];
   double dchi_up,dchi_c,dt03;
@@ -295,8 +296,14 @@ void PiecewiseStokesBezier3(int nspect, int mu, bool_t to_obs,
   double A[4][4], Ma[4][4], Mb[4][4], Mc[4][4], V0[4], V1[4];
   double imu = 1.0 / geometry.muz[mu];
   float Md[4][4];
-  double *z = geometry.height;
+  //double *z = geometry.tau_ref;
+  //double *z = geometry.height;//geometry.tau_ref;//geometry.height;
+  double *z = geometry.cmass;//
 
+  ActiveSet *as;
+  double *chi1 = scl_opac(Ndep, chi);
+
+  
   if (to_obs) {
     dk      = -1;
     k_start = Ndep-1;
@@ -306,7 +313,7 @@ void PiecewiseStokesBezier3(int nspect, int mu, bool_t to_obs,
     k_start = 0;
     k_end   = Ndep-1;
   }
-  dtau_uw = 0.5 * imu * (chi[k_start] + chi[k_start+dk]) *
+  dtau_uw = 0.5 * imu * (chi1[k_start] + chi1[k_start+dk]) *
     fabs(z[k_start] - z[k_start+dk]);
   
   /* --- Boundary conditions --                        -------------- */
@@ -353,20 +360,20 @@ void PiecewiseStokesBezier3(int nspect, int mu, bool_t to_obs,
   k=k_start+dk;
   dsup = fabs(z[k] - z[k-dk]) * imu;
   dsdn = fabs(z[k+dk] - z[k]) * imu;
-  dchi_up= (chi[k] - chi[k-dk])/dsup;
+  dchi_up= (chi1[k] - chi1[k-dk])/dsup;
 
   
   /* ---  dchi/ds at central point --- */
   
-  dchi_c = cent_deriv(dsup,dsdn,chi[k-dk],chi[k],chi[k+dk]);
+  dchi_c = cent_deriv(dsup,dsdn,chi1[k-dk],chi1[k],chi1[k+dk]);
   
   
   /* --- upwind path_length (BEzier3 integration) --- */
 
-  c2 = max(chi[k]    - (dsup/3.0) * dchi_c,  0.0);
-  c1 = max(chi[k-dk] + (dsup/3.0) * dchi_up, 0.0);
+  c2 = max(chi1[k]    - (dsup/3.0) * dchi_c,  0.0);
+  c1 = max(chi1[k-dk] + (dsup/3.0) * dchi_up, 0.0);
   
-  dtau_uw = 0.25 * dsup * (chi[k] + chi[k-dk] + c1 + c2);
+  dtau_uw = 0.25 * dsup * (chi1[k] + chi1[k-dk] + c1 + c2);
 
   
   /* --- Ku, K0 and dKu, dSu --- */
@@ -402,19 +409,19 @@ void PiecewiseStokesBezier3(int nspect, int mu, bool_t to_obs,
       
       if(fabs(k-k_end)>1){
 	dsdn2=fabs(z[k+2*dk] - z[k+dk]) * imu;
-	dchi_dn = cent_deriv(dsdn,dsdn2,chi[k],chi[k+dk],chi[k+2*dk]);       
-      } else dchi_dn=(chi[k+dk]-chi[k])/dsdn;
+	dchi_dn = cent_deriv(dsdn,dsdn2,chi1[k],chi1[k+dk],chi1[k+2*dk]);       
+      } else dchi_dn=(chi1[k+dk]-chi1[k])/dsdn;
      
       
     /* --- Make sure that c1 and c2 don't do below zero --- */
       
-      c1 = max(chi[k+dk] - (dsdn/3.0) * dchi_dn, 0.0);
-      c2 = max(chi[k]    + (dsdn/3.0) * dchi_c , 0.0);
+      c1 = max(chi1[k+dk] - (dsdn/3.0) * dchi_dn, 0.0);
+      c2 = max(chi1[k]    + (dsdn/3.0) * dchi_c , 0.0);
     
       
       /* --- Bezier3 integrated dtau --- */
       
-      dtau_dw = 0.25 * dsdn * (chi[k] + chi[k+dk] + c1 + c2);
+      dtau_dw = 0.25 * dsdn * (chi1[k] + chi1[k+dk] + c1 + c2);
       
       /* ---- get algebra in place --- */
 
@@ -511,6 +518,7 @@ void PiecewiseStokesBezier3(int nspect, int mu, bool_t to_obs,
       
   }
 
+  free(chi1);
 }
 
 /* --------------------------------------------------------------- */
@@ -540,7 +548,12 @@ void Piecewise_Bezier3(int nspect, int mu, bool_t to_obs,
   double dtau_uw, dtau_dw, dS_uw, I_upw, c1, c2, w[3],
          zmu, Bnu[2];
   double dsup,dsdn,dt,dt03,eps=0,alpha=0,beta=0,gamma=0,theta=0;
-  double dS_up,dS_c,dchi_up,dchi_c,dchi_dn,dsdn2;
+  double dS_up,dS_c,dchi_up,dchi_c,dchi_dn,dsdn2, tmp = 0.0;
+  //double *z = geometry.height;//geometry.tau_ref;//
+  //double *z = geometry.tau_ref;//
+  double *z = geometry.cmass;//
+
+  double *chi1 = scl_opac(Ndep, chi);
 
   zmu = 1.0 / geometry.muz[mu];
 
@@ -556,8 +569,8 @@ void Piecewise_Bezier3(int nspect, int mu, bool_t to_obs,
     k_start = 0;
     k_end   = Ndep-1;
   }
-  dtau_uw = 0.5 * zmu * (chi[k_start] + chi[k_start+dk]) *
-    fabs(geometry.height[k_start] - geometry.height[k_start+dk]);
+  dtau_uw = 0.5 * zmu * (chi1[k_start] + chi1[k_start+dk]) *
+    fabs(z[k_start] - z[k_start+dk]);
   dS_uw = (S[k_start] - S[k_start+dk]) / dtau_uw;
 
   /* --- Boundary conditions --                        -------------- */
@@ -603,20 +616,19 @@ void Piecewise_Bezier3(int nspect, int mu, bool_t to_obs,
      shift for all next iterations */
 
   k=k_start+dk;
-  dsup = fabs(geometry.height[k] - geometry.height[k-dk]) * zmu;
-  dsdn = fabs(geometry.height[k+dk] - geometry.height[k]) * zmu;
-  dchi_up= (chi[k] - chi[k-dk])/dsup;
+  dsup = fabs(z[k] - z[k-dk]) * zmu;
+  dsdn = fabs(z[k+dk] - z[k]) * zmu;
+  dchi_up= (chi1[k] - chi1[k-dk])/dsup;
   
   /*  dchi/ds at central point */
 
-  dchi_c = cent_deriv(dsup,dsdn,chi[k-dk],chi[k],chi[k+dk]);
-
+  dchi_c = cent_deriv(dsup,dsdn,chi1[k-dk],chi1[k],chi1[k+dk]);
   
   /* --- upwind path_length (Bezier3 integration) --- */
 
-  c1 = max(chi[k] - (dsup/3.0) * dchi_c, 0.0);
-  c2 = max(chi[k-dk] + (dsup/3.0) * dchi_up,  0.0);
-  dtau_uw =  dsup * (chi[k] + chi[k-dk] + c1 + c2) * 0.25;
+  c1 = max(chi1[k] - (dsup/3.0) * dchi_c, 0.0);
+  c2 = max(chi1[k-dk] + (dsup/3.0) * dchi_up,  0.0);
+  dtau_uw =  dsup * (chi1[k] + chi1[k-dk] + c1 + c2) * 0.25;
 
   
   /* dS/dtau at upwind point */
@@ -630,27 +642,29 @@ void Piecewise_Bezier3(int nspect, int mu, bool_t to_obs,
     if(k != k_end){
       
       /* downwind path length */
-      dsdn = fabs(geometry.height[k+dk] - geometry.height[k]   ) * zmu;
+      dsdn = fabs(z[k+dk] - z[k]   ) * zmu;
+
       
       /* dchi/ds at downwind point */
       
       if (fabs(k-k_end)>1) {
-	dsdn2=fabs(geometry.height[k+2*dk] - geometry.height[k+dk]) * zmu;
-	dchi_dn = cent_deriv(dsdn,dsdn2,chi[k],chi[k+dk],chi[k+2*dk]);       
+	dsdn2=fabs(z[k+2*dk] - z[k+dk]) * zmu;
+	dchi_dn = cent_deriv(dsdn,dsdn2,chi1[k],chi1[k+dk],chi1[k+2*dk]);       
       } else {
-	dchi_dn=(chi[k+dk]-chi[k])/dsdn;
+	dchi_dn=(chi1[k+dk]-chi1[k])/dsdn;
       }
       
       /* --- Make sure that c1 and c2 don't do below zero --- */
       
-      c1 = max(chi[k]    + (dsdn/3.0) * dchi_c,  0.0);
-      c2 = max(chi[k+dk] - (dsdn/3.0) * dchi_dn, 0.0);
+      c1 = max(chi1[k]    + (dsdn/3.0) * dchi_c,  0.0);
+      c2 = max(chi1[k+dk] - (dsdn/3.0) * dchi_dn, 0.0);
       
       
       /* downwind optical path length */
       
-      dtau_dw =  dsdn * (chi[k] + chi[k+dk] + c1 + c2) * 0.25;
-
+      dtau_dw =  dsdn * (chi1[k] + chi1[k+dk] + c1 + c2) * 0.25;
+      tmp += dtau_uw;
+      //fprintf(stderr,"[%3d] -> %e\n", k, dtau_uw);
 
       /* ---  dS/dt at central point --- */
     
@@ -696,6 +710,9 @@ void Piecewise_Bezier3(int nspect, int mu, bool_t to_obs,
     dtau_uw=dtau_dw;
     dS_up = dS_c;
   }
+
+  free(chi1);
+  
 }
 
 /* -------------------------------------------------------------------------- */
