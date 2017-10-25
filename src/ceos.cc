@@ -910,13 +910,11 @@ void ceos::hydrostatic(int ndep, float *tau, float *t, float *Pg, float *rho, fl
 void ceos::fill_densities(int ndep, double *t, double *pgas, double *rho, double *pel,
 			  double *nne, int touse,  int keep_nne, float tol){
 
-
   /* --- touse switches which of the following to use to compute the rest:
      (0) pgas, (1) rho, (2) pel, (3) nne.
      
      Store partial pressures and partition functions for the RT calculations
      --- */
-
   if((keep_nne == 0) && ((touse == 0) || (touse == 1))){
     if(touse == 0){
       for(int k = 0; k<ndep; k++){
@@ -928,7 +926,7 @@ void ceos::fill_densities(int ndep, double *t, double *pgas, double *rho, double
       for(int k = 0; k<ndep; k++){
 	nne[k] = nne_from_T_rho(t[k], pgas[k], rho[k]);
 	pel[k] = bk*nne[k]*t[k];
-	store_partial_pressures(ndep, k, xna, xne);	    
+	store_partial_pressures(ndep, k, xna, xne);
       }
     }  
     else{
