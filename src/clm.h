@@ -65,7 +65,7 @@ struct clmf{
    --- */
 
 typedef int (*clm_func)(int npar, int nd, double *x, double *res,
-			double **rf, void *mydata, double *dregul);
+			double **rf, void *mydata, double *dregul, bool store);
 
 double sumarr(double *arr, size_t n);
 double sumarr2(double *arr, int n);
@@ -83,7 +83,7 @@ class clm{
   std::vector<unsigned> ptype, ntype;
   std::vector<std::vector<unsigned>> pidx;
   bool verb, regularize, first;
-  double xtol, chi2_thres, svd_thres, lfac, lmax, lmin, ilambda, regul_scal, regul_scal_in;
+  double xtol, chi2_thres, svd_thres, lfac, lmax, lmin, ilambda, regul_scal, regul_scal_in, reset_par;
   int maxreject, proc, nvar;
 
   

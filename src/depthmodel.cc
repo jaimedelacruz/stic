@@ -6,10 +6,12 @@
 #include "interpol.h"
 #include "ceos.h"
 #include "physical_consts.h"
+#include "math_tools.h"
 
 using namespace std;
 
 /* --- Default boundary condition (if none provided) --- */
+
 const double mdepth::boundary_pgas_default = 7.e-1;
 
 /* ------------------------------------------------------ */
@@ -39,11 +41,219 @@ void mdepth::vector2model(std::vector<double> &vec)
 
 /* ------------------------------------------------------ */
 
+void var_int(int n, double *x, double *y, double *xx, int k0, int k1, bool use_log) // inplace
+{
+
+
+  double *tmp = new double [n];
+  int nn = k1 - k0 + 1;
+  
+  
+  if(!use_log){
+    hermpol(nn, &x[k0], &y[k0], n, xx, tmp);
+    
+  }else{
+    int idmi = mth::argmin(n, y);
+    double imi = y[idmi];
+    
+    use_log = ((imi > 0.0) ? true : false);
+    
+    if(use_log)
+      for(int ii=k0;ii<=k1;ii++) y[ii] = log(y[ii]);
+    
+    hermpol(nn, &x[k0], &y[k0], n, xx, tmp);
+    
+    if(use_log)
+      for(int ii=0; ii<n; ii++) tmp[ii] = exp(tmp[ii]);
+  }
+  
+  memcpy(y, tmp, n*sizeof(double));
+  
+  
+  delete [] tmp;
+}
+
+/* ------------------------------------------------------ */
+
+void mdepth::optimize_depth(ceos &eos, float tcut, int smooth)
+{
+  static const double grph=2.26e-24, crhmbf=2.9256e-17;
+
+  bool reset_tau = false;
+  vector<double> aind(ndep, 0.0), xind(ndep, 0.0), tmp(ndep, 0.0);
+  double tdiv = 0., rdiv = 0.0, taudiv = 0.0, lg11 = log10(1.1); 
+  int k0 = 0, k1 = ndep-1;
+  double *dep = NULL;
+
+  /* --- Get temperature cut --- */
+  
+  for(int k=0;k<=k1;k++){
+    if(temp[k] > tcut){
+      k0 = k;
+      continue;
+    }else break;
+  }
+
+  for(int k=0; k<=k1; k++) xind[k] = (double)k;
+
+  this->fill_densities(eos, true, 0, k1);
+  
+
+  /* --- compute approximate tau scale --- */
+  
+  if((ltau[0] == 0.) && (nne[0] != 0.) && rho[0] !=0.){
+    double okap, kap, otau, tau;
+    reset_tau = true;
+    
+    tau = 1.e-9;
+    kap =  1.03526e-16*nne[0]*crhmbf/pow(temp[0], 1.5)*
+      exp(0.754*phyc::EV/phyc::BK/temp[0])*rho[0]/grph;
+    ltau[0] = tau;
+    
+    for(int ii=1;ii<ndep;ii++){
+      otau = tau, okap = kap;
+      kap =  1.03526e-16*nne[ii]*crhmbf/pow(temp[ii], 1.5)*
+	exp(0.754*phyc::EV/phyc::BK/temp[ii])*rho[ii]/grph;
+
+      ltau[ii] = ltau[ii-1] + 0.5 * fabs(z[ii]-z[ii-1]) * (kap + okap);
+    }
+    
+    for(int k=0; k<ndep; k++){
+      ltau[k] = log10(ltau[k]);
+      //cerr<<ltau[k]<<endl;
+    }
+    // exit(0);
+  }
+  
+  if(ltau[0] != 0)       dep = ltau;
+  else if(cmass[0] != 0) dep = cmass;
+
+
+
+  
+  /* --- Get location of strong gradients --- */
+  
+  for(int k=k0+1;k<=k1;k++){
+    tdiv = fabs(log10(temp[k]) - log10(temp[k-1])) / lg11;
+    rdiv = fabs(log10(rho[k])  - log10(rho[k-1]))  / lg11;
+    taudiv = fabs(dep[k] - dep[k-1]) / 0.1;
+    aind[k] = aind[k-1] + std::max(std::max(tdiv,rdiv), taudiv);
+  }
+
+  /* --- Smooth gradients a bit --- */
+  
+  float rat = double(ndep-1.0) / aind[k1];
+  for(int k=1; k<=k1; k++) aind[k] *= rat;
+  // if(smooth > 1) mth::smooth(k1-k0+1, &aind[k0], smooth);
+  
+  
+
+  /* --- Get new grid --- */
+
+  int ndep1 = k1 - k0 + 1;
+  var_int(ndep, &aind[0], temp, &xind[0], k0, k1, false);
+  var_int(ndep, &aind[0],    v, &xind[0], k0, k1, false);
+  var_int(ndep, &aind[0],vturb, &xind[0], k0, k1, false);
+  var_int(ndep, &aind[0],   bl, &xind[0], k0, k1, false);
+  var_int(ndep, &aind[0],   bh, &xind[0], k0, k1, false);
+  var_int(ndep, &aind[0],  azi, &xind[0], k0, k1, false);
+  var_int(ndep, &aind[0],  rho, &xind[0], k0, k1, true);
+  var_int(ndep, &aind[0], pgas, &xind[0], k0, k1, true);
+  var_int(ndep, &aind[0],  nne, &xind[0], k0, k1, true);
+  var_int(ndep, &aind[0],  pel, &xind[0], k0, k1, true);
+  var_int(ndep, &aind[0],    z, &xind[0], k0, k1, false);
+  var_int(ndep, &aind[0], ltau, &xind[0], k0, k1, false);
+  var_int(ndep, &aind[0],cmass, &xind[0], k0, k1, false);
+
+  for(int ii=0; ii<ndep; ii++) tau[ii] = pow(10.0, ltau[ii]);
+  
+
+  if(reset_tau) memset(ltau, 0, ndep*sizeof(ndep));
+
+  //cerr<<endl;
+  //exit(0);
+  
+}
+
+/* ------------------------------------------------------ */
+
+void mdepth::optimize_depth_ltau(ceos &eos, float tcut)
+{
+  static const double grph=2.26e-24, crhmbf=2.9256e-17;
+
+  bool reset_tau = false;
+  vector<double> aind(ndep, 0.0), xind(ndep, 0.0), tmp(ndep, 0.0);
+  //double tdiv = 0., rdiv = 0.0, taudiv = 0.0, lg11 = log10(1.1); 
+  int k0 = 0, k1 = ndep-1;
+  // double *dep = NULL;
+
+  /* --- Get temperature cut --- */
+  
+  for(int k=0;k<=k1;k++){
+    if(temp[k] > tcut){
+      k0 = k;
+      continue;
+    }else break;
+  }
+
+  for(int k=0; k<=k1; k++) xind[k] = (double)k;
+
+  if(ltau[0] == 0){
+    double wav = 5000., kap= 0.0, scat=0., okap=0, itau=0.0;
+    
+    eos.contOpacity_TPg(temp[k0], pgas[k0], 1, &wav, &kap, &scat, 1.e-4);
+    for(int k=k0+1; k<=k1; k++){
+      okap = kap;
+      eos.contOpacity_TPg(temp[k], pgas[k], 1, &wav, &kap, &scat, 1.e-4);
+
+      double dz = fabs(z[k]-z[k-1]);
+      ltau[k] = ltau[k-1] + 0.5 * dz * (kap + okap);
+      
+      if(ltau[k] > 100.){
+	k1 = k;
+	break;
+      }
+      
+    }
+
+    ltau[k0] = exp(2.0 * log(ltau[k0+1]) - log(ltau[k0+2]));
+    for(int k=k0;k<=k1;k++) ltau[k] = log10(ltau[k]);
+
+    double ma = ltau[k1], mi = ltau[k0];
+    for(int ii=0; ii<ndep;ii++) aind[ii] = double(ii) / (ndep-1.0) * (ma-mi) + mi;
+
+    
+    var_int(ndep, ltau, temp,  &aind[0], k0, k1, false);
+    var_int(ndep, ltau, v,     &aind[0], k0, k1, false);
+    var_int(ndep, ltau, vturb, &aind[0], k0, k1, false);
+    var_int(ndep, ltau, bl,    &aind[0], k0, k1, false);
+    var_int(ndep, ltau, bh,    &aind[0], k0, k1, false);
+    var_int(ndep, ltau, azi,   &aind[0], k0, k1, false);
+    var_int(ndep, ltau, pgas,  &aind[0], k0, k1, true);
+    var_int(ndep, ltau, rho,   &aind[0], k0, k1, true);
+    var_int(ndep, ltau, nne,   &aind[0], k0, k1, true);
+    var_int(ndep, ltau, pel,   &aind[0], k0, k1, true);
+    var_int(ndep, ltau, cmass, &aind[0], k0, k1, false);
+    var_int(ndep, ltau, z,     &aind[0], k0, k1, false);
+
+    memcpy(ltau, &aind[0], ndep*sizeof(double));
+
+    
+    //for(int ii=0; ii<ndep;ii++) fprintf(stderr,"[%3d] %f %f\n", ii, aind[ii], temp[ii]);
+    // exit(0);
+  }
+  
+  
+}
+
+/* ------------------------------------------------------ */
+
 void mdepth::setsize(int n){
 
   /* --- resize --- */
   cub.set({14, n});
   ndep = n;
+  
   
   /* --- Assign pointers (keep this order so we can 
      copy the buffer directly ---*/
@@ -73,7 +283,23 @@ mdepth& mdepth::operator= (  mdepth &m)
   this->setsize(m.ndep);
   memcpy(&(this->cub(0,0)), &m.cub(0,0), 14*m.ndep*sizeof(double));
 
+  this->bound_val = m.bound_val;
+  this->ref_m = m.ref_m;
+  
   return *this;
+}
+
+/* ------------------------------------------------------------------ */
+
+mdepth::mdepth(const  mdepth &m)
+{
+
+  this->setsize(m.ndep);
+  memcpy(&(this->cub.d[0]), &m.cub.d[0], 14*m.ndep*sizeof(double));
+
+  this->bound_val = m.bound_val;
+  this->ref_m = m.ref_m;
+  
 }
 
 
@@ -185,45 +411,48 @@ void mdepth::expand(nodes_t &n, double *p, int interpol, int mtype){
   }else{ // NICOLE/SIR behaviour: node is a correction
 
     double *tmp = new double [ndep];
-
+    mdepth *r = this->ref_m;
     
     if(n.toinv[0]){
       int len = (int)n.temp.size();
       nodes2depth(len, &n.temp[0], &p[n.temp_off], ndep, dep, tmp, interpol, true);
-      for(int ii=0;ii<ndep;ii++) temp[ii] += tmp[ii];
+      for(int ii=0;ii<ndep;ii++){
+	temp[ii] = r->temp[ii] + tmp[ii];
+      }
     }
 
     
     if(n.toinv[1]){
       int len = (int)n.v.size();
       nodes2depth(len, &n.v[0], &p[n.v_off], ndep, dep, tmp, interpol, false);
-      for(int ii=0;ii<ndep;ii++) v[ii] += tmp[ii];
+      for(int ii=0;ii<ndep;ii++) v[ii] = r->v[ii] + tmp[ii];
     }
 
     if(n.toinv[2]){
       int len = (int)n.vturb.size();
       nodes2depth(len, &n.vturb[0], &p[n.vturb_off], ndep, dep, tmp, interpol, false);
-      for(int ii=0;ii<ndep;ii++) vturb[ii] += tmp[ii];
+      for(int ii=0;ii<ndep;ii++) vturb[ii] = r->vturb[ii] + tmp[ii];
     }
     
     if(n.toinv[3]){
       int len = (int)n.bl.size();
       nodes2depth(len, &n.bl[0], &p[n.bl_off], ndep, dep, tmp, interpol, false);
-      for(int ii=0;ii<ndep;ii++) bl[ii] += tmp[ii];
+      for(int ii=0;ii<ndep;ii++) bl[ii] = r->bl[ii]  + tmp[ii];
     }     
 
     if(n.toinv[4]){
       int len = (int)n.bh.size();
       nodes2depth(len, &n.bh[0], &p[n.bh_off], ndep, dep, tmp, interpol, false);
-      for(int ii=0;ii<ndep;ii++) bh[ii] += tmp[ii];
+      for(int ii=0;ii<ndep;ii++) bh[ii] = r->bh[ii] + tmp[ii];
     }
 
     if(n.toinv[5]){
       int len = (int)n.azi.size();
       nodes2depth(len, &n.azi[0], &p[n.azi_off], ndep, dep, tmp, interpol, false);
-      for(int ii=0;ii<ndep;ii++) azi[ii] += tmp[ii];
+      for(int ii=0;ii<ndep;ii++) azi[ii] = r->azi[ii] + tmp[ii];
     }
-    
+
+    r = NULL;
     delete [] tmp;
   }
   
@@ -233,12 +462,16 @@ void mdepth::expand(nodes_t &n, double *p, int interpol, int mtype){
     else if(n.bound == 3) nne[0]  = bound_val*p[n.pgas_off];
     else pgas[0] =  boundary_pgas_default*p[n.pgas_off];
   }//else fprintf(stderr, "bound=%1d, val=%e\n", n.bound, bound_val);
+  //int depth_t, int boundary, ceos &eos
+  //  getPressureScale(n.depth_t, n.bound, eos);
+
+  //for(int ii=0;ii<ndep;ii++) fprintf(stderr,"%3d %e %e %e\n", ii, cmass[ii], temp[ii], pgas[ii]);
   
   
   return;
 }
 
-void mdepth::fill_densities(ceos &eos, int keep_nne){
+void mdepth::fill_densities(ceos &eos, int keep_nne, int k0, int k1){
 
   /* --- which scale do we have? --- */
   
@@ -255,11 +488,11 @@ void mdepth::fill_densities(ceos &eos, int keep_nne){
   else if(srho > 0.0) bound = 1;
   else if(snne > 0.0) bound = 3;
   
-
   /* --- Fill the density arrays, the partial pressures are stored internally
      inside fill_densities --- */
-  
-  eos.fill_densities(ndep, temp, pgas, rho, pel, nne, bound,  keep_nne, 1.e-5);
+
+  int ndep1 = k1-k0+1;
+  eos.fill_densities(ndep1, &temp[k0], &pgas[k0], &rho[k0], &pel[k0], &nne[0], bound,  keep_nne, 1.e-5);
   
 
 

@@ -102,6 +102,7 @@ iput_t read_input(std::string filename, bool verbose){
   input.regularize = 0.0;
   input.random_first = 0;
   input.depth_model = 0;
+  input.tcut = 100000.0;
   
   memset(input.nodes.regul_type, 0, 6*sizeof(int));
   
@@ -144,6 +145,10 @@ iput_t read_input(std::string filename, bool verbose){
       }
       else if(key == "marquardt_damping"){
 	input.marquardt_damping = atof(field.c_str());
+	set = true;
+      }
+      else if(key == "temperature_cut"){
+	input.tcut = atof(field.c_str());
 	set = true;
       }
       else if(key == "svd_thres"){

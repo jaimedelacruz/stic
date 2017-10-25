@@ -75,7 +75,7 @@ void comm_send_parameters(iput_t &input){
   status = MPI_Bcast(&input.nt, 23,    MPI_INT, 0, MPI_COMM_WORLD); // We are sending 11 ints from the struct!
   status = MPI_Bcast(&input.nodes.regul_type, 7,    MPI_INT, 0, MPI_COMM_WORLD); // We are getting 15 ints from the struct!
 
-  status = MPI_Bcast(&input.mu,  8, MPI_DOUBLE, 0, MPI_COMM_WORLD); // We are sending 4 doubles from the struct!
+  status = MPI_Bcast(&input.mu,  9, MPI_DOUBLE, 0, MPI_COMM_WORLD); // We are sending 4 doubles from the struct!
   status = MPI_Bcast(&input.max_inv_iter,  1, MPI_UNSIGNED, 0, MPI_COMM_WORLD);
     
   int dummy = (int)input.verbose;
@@ -177,7 +177,7 @@ void comm_recv_parameters(iput_t &input){
   status = MPI_Bcast(&input.nt, 23,    MPI_INT, 0, MPI_COMM_WORLD); // We are getting 15 ints from the struct!
   status = MPI_Bcast(&input.nodes.regul_type, 7,    MPI_INT, 0, MPI_COMM_WORLD); // We are getting 15 ints from the struct!
 
-  status = MPI_Bcast(&input.mu,  8, MPI_DOUBLE, 0, MPI_COMM_WORLD); // We are getting 4 doubles from the struct!
+  status = MPI_Bcast(&input.mu,  9, MPI_DOUBLE, 0, MPI_COMM_WORLD); // We are getting 4 doubles from the struct!
   status = MPI_Bcast(&input.max_inv_iter,  1, MPI_UNSIGNED, 0, MPI_COMM_WORLD);
 
   int dummy = 0;
@@ -440,10 +440,12 @@ void comm_slave_unpack_data(iput_t &input, int &action, mat<double> &obs, mat<do
 
 
   /* --- Get DATA from master ---*/
+  
   int status = MPI_Recv(buffer, input.buffer_size, MPI_PACKED, 0, 1, MPI_COMM_WORLD, &ierr);
 
   
   /* --- Unpack action --- */
+  
   status = MPI_Unpack(buffer, input.buffer_size, &pos, &action, 1, MPI_INT, MPI_COMM_WORLD );
   
   if(action == 1){

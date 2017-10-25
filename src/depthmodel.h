@@ -23,16 +23,21 @@ class mdepth{
   mat<double> cub;
   double bound_val;
   static const double boundary_pgas_default;
+  mdepth *ref_m;
   //-------------------------------------------
 
   
   //-----------------------------------------
   // constructor/destructor
   //-----------------------------------------
-  mdepth(){};
+  mdepth(){ref_m = NULL; ndep = 0;};
   mdepth(int n){
+    ref_m = NULL;
     setsize(n);
   }
+  mdepth(const mdepth &in);
+  
+  
   ~mdepth(){
     //  setsize(0);
   }; 
@@ -46,8 +51,11 @@ class mdepth{
   void getPressureScale(int depth_t, int boundary, ceos &eos);
   void getScales(ceos &eos, int bound);
   void zero(void);
-  void fill_densities(ceos &eos, int keep_nne = 0);
+  void fill_densities(ceos &eos, int keep_nne, int k0, int k1);
   void hydrostatic(ceos &eos, int depth_t);
+  void optimize_depth(ceos &eos, float tcut, int smooth = 0);
+  void optimize_depth_ltau(ceos &eos, float tcut);
+
   
   mdepth& operator= ( mdepth &m);
 

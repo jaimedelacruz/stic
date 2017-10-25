@@ -223,6 +223,44 @@ namespace mth{
   /* ------------------------------------------------------------------------------- */
   template <class T> void csub(size_t n, T *arr, T c)
     {for(size_t ii=0;ii<n;ii++) arr[ii] -= c;};
+  /* ------------------------------------------------------------------------------- */
+
+  template <class T> void smooth(size_t n, T *arr, int win)
+    {
+
+      /* --- get init point --- */
+
+      bool even = ((((n/2)*2) == n)?true:false);
+      
+      
+      
+      if(!even){
+	T *tmp = new T [n];
+	memcpy(tmp, arr, n*sizeof(T));
+	
+	int k0 = win/2, k1 = n-k0-1;
+	double save0 = 0.0, save1 = 0.0, iwin = 1.0 / double(win);
+	int w2 = win/2;
+	
+	for(int ii=0;ii<win;ii++){
+	  save0 += arr[ii] * iwin;
+	  save1 += arr[n-1-win+ii] * iwin;
+	}
+
+	double sum = save0;
+	arr[k0] = sum;
+	
+	for(int ii=k0+1;ii<=k1;ii++){
+	  sum += (tmp[ii+w2] - tmp[ii-w2-1]) * iwin;
+	  arr[ii] = sum;
+	}
+
+	delete [] tmp;
+      } // even
+      
+      
+    }
+  
   
 } // namespace
 

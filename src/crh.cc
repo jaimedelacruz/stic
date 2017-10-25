@@ -193,8 +193,10 @@ bool crh::synth(mdepth_t &m_in, double *syn, cprof_solver sol, bool save_pops){
 
   /* --- Copy model, RH seems to tamper with the model --- */
   
-  mdepth m(m_in.ndep);
-  m.cub.d = m_in.cub.d;
+  //mdepth m(m_in.ndep);
+  //m.cub.d = m_in.cub.d;
+  //memcpy(&m.cub.d[0], &m_in.cub.d[0], m.ndep*14*sizeof(double));
+  mdepth m = m_in;
   
   /* --- Init vectors --- */
   
@@ -249,7 +251,9 @@ bool crh::synth(mdepth_t &m_in, double *syn, cprof_solver sol, bool save_pops){
       inc[kk] = acos(m.bl[kk] * 1.0e-4 / B[kk]);
     else inc[kk] = 0.0;
     if(std::isnan(inc[kk])) inc[kk] = 0.0;
-    
+
+
+    //fprintf(stderr,"%e %e %e %e %e %e\n", m_in.cmass[kk], m.temp[kk], m.v[kk], m.vturb[kk], m.pgas[kk], m_in.pgas[kk]);
   }
 
   int savep = 0, hydrostat = 0;

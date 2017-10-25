@@ -45,9 +45,10 @@ void atmos::responseFunction(int npar, mdepth_t &m_in, double *pars, int nd, dou
     return;
   }
 
-  mdepth m(m_in.ndep);
-  m.cub.d = m_in.cub.d;
-  m.bound_val = m_in.bound_val;
+  mdepth m = m_in;
+  // mdepth m(m_in.ndep);
+  //m.cub.d = m_in.cub.d;
+  //m.bound_val = m_in.bound_val;
   
   bool store_pops = false;
   int centder = input.centder; 
@@ -64,9 +65,11 @@ void atmos::responseFunction(int npar, mdepth_t &m_in, double *pars, int nd, dou
   double pertu = 0.0;
     
   //
-  if(input.nodes.ntype[pp] == temp_node) pertu = input.dpar * pval * 0.25;
-  else                                   pertu = input.dpar * scal[pp];
-
+  if(input.depth_model == 0){
+    if(input.nodes.ntype[pp] == temp_node) pertu = input.dpar * pval * 0.25;
+    else                                   pertu = input.dpar * scal[pp];
+  }else  pertu = input.dpar * scal[pp];
+    
   
   /* --- Centered derivatives ? --- */
   
@@ -220,7 +223,8 @@ void atmos::randomizeParameters(nodes_t &n, int npar, double *pars){
       pertu = 0.0;//1.0 + (rnum-0.35);
       //pars[pp] = 0.0;
     }
-    pars[pp] = checkParameter(pars[pp] + pertu, pp);
+    if(input.depth_model == 0)
+      pars[pp] = checkParameter(pars[pp] + pertu, pp);
   }
 
   
@@ -482,7 +486,7 @@ void getDregul2(double *m, int npar, double *dregul, nodes_t &n)
 
 /* --------------------------------------------------------------------------------------------------- */
 
-int getChi2(int npar1, int nd, double *pars1, double *dev, double **derivs, void *tmp1, double *dregul){
+int getChi2(int npar1, int nd, double *pars1, double *dev, double **derivs, void *tmp1, double *dregul, bool store){
 
   
   /* --- Cast tmp1 into a double --- */
@@ -490,12 +494,25 @@ int getChi2(int npar1, int nd, double *pars1, double *dev, double **derivs, void
   atmos &atm = *((atmos*)tmp1); 
   double *ipars = new double [npar1]();
   mdepth &m = *atm.imodel;
-
   
-  /* --- Expand atmosphere ---*/
+    /* --- Expand atmosphere ---*/
   
   for(int pp = 0; pp<npar1; pp++)
-    ipars[pp] = pars1[pp] * atm.scal[pp]; 
+    ipars[pp] = pars1[pp] * atm.scal[pp];
+
+  
+  if(store){
+    mdepth &m1 = *atm.imodel->ref_m;
+    m1.expand(atm.input.nodes, &ipars[0], atm.input.dint, atm.input.depth_model);
+    atm.checkBounds(m1);
+    m1.getPressureScale(atm.input.nodes.depth_t, atm.input.boundary, atm.eos);
+    delete [] ipars;
+    
+    return 0;
+  }
+  
+  
+
   
   m.expand(atm.input.nodes, &ipars[0], atm.input.dint, atm.input.depth_model);
   atm.checkBounds(m);
@@ -505,14 +522,17 @@ int getChi2(int npar1, int nd, double *pars1, double *dev, double **derivs, void
   /* --- Compute synthetic spetra --- */
   
   memset(&atm.isyn[0], 0, nd*sizeof(double));
+  //  for(int ii=0; ii<m.ndep;ii++) fprintf(stderr,"%e %e %e %e %e\n", m.cmass[ii], m.temp[ii], m.v[ii], m.vturb[ii], m.pgas[ii]);
   bool conv = atm.synth( m , &atm.isyn[0], (cprof_solver)atm.input.solver, true);
+
+  
   if(!conv){
     atm.cleanup();
     return 1;
   }
-
   
  /* --- Compute derivatives? --- */
+  
   if(derivs){
     
     for(int pp = npar1-1; pp >= 0; pp--){
@@ -570,11 +590,22 @@ int getChi2(int npar1, int nd, double *pars1, double *dev, double **derivs, void
 double atmos::fitModel2(mdepth_t &m, int npar, double *pars, int nobs, double *o, mat<double> &weights){
   
   /* --- point to obs and weights --- */
-  
+  mdepth_t m1 = m, m2 = m, best_m = m;
+  bool depth_per = ((this->input.depth_model > 0) ? true : false);
+
   obs = &o[0];
   w = &weights.d[0];
-  imodel = &m;
+  imodel = ((depth_per)? &m1 : &m);
 
+  if(depth_per){
+    imodel->ref_m = &m;
+    m.ref_m = &m;
+    checkBounds(m);
+    checkBounds(m1);
+    memset(pars, 0, npar*sizeof(double));
+  }else          imodel->ref_m = NULL;
+
+  
   /* --- compute tau scale ---*/
   
   for(int k = 0; k < (int)m.cub.size(1); k++) m.tau[k] = pow(10.0, m.ltau[k]);
@@ -612,8 +643,17 @@ double atmos::fitModel2(mdepth_t &m, int npar, double *pars, int nobs, double *o
   /* ---  Set parameter limits --- */
   
   for(int pp = 0; pp<npar; pp++){
-    lm.fcnt[pp].limit[0] = mmin[pp]/scal[pp];
-    lm.fcnt[pp].limit[1] = mmax[pp]/scal[pp];
+
+    if(!depth_per){
+      lm.fcnt[pp].limit[0] = mmin[pp]/scal[pp];
+      lm.fcnt[pp].limit[1] = mmax[pp]/scal[pp];
+      lm.reset_par = false;
+    }else{
+      lm.fcnt[pp].limit[0] = -maxc[pp]/scal[pp];
+      lm.fcnt[pp].limit[1] =  maxc[pp]/scal[pp];
+      lm.reset_par = true;
+    }
+    
     lm.fcnt[pp].scl = 1.0;//scal[pp];
     lm.ptype[pp] = (input.svd_split) ? (unsigned)input.nodes.ntype[pp] : (unsigned)0;
     if(input.nodes.ntype[pp] ==  pgas_node && input.svd_split > 0)  lm.ptype[pp] = (unsigned)temp_node; // Treat Pgas as a temperature variable
@@ -626,7 +666,7 @@ double atmos::fitModel2(mdepth_t &m, int npar, double *pars, int nobs, double *o
     lm.fcnt[pp].capped = 1;
     
     if(input.nodes.ntype[pp] == temp_node){
-      lm.fcnt[pp].relchange = true;
+      lm.fcnt[pp].relchange = ((depth_per) ? false : true);
       lm.fcnt[pp].maxchange[0] = 0.25;
       lm.fcnt[pp].maxchange[1] = 2.0;
     }else{
@@ -634,7 +674,9 @@ double atmos::fitModel2(mdepth_t &m, int npar, double *pars, int nobs, double *o
       lm.fcnt[pp].maxchange[0] = maxc[pp]/scal[pp];
       lm.fcnt[pp].maxchange[1] = maxc[pp]/scal[pp];
     }
-    pars[pp] = checkParameter(pars[pp], pp);
+    
+    if(!depth_per)
+      pars[pp] = checkParameter(pars[pp], pp);
   }
   
 
@@ -644,13 +686,21 @@ double atmos::fitModel2(mdepth_t &m, int npar, double *pars, int nobs, double *o
   for(int iter = 0; iter < input.nInv; iter++){
 
     cleanup();
+
+    
     
     /* --- init parameters for this inversion --- */
     
     memcpy(&ipars[0], &pars[0], npar * sizeof(double));
-    if(iter > 0 || input.random_first)
+    if(iter > 0 || input.random_first){
       randomizeParameters(input.nodes , npar, &ipars[0]);
 
+      if(depth_per){
+	imodel->expand(input.nodes, &ipars[0], input.dint, input.depth_model);
+	checkBounds(*imodel);
+	imodel->getPressureScale(input.nodes.depth_t, input.boundary, eos);
+      }
+    }
     
     /* --- Work with normalized parameters --- */
     
@@ -663,7 +713,7 @@ double atmos::fitModel2(mdepth_t &m, int npar, double *pars, int nobs, double *o
 
     double chi2 = lm.fitdata(getChi2, &ipars[0], (void*)this, input.max_inv_iter);
 
-
+    
     
     /* --- Re-start populations --- */
     
@@ -675,27 +725,38 @@ double atmos::fitModel2(mdepth_t &m, int npar, double *pars, int nobs, double *o
     if(chi2 < bestChi){
       bestChi = chi2;
       memcpy(&bestPars[0], &ipars[0], npar*sizeof(double));
+      memcpy(&best_m.cub.d[0], &m.cub.d[0], m.ndep*14*sizeof(double));
     }
 
+    if(depth_per){
+      memcpy(&m.cub.d[0], &m2.cub.d[0], m.ndep*14*sizeof(double));
+      memcpy(&m1.cub.d[0], &m2.cub.d[0], m.ndep*14*sizeof(double));
+    }
+    
     /* --- reached thresthold? ---*/
     
     if(bestChi <= input.chi2_thres) break;
     
   } // iter
 
+  
 
+  
   /* --- re-scale fitted parameters and expand atmos ---*/
   
   for(int pp = 0; pp<npar; pp++)
     pars[pp] = bestPars[pp] * scal[pp];
-  
+
   memset(&isyn[0],0,ndata*sizeof(double));
-  m.expand(input.nodes, &pars[0], input.dint, input.depth_model);
-  checkBounds(m);
-  m.getPressureScale(input.nodes.depth_t , input.boundary, eos); 
+  if(!depth_per){
+    m.expand(input.nodes, &pars[0], input.dint, input.depth_model);
+    checkBounds(m);
+    m.getPressureScale(input.nodes.depth_t , input.boundary, eos);
+  } else  memcpy(&m.cub.d[0], &best_m.cub.d[0], m.ndep*14*sizeof(double));
+
   synth( m , &isyn[0], (cprof_solver)input.solver, false);
   spectralDegrade(input.ns, (int)1, input.nw_tot, &isyn[0]);
-
+  
   
   double sum = 0.0;
   for(int ww = 0; ww<ndata;ww++){
@@ -711,7 +772,7 @@ double atmos::fitModel2(mdepth_t &m, int npar, double *pars, int nobs, double *o
   bestSyn.clear();
 }
 
-  
+
 void atmos::spectralDegrade(int ns, int npix, int ndata, double *obs){
 
   /* --- loop and degrade --- */

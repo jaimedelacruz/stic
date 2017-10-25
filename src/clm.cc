@@ -29,6 +29,12 @@
 
 	   2017-04-21, JdlCR: Implemented simple bracketing of lambda for best convergence.
 	                      Also fixed regularization, according to Nik's comments.
+
+
+	   2017-10-25, JdlCR: Added the possibility to work with perturbations to the model, 
+	                      so the parameters are set to zero in every iteration. The 
+			      corresponding fx must account for this. So the parameters are
+			      added to the current version of, e.g., the model atmosphere.
 */
 
 #include <algorithm>
@@ -208,6 +214,7 @@ clm::clm(int ind, int inpar){
   regul_scal = 1.0;   // scale factor for regularization terms
   regul_scal_in = 0.0;   // scale factor for regularization terms input
   proc = 0;           // print-out processor number
+  reset_par = false;  // If true, use perturbation approach
 }
 
 /* -------------------------------------------------------------------------------- */
@@ -332,7 +339,7 @@ double clm::getChi2Pars(double *res, double **rf, double lambda,
   double *new_dregul = NULL;
   if(dregul) new_dregul = new double [nd]();
   
-  int status = fx(npar, nd, xnew, new_res, NULL, mydat, new_dregul);
+  int status = fx(npar, nd, xnew, new_res, NULL, mydat, new_dregul, false);
   if(status){
     if(verb)
       fprintf(stderr, "clm::fitdata: [p:%4d] ERROR in the evaluation of FX, aborting inversion\n", proc);
@@ -494,6 +501,8 @@ double clm::fitdata(clm_func fx, double *x, void *mydat, int maxiter)
   /* --- Init variables --- */
 
   regul_scal = regul_scal_in;
+
+  if(reset_par) memset(x, 0, npar*sizeof(double));
   
   getParTypes();
   double chi2 = 1.e13, ochi2 = 1.e13, bestchi2 = 1.e13, olambda = 0.0, t0 = 0, t1 = 0;
@@ -517,8 +526,8 @@ double clm::fitdata(clm_func fx, double *x, void *mydat, int maxiter)
 
   
   /* --- check parameters --- */
-  
-  checkParameters(x);
+  if(!reset_par)
+    checkParameters(x);
 
 
   /* --- adjust lambda parameter --- */
@@ -528,7 +537,7 @@ double clm::fitdata(clm_func fx, double *x, void *mydat, int maxiter)
 
   /* --- Evaluate residues and RF, init chi2 --- */
 
-  int status = fx(npar, nd, x, res, rf, mydat, dregul);
+  int status = fx(npar, nd, x, res, rf, mydat, dregul, false);
   if(status){
     if(verb)
       fprintf(stderr, "clm::fitdata: [p:%4d] ERROR in the evaluation of FX, aborting inversion\n", proc);
@@ -605,6 +614,16 @@ double clm::fitdata(clm_func fx, double *x, void *mydat, int maxiter)
 
       dcreased = false;
       rej = " ";
+
+      
+      /* --- Use perturbations approach --- */
+      
+      if(reset_par){
+	status = fx(npar, nd, x, res, rf, mydat, dregul, true);
+	memset(x, 0, npar*sizeof(double));
+	memset(xnew, 0, npar*sizeof(double));
+
+      }
       
     }else{
       
@@ -668,7 +687,7 @@ double clm::fitdata(clm_func fx, double *x, void *mydat, int maxiter)
     zero(res, rf);
     if(dregul) memset(dregul, 0, npar*sizeof(double));
     //
-    status = fx(npar, nd, x, res, rf, mydat, dregul);
+    status = fx(npar, nd, x, res, rf, mydat, dregul, false);
     //
     if(status){
       if(verb)
@@ -805,7 +824,8 @@ void clm::compute_trial2(double *res, double **rf, double lambda,
   
   /* --- Check that new parameters are within limits --- */
   
-  checkParameters(xnew);
+  if(!reset_par)
+    checkParameters(xnew);
 }
 
 
@@ -972,8 +992,8 @@ void clm::compute_trial3(double *res, double **rf, double lambda,
 
   
   /* --- Check that new parameters are within limits --- */
-  
-  checkParameters(xnew);
+  if(!reset_par)
+    checkParameters(xnew);
   
 
  
