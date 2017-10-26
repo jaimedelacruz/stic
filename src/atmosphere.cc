@@ -206,7 +206,7 @@ void atmos::randomizeParameters(nodes_t &n, int npar, double *pars){
       rnum = (double)rand() / RAND_MAX;
       last = n.ntype[pp];
     }
-    
+
     if(n.ntype[pp] == temp_node)
       pertu = 2.0 * (rnum - 0.5) * scal[pp] * 0.2;
     else if(n.ntype[pp] == v_node)
@@ -225,6 +225,8 @@ void atmos::randomizeParameters(nodes_t &n, int npar, double *pars){
     }
     if(input.depth_model == 0)
       pars[pp] = checkParameter(pars[pp] + pertu, pp);
+    else
+      pars[pp] = pars[pp] + pertu;
   }
 
   
@@ -699,7 +701,6 @@ double atmos::fitModel2(mdepth_t &m, int npar, double *pars, int nobs, double *o
     
     if(iter > 0 || input.random_first){
       randomizeParameters(input.nodes , npar, &ipars[0]);
-
       if(depth_per){
 	imodel->expand(input.nodes, &ipars[0], input.dint, input.depth_model);
 	checkBounds(*imodel);
