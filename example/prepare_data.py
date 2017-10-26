@@ -230,30 +230,33 @@ if __name__ == "__main__":
 
     # First create a tau scale
     
-    taumin = -8.6
-    taumax= 0.8
-    dtau = 0.18
+    taumin = -5.6
+    taumax= 0.9
+    dtau = 0.16
     ntau = int((taumax-taumin)/dtau) + 1
     tau = np.arange(ntau, dtype='float64')/(ntau-1.0) * (taumax-taumin) + taumin
 
     # Now create a smooth temperature profile
     temp = np.interp(tau, np.asarray([-8.6, -6.0, -4.0, -2.0 , 0.8]), np.asarray([20000., 8000., 4000., 4800., 7000.]))
     
+    temp = np.interp(tau, np.asarray([-5.2 , -4.59, -3.98, -3.37, -2.76, -2.15, -1.54, -0.93, -0.32, 0.29,  0.9 ]), np.asarray([102770., 7065., 6591., 6201., 5842., 5273., 4510., 4478., 4804., 5315., 9400. ]))
+
     # Fill in the model
     m = sp.model(nx=1, ny=1, nt=1, ndep=ntau)
     m.ltau[0,0,0,:] = tau
+    m.cmass[0,0,0,:] = tau
     m.temp[0,0,0,:] = temp
-
+    
      # The inversion only needs to know the gas pressure at the upper boundary. FALC has Pgas[top] ~ 0.3, but
      # this value is for quiet-Sun. Active regions can have up to Pgas[top] = 10.
      
-    m.pgas[0,0,0,:] = 3.0    
+    m.pgas[0,0,0,:] = 1.0    
 
     # Fill in initial B field and velovity (optional)
     m.vturb[0,0,0,:] = 1.e5
     m.vlos[0,0,0,:] = 0.5e5 # cm/s
-    m.B[0,0,0,:] = 900.
-    m.inc[0,0,0,:] = 80. * 3.14159 / 180.
+    m.Bln[0,0,0,:] = 300.
+    m.Bho[0,0,0,:] = 650. 
     m.azi[0,0,0,:] = 100. * 3.14159 / 180.
 
     # Write to HD

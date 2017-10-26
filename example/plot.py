@@ -57,14 +57,16 @@ elif(ss == 1 or ss == 2):
     ax1.set_ylim(-0.055, 0.005)
 else:
     ax1.set_ylim(-0.03, 0.03)
-     
-ax2.plot(m.ltau.squeeze(), m.temp.squeeze(), 'k-')
+
+dep = m.cmass[0,0,0]
+    
+ax2.plot(dep, m.temp.squeeze(), 'k-')
 ax2.set_ylim(3000,12000)
 
-ax3.plot(m.ltau.squeeze(), m.vturb.squeeze()*1.e-5, 'k-')
+ax3.plot(dep, m.vturb.squeeze()*1.e-5, 'k-')
 ax3.set_ylim(0,10)
 
-ax4.plot(m.ltau.squeeze(), m.vlos.squeeze()*1.e-5, 'k-')
+ax4.plot(dep, m.vlos.squeeze()*1.e-5, 'k-')
 ax4.set_ylim(-7,7)
 
 f.set_tight_layout(True)
