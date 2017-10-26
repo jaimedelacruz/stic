@@ -368,7 +368,9 @@ void do_master_sparse(int myrank, int nprocs,  char hostname[]){
 
       /* --- Expand fitted parameters into depth-stratified atmos --- */
 
+      // if(input.depth_model == 0)
       //im.expandAtmos(input.nodes, model, input.dint);
+      
       
       /* --- init output for inverted model --- */
       

@@ -748,6 +748,7 @@ double atmos::fitModel2(mdepth_t &m, int npar, double *pars, int nobs, double *o
     pars[pp] = bestPars[pp] * scal[pp];
 
   memset(&isyn[0],0,ndata*sizeof(double));
+  
   if(!depth_per){
     m.expand(input.nodes, &pars[0], input.dint, input.depth_model);
     checkBounds(m);
