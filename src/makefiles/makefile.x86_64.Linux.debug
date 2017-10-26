@@ -1,9 +1,9 @@
 #
 # Compilers
 #
-CC  = icc
-CXX = icpc
-FC  = ifort
+CC  = gcc
+CXX = g++
+FC  = gfortran
 
 
 #
@@ -14,22 +14,21 @@ OMPI_CXX = $(CXX)
 OMPI_CC = $(CC)
 MPCXX = mpicxx
 MPFC = mpif90
-MPCC = mpicc
 
-LINKER = $(MPFC)
+LINKER = $(MPCXX)
 
 
 #
 # OPTIMIZATION
 #
-OPTS =  -Ofast -m64 -mkl=sequential -xhost
-CXXFLAGS = $(OPTS) -std=c++11 -gxx-name=g++-4.9 -fPIC
+OPTS = -O0 -g 
+CXXFLAGS = $(OPTS) -fPIC -std=c++11 -Wno-literal-suffix
 CFLAGS = $(OPTS) -DHAVE_F90 -fPIC
-FFLAGS = -Ofast -xCORE-AVX-I -m64 -mkl
-AR = xiar
-OPENMP = -fopenmp
+FFLAGS = $(OPT)
+AR = gcc-ar-4.9
+OPENMP = -fopenmp 
 
-LINKEROPTS =  -nofor-main
+LINKEROPTS = -lgfortran -lm -lpthread -llapack
 
 #
 # GSL, FFTW3 libs.
