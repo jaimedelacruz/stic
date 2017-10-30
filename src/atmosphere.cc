@@ -519,6 +519,7 @@ int getChi2(int npar1, int nd, double *pars1, double *dev, double **derivs, void
   m.expand(atm.input.nodes, &ipars[0], atm.input.dint, atm.input.depth_model);
   atm.checkBounds(m);
   m.getPressureScale(atm.input.nodes.depth_t, atm.input.boundary, atm.eos);
+  
 
   
   /* --- Compute synthetic spetra --- */
@@ -590,6 +591,13 @@ int getChi2(int npar1, int nd, double *pars1, double *dev, double **derivs, void
 }
 
 double atmos::fitModel2(mdepth_t &m, int npar, double *pars, int nobs, double *o, mat<double> &weights){
+
+
+    
+  /* --- compute tau scale ---*/
+  
+  for(int k = 0; k < (int)m.ndep; k++) m.tau[k] = pow(10.0, m.ltau[k]);
+
   
   /* --- point to obs and weights --- */
   mdepth_t m1 = m, m2 = m, best_m = m;
@@ -607,11 +615,8 @@ double atmos::fitModel2(mdepth_t &m, int npar, double *pars, int nobs, double *o
     memset(pars, 0, npar*sizeof(double));
   }else          imodel->ref_m = NULL;
 
-  
-  /* --- compute tau scale ---*/
-  
-  for(int k = 0; k < (int)m.cub.size(1); k++) m.tau[k] = pow(10.0, m.ltau[k]);
 
+  
 
   
   /* --- Invert pixel randomizing parameters if iter > 0 --- */
@@ -702,9 +707,9 @@ double atmos::fitModel2(mdepth_t &m, int npar, double *pars, int nobs, double *o
     if(iter > 0 || input.random_first){
       randomizeParameters(input.nodes , npar, &ipars[0]);
       if(depth_per){
-	imodel->expand(input.nodes, &ipars[0], input.dint, input.depth_model);
-	checkBounds(*imodel);
-	imodel->getPressureScale(input.nodes.depth_t, input.boundary, eos);
+	imodel->ref_m->expand(input.nodes, &ipars[0], input.dint, input.depth_model);
+	checkBounds(*imodel->ref_m);
+	imodel->ref_m->getPressureScale(input.nodes.depth_t, input.boundary, eos);
       }
     }
     
