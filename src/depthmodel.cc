@@ -408,6 +408,17 @@ void mdepth::expand(nodes_t &n, double *p, int interpol, int mtype){
       int len = (int)n.azi.size();
       nodes2depth(len, &n.azi[0], &p[n.azi_off], ndep, dep, &azi[0], interpol, false);
     }
+
+    
+    if(n.toinv[6]){
+      if     (n.bound == 1) pgas[0] = bound_val*p[n.pgas_off];
+      else if(n.bound == 2) rho[0]  = bound_val*p[n.pgas_off];
+      else if(n.bound == 3) nne[0]  = bound_val*p[n.pgas_off];
+      else pgas[0] =  boundary_pgas_default*p[n.pgas_off];
+    }
+    
+
+    
   }else{ // NICOLE/SIR behaviour: node is a correction
 
     double *tmp = new double [ndep];
@@ -452,21 +463,21 @@ void mdepth::expand(nodes_t &n, double *p, int interpol, int mtype){
       for(int ii=0;ii<ndep;ii++) azi[ii] = r->azi[ii] + tmp[ii];
     }
 
+
+    if(n.toinv[6]){
+      if     (n.bound == 1) pgas[0] = r->pgas[0]*(1.0+p[n.pgas_off]);
+      else if(n.bound == 2) rho[0]  = r->rho[0]*(1.0+p[n.pgas_off]);
+      else if(n.bound == 3) nne[0]  = r->nne[0]*(1.0+p[n.pgas_off]);
+      else pgas[0] =  boundary_pgas_default*p[n.pgas_off];
+    }
+    //fprintf(stderr,"Pgas=%e %e\n", pgas[0], bound_val);
+    
     r = NULL;
     delete [] tmp;
   }
   
-  if(n.toinv[6]){
-    if     (n.bound == 1) pgas[0] = bound_val*p[n.pgas_off];
-    else if(n.bound == 2) rho[0]  = bound_val*p[n.pgas_off];
-    else if(n.bound == 3) nne[0]  = bound_val*p[n.pgas_off];
-    else pgas[0] =  boundary_pgas_default*p[n.pgas_off];
-  }//else fprintf(stderr, "bound=%1d, val=%e\n", n.bound, bound_val);
-  //int depth_t, int boundary, ceos &eos
-  //  getPressureScale(n.depth_t, n.bound, eos);
 
-  //for(int ii=0;ii<ndep;ii++) fprintf(stderr,"%3d %e %e %e\n", ii, cmass[ii], temp[ii], pgas[ii]);
-  
+
   
   return;
 }
