@@ -8,7 +8,7 @@ import scipy.ndimage.filters as fil
 import scipy.interpolate as inte
 import mathtools as mt
 #
-#import ipdb as db
+import ipdb as db
 import matplotlib.pyplot as plt
 import sparsetools as sp
 from scipy.interpolate import interp2d
@@ -408,7 +408,7 @@ class model:
         if(nvturb > 0):
             self.vturb[:] = self._smoothVar(nvturb, self.vturb, tau, psf, median, t0=t0, t1=t1, convolve=convolve)
         if(nBln > 0):
-            self.Bln[:] = self._smoothVar(nB, self.Bln, tau, psf, median, t0=t0, t1=t1, convolve=convolve)
+            self.Bln[:] = self._smoothVar(nBln, self.Bln, tau, psf, median, t0=t0, t1=t1, convolve=convolve)
         if(nBho > 0):
             self.Bho[:] = self._smoothVar(nBho, self.Bho, tau, psf, median, t0=t0, t1=t1, convolve=convolve)
         if(nazi > 0):
@@ -471,8 +471,8 @@ class model:
             par2[tt] = self.temp[tt,y0:y1, x0:x1, z0:z1]
             par3[tt] = self.pgas[tt,y0:y1, x0:x1, z0:z1]
             par4[tt] = self.vlos[tt,y0:y1, x0:x1, z0:z1]
-            par5[tt] = self.blong[tt,y0:y1, x0:x1, z0:z1]
-            par6[tt] = self.bhor[tt,y0:y1, x0:x1, z0:z1]
+            par5[tt] = self.Bln[tt,y0:y1, x0:x1, z0:z1]
+            par6[tt] = self.Bho[tt,y0:y1, x0:x1, z0:z1]
             par7[tt] = self.azi[tt,y0:y1, x0:x1, z0:z1]
             par8[tt] = self.vturb[tt,y0:y1, x0:x1, z0:z1]
             par9[tt] = self.cmass[tt,y0:y1, x0:x1, z0:z1]
@@ -493,9 +493,10 @@ class model:
 
         xx = np.arange(self.nx, dtype='float64')
         yy = np.arange(self.ny, dtype='float64')
-        xx1 = np.arange(nx, dtype='float64') * (self.nx-1) / (nx-1.0)
-        yy1 = np.arange(ny, dtype='float64') * (self.ny-1) / (ny-1.0)
+        xx1 = np.arange(nx, dtype='float64') * (self.nx-1) / np.maximum(1, nx-1.0)
+        yy1 = np.arange(ny, dtype='float64') * (self.ny-1) / np.maximum(1, ny-1.0)
 
+        db.set_trace()
         for tt in range(nt):
             for kk in range(ndep):
                 nm.temp[tt,:,:,kk] = \
@@ -561,8 +562,8 @@ class profile:
         xx = np.arange(self.nx, dtype='float32')
         yy = np.arange(self.ny, dtype='float32')
 
-        xx1 = np.arange(nx, dtype='float32')/(nx-1.0) * self.nx
-        yy1 = np.arange(ny, dtype='float32')/(ny-1.0) * self.ny
+        xx1 = np.arange(nx, dtype='float32')/np.maximum(1, nx-1.0) * self.nx
+        yy1 = np.arange(ny, dtype='float32')/np.maximum(1, ny-1.0) * self.ny
 
         me = np.mean(self.dat[:,:,:,:,0])
         if(me < 1.e-19): me = 1.0
