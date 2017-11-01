@@ -26,7 +26,7 @@
 #include "atmos.h"
 #include "geometry.h"
 #include "spectrum.h"
-#include "scl_opac.h"
+//#include "scl_opac.h"
 
 
 /* --- Function prototypes --                          -------------- */
@@ -68,14 +68,16 @@ void har_mean_deriv(double* wprime,double dsup,double dsdn,
 void Piecewise_1D(int nspect, int mu, bool_t to_obs,
 		  double *chi, double *S, double *I, double *Psi)
 {
-  register int k;
+  register int k, i;
 
   int    k_start, k_end, dk, Ndep = geometry.Ndep;
   double dtau_uw, dtau_dw, dS_uw, I_upw, dS_dw, c1, c2, w[3],
          zmu, Bnu[2];
 
   double *z = geometry.cmass;
-  double *chi1 = scl_opac(Ndep, chi);
+  //double *chi1 = scl_opac(Ndep, chi);
+  double *chi1 = (double*)malloc(Ndep * sizeof(double));//scl_opac(Ndep, chi);
+  for(i=0;i<Ndep;i++) chi1[i] = chi[i] / atmos.rho[i];
   
   zmu = 0.5 / geometry.muz[mu];
 
@@ -189,7 +191,7 @@ void PieceBezier_1D(int nspect, int mu, bool_t to_obs,
 		    double *chi, double *S, double *I, double *Psi)
 {
   const char routineName[] = "PieceBezier_1D";
-  register int k;
+  register int k, i;
 
   int    k_start, k_end, dk, Ndep = geometry.Ndep;
   double dtau_uw, dtau_dw, dS_uw, I_uw, dS_dw, U[3],
@@ -198,8 +200,9 @@ void PieceBezier_1D(int nspect, int mu, bool_t to_obs,
   zmu = 0.5 / geometry.muz[mu];
   
   double *z = geometry.cmass;
-  double *chi1 = scl_opac(Ndep, chi);
-
+  //double *chi1 = scl_opac(Ndep, chi);
+  double *chi1 = (double*)malloc(Ndep * sizeof(double));//scl_opac(Ndep, chi);
+  for(i=0;i<Ndep;i++) chi1[i] = chi[i] / atmos.rho[i];
   
   /* --- Distinguish between rays going from BOTTOM to TOP
          (to_obs == TRUE), and vice versa --      -------------- */
@@ -323,15 +326,17 @@ void PieceBezier_1D(int nspect, int mu, bool_t to_obs,
 void Piecewise_Hermite_1D(int nspect, int mu, bool_t to_obs,
 		  double *chi, double *S, double *I, double *Psi)
 {
-  register int k;
+  register int k, i;
 
-  int    k_start, k_end, dk, Ndep = geometry.Ndep,i;
+  int    k_start, k_end, dk, Ndep = geometry.Ndep;
   double dtau_uw, dtau_dw, dS_uw, I_upw, dS_dw, c1, c2, w[3],
          zmu, Bnu[2];
   double dsup,dsdn,dt,dt2,dt3,ex,alpha,beta,alphaprim,betaprim,dsup2;
   double dS_up,dS_c,dchi_up,dchi_c,dchi_dn,dsdn2,dtau_up2;
   double *z = geometry.cmass;
-  double *chi1 = scl_opac(Ndep, chi);
+  // double *chi1 = scl_opac(Ndep, chi);
+  double *chi1 = (double*)malloc(Ndep * sizeof(double));//scl_opac(Ndep, chi);
+  for(i=0;i<Ndep;i++) chi1[i] = chi[i] / atmos.rho[i];
   
   zmu = 0.5 / geometry.muz[mu];
 

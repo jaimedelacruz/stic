@@ -28,7 +28,7 @@
 #include "geometry.h"
 #include "spectrum.h"
 #include "bezier.h"
-#include "scl_opac.h"
+//#include "scl_opac.h"
 
 /* --- Macros --                          -------------- */
 
@@ -301,8 +301,10 @@ void PiecewiseStokesBezier3(int nspect, int mu, bool_t to_obs,
   double *z = geometry.cmass;//
 
   ActiveSet *as;
-  double *chi1 = scl_opac(Ndep, chi);
-
+  double *chi1 = (double*)malloc(Ndep * sizeof(double));//scl_opac(Ndep, chi);
+  for(i=0;i<Ndep;i++) chi1[i] = chi[i] / atmos.rho[i];
+  
+  
   
   if (to_obs) {
     dk      = -1;
@@ -541,7 +543,7 @@ void Piecewise_Bezier3(int nspect, int mu, bool_t to_obs,
      
      --- */
   
-  register int k;
+  register int k,i;
   const char routineName[] = "Piecewise_Bezier3";
 
   int    k_start, k_end, dk, Ndep = geometry.Ndep;
@@ -553,8 +555,9 @@ void Piecewise_Bezier3(int nspect, int mu, bool_t to_obs,
   //double *z = geometry.tau_ref;//
   double *z = geometry.cmass;//
 
-  double *chi1 = scl_opac(Ndep, chi);
-
+  double *chi1 = (double*)malloc(Ndep * sizeof(double));//scl_opac(Ndep, chi);
+  for(i=0;i<Ndep;i++) chi1[i] = chi[i] / atmos.rho[i];
+  
   zmu = 1.0 / geometry.muz[mu];
 
   /* --- Distinguish between rays going from BOTTOM to TOP
