@@ -727,35 +727,46 @@ void mdepthall::model_parameters2(mat<double> &tmp, nodes_t &n, int nt){
       int nn = 0;
 	
       // Temp
-      nn = (int)n.temp.size();
-      compress(ndep, &cub(yy,xx,idx,0), &cub(yy,xx,0,0), nn, &n.temp[0], &tmp(yy,xx,k));
-      k += nn;
+      if(n.toinv[0]){
+	nn = (int)n.temp.size();
+	compress(ndep, &cub(yy,xx,idx,0), &cub(yy,xx,0,0), nn, &n.temp[0], &tmp(yy,xx,k));
+	k += nn;
+      }
 
       // v_los
-      nn = (int)n.v.size();
-      compress(ndep, &cub(yy,xx,idx,0), &cub(yy,xx,1,0), nn, &n.v[0], &tmp(yy,xx,k));
-      k += nn;
-
+      if(n.toinv[1]){
+	nn = (int)n.v.size();
+	compress(ndep, &cub(yy,xx,idx,0), &cub(yy,xx,1,0), nn, &n.v[0], &tmp(yy,xx,k));
+	k += nn;
+      }
+      
       // vturb
-      nn = (int)n.vturb.size();
-      compress(ndep, &cub(yy,xx,idx,0), &cub(yy,xx,2,0), nn, &n.vturb[0], &tmp(yy,xx,k));
-      k += nn;
+      if(n.toinv[2]){
+	nn = (int)n.vturb.size();
+	compress(ndep, &cub(yy,xx,idx,0), &cub(yy,xx,2,0), nn, &n.vturb[0], &tmp(yy,xx,k));
+	k += nn;
+      }
 
       // Blong
-      nn = (int)n.bl.size();
-      compress(ndep, &cub(yy,xx,idx,0), &cub(yy,xx,3,0), nn, &n.bl[0], &tmp(yy,xx,k));
-      k += nn;
-      
+      if(n.toinv[3]){
+	nn = (int)n.bl.size();
+	compress(ndep, &cub(yy,xx,idx,0), &cub(yy,xx,3,0), nn, &n.bl[0], &tmp(yy,xx,k));
+	k += nn;
+      }
       
       // Bhor
-      nn = (int)n.bh.size();
-      compress(ndep, &cub(yy,xx,idx,0), &cub(yy,xx,4,0), nn, &n.bh[0], &tmp(yy,xx,k));
-      k += nn;
-
+      if(n.toinv[4]){
+	nn = (int)n.bh.size();
+	compress(ndep, &cub(yy,xx,idx,0), &cub(yy,xx,4,0), nn, &n.bh[0], &tmp(yy,xx,k));
+	k += nn;
+      }
+      
       // azi
-      nn = (int)n.azi.size();
-      compress(ndep, &cub(yy,xx,idx,0), &cub(yy,xx,5,0), nn, &n.azi[0], &tmp(yy,xx,k));
-      k += nn;
+      if(n.toinv[5]){
+	nn = (int)n.azi.size();
+	compress(ndep, &cub(yy,xx,idx,0), &cub(yy,xx,5,0), nn, &n.azi[0], &tmp(yy,xx,k));
+	k += nn;
+      }
 
       // Pgas boundary
       

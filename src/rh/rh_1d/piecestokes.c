@@ -34,7 +34,7 @@
 #include "geometry.h"
 #include "spectrum.h"
 #include "rhf1d.h"
-#include "scl_opac.h"
+//#include "scl_opac.h"
 
 /* --- Function prototypes --                          -------------- */
 
@@ -56,15 +56,18 @@ void PiecewiseStokes(int nspect, int mu, bool_t to_obs,
 		     double *chi_I, double **S, double **I, double *Psi)
 {
   const char routineName[] = "PiecewiseStokes";
-  register int k, n, m;
+  register int k, n, m,i;
 
   int    Ndep = geometry.Ndep, k_start, k_end, dk;
   double dtau_uw, dtau_dw = 0.0, dS_uw[4], dS_dw[4], c1, c2, w[3],
     I_upw[4], zmu, P[4], Bnu[2], Q[4][4], **R, K[4][4], K_upw[4][4];
 
   double *z = geometry.cmass;
-  double *chi_I1 = scl_opac(Ndep, chi_I);
+  //double *chi_I1 = scl_opac(Ndep, chi_I);
+  double *chi_I1 = (double*)malloc(Ndep * sizeof(double));//scl_opac(Ndep, chi);
+  for(i=0;i<Ndep;i++) chi_I1[i] = chi_I[i] / atmos.rho[i];
 
+  
   zmu = 0.5 / geometry.muz[mu];
   R = matrix_double(4, 4);
 
