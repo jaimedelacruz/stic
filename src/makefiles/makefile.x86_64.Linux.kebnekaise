@@ -1,0 +1,39 @@
+#
+# Compilers
+#
+CC  = icc
+CXX = icpc
+FC  = ifort
+
+
+#
+# MPI assignments
+#
+OMPI_FC = $(FC)
+OMPI_CXX = $(CXX)
+OMPI_CC = $(CC)
+MPCXX = mpiicpc
+MPFC = mpiicc
+MPCC = mpiifort
+
+LINKER = $(CC)
+
+
+#
+# OPTIMIZATION
+#
+OPTS =  -Ofast -xCORE-AVX2 -mkl=sequential
+CXXFLAGS = $(OPTS) -std=c++11 -gxx-name=g++ -fPIC 
+CFLAGS = $(OPTS) -DHAVE_F90 -fPIC 
+FFLAGS = -Ofast -xCORE-AVX-I -mkl
+AR = xiar
+OPENMP = -fopenmp
+
+
+LINKEROPTS=-I/hpc2n/eb/software/Compiler/intel/2017.1.132-GCC-5.4.0-2.26/impi/2017.1.132/intel64/include -L/hpc2n/eb/software/Compiler/intel/2017.1.132-GCC-5.4.0-2.26/impi/2017.1.132/intel64/lib/release_mt -L/hpc2n/eb/software/Compiler/intel/2017.1.132-GCC-5.4.0-2.26/impi/2017.1.132/intel64/lib -Xlinker --enable-new-dtags -Xlinker -rpath -Xlinker /hpc2n/eb/software/Compiler/intel/2017.1.132-GCC-5.4.0-2.26/impi/2017.1.132/intel64/lib/release_mt -Xlinker -rpath -Xlinker /hpc2n/eb/software/Compiler/intel/2017.1.132-GCC-5.4.0-2.26/impi/2017.1.132/intel64/lib -Xlinker -rpath -Xlinker /opt/intel/mpi-rt/2017.0.0/intel64/lib/release_mt -Xlinker -rpath -Xlinker /opt/intel/mpi-rt/2017.0.0/intel64/lib -lmpicxx  -lmpi -lmpigi -ldl -lrt -lpthread -lifcore
+
+#
+# GSL, FFTW3 libs.
+# Any unix system should have this installed in /usr.
+#
+GSLPATH = /usr
