@@ -80,6 +80,7 @@ void comm_send_parameters(iput_t &input){
     
   int dummy = (int)input.verbose;
   status = MPI_Bcast(&dummy,  1, MPI_UNSIGNED, 0, MPI_COMM_WORLD);
+  status = MPI_Bcast(&input.nodes.depth_t, 1,    MPI_INT, 0, MPI_COMM_WORLD); 
 
 
   
@@ -183,6 +184,8 @@ void comm_recv_parameters(iput_t &input){
   int dummy = 0;
   status = MPI_Bcast(&dummy,  1, MPI_UNSIGNED, 0, MPI_COMM_WORLD);
   input.verbose = (bool)dummy;
+  status = MPI_Bcast(&input.nodes.depth_t, 1,    MPI_INT, 0, MPI_COMM_WORLD); 
+
 
   
   //

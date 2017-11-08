@@ -505,9 +505,9 @@ void mdepth::fill_densities(ceos &eos, int keep_nne, int k0, int k1){
   int ndep1 = k1-k0+1;
   eos.fill_densities(ndep1, &temp[k0], &pgas[k0], &rho[k0], &pel[k0], &nne[0], bound,  keep_nne, 1.e-5);
   
+  
 
-
-  /* --- Get scales --- */
+  /*
 
   double sz = 0.0, stau = 0.0, scm = 0.0;
   for(int kk = 0; kk<ndep; kk++){
@@ -522,11 +522,10 @@ void mdepth::fill_densities(ceos &eos, int keep_nne, int k0, int k1){
   else if(scm > 0.0) bound = 2;
 
 
-  /* --- Fill scales --- */
-
+  
   getScales(eos, bound);
   
-  
+  */
 }
 
 void mdepth::getScales(ceos &eos, int bound){
@@ -560,6 +559,8 @@ void mdepth::getScales(ceos &eos, int bound){
       z[k] = z[k-1] - 2.0 * (tau[k] - tau[k-1]) / (kappa[k] + kappa[k-1]);
       cmass[k] = cmass[k-1] + 0.5*(rho[k-1] + rho[k]) * (z[k-1] - z[k]);
     } // k
+    for(int k = 0; k < ndep; k++) cmass[k] = log10(cmass[k]);
+
   }else if(bound == 1){  /* --- if we know Z --- */
 
     eos.read_partial_pressures(0, frac, part, na, ne);
@@ -572,8 +573,9 @@ void mdepth::getScales(ceos &eos, int bound){
       cmass[k] = cmass[k-1] + 0.5 * (rho[k-1] + rho[k]) * (z[k-1] - z[k]);
       ltau[k] = log10(tau[k]);
     }
-    
+    for(int k = 0; k < ndep; k++) cmass[k] = log10(cmass[k]);
 
+    
   }else if(bound ==2){ /* --- If we know cmass --- */
     
     z[0] = 0.0;

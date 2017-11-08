@@ -150,7 +150,8 @@ void do_slave(int myrank, int nprocs, char hostname[]){
 	/* --- Optimize depth scale? --- */
 
 	//it.optimize_depth(atmos->eos, input.tcut, 5);
-	it.optimize_depth_ltau(atmos->eos, input.tcut);
+	if(input.tcut > 0)
+	  it.optimize_depth_ltau(atmos->eos, input.tcut);
 
 	
 	/* --- Call equation of state or hydrostatic equilibrium ? --- */
@@ -160,10 +161,10 @@ void do_slave(int myrank, int nprocs, char hostname[]){
 
 
 	/* --- Get scales (depth_t has cmass and z switched compared to getScales) --- */
-
+	
 	if     (input.nodes.depth_t == 0) it.getScales(atmos->eos, 0); // LTAU500
 	else if(input.nodes.depth_t == 1) it.getScales(atmos->eos, 2); // CMASS
-	else if(input.nodes.depth_t == 3) it.getScales(atmos->eos, 1); // Z
+	else if(input.nodes.depth_t == 2) it.getScales(atmos->eos, 1); // Z
 	
 	
 	
