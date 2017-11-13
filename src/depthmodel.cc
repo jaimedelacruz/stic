@@ -200,48 +200,49 @@ void mdepth::optimize_depth_ltau(ceos &eos, float tcut)
 
   if(ltau[0] == 0){
     double wav = 5000., kap= 0.0, scat=0., okap=0, itau=0.0;
+    ltau[k0] = 1.e-9;
     
     eos.contOpacity_TPg(temp[k0], pgas[k0], 1, &wav, &kap, &scat, 1.e-4);
     for(int k=k0+1; k<=k1; k++){
       okap = kap;
       eos.contOpacity_TPg(temp[k], pgas[k], 1, &wav, &kap, &scat, 1.e-4);
-
+      
       double dz = fabs(z[k]-z[k-1]);
       ltau[k] = ltau[k-1] + 0.5 * dz * (kap + okap);
       
-      if(ltau[k] > 100.){
+      if(ltau[k] > 200.){
 	k1 = k;
 	break;
       }
       
     }
-
-    ltau[k0] = exp(2.0 * log(ltau[k0+1]) - log(ltau[k0+2]));
+    
+    //    ltau[k0] = exp(2.0 * log(ltau[k0+1]) - log(ltau[k0+2]));
     for(int k=k0;k<=k1;k++) ltau[k] = log10(ltau[k]);
-
-    double ma = ltau[k1], mi = ltau[k0];
-    for(int ii=0; ii<ndep;ii++) aind[ii] = double(ii) / (ndep-1.0) * (ma-mi) + mi;
-
-    
-    var_int(ndep, ltau, temp,  &aind[0], k0, k1, false);
-    var_int(ndep, ltau, v,     &aind[0], k0, k1, false);
-    var_int(ndep, ltau, vturb, &aind[0], k0, k1, false);
-    var_int(ndep, ltau, bl,    &aind[0], k0, k1, false);
-    var_int(ndep, ltau, bh,    &aind[0], k0, k1, false);
-    var_int(ndep, ltau, azi,   &aind[0], k0, k1, false);
-    var_int(ndep, ltau, pgas,  &aind[0], k0, k1, true);
-    var_int(ndep, ltau, rho,   &aind[0], k0, k1, true);
-    var_int(ndep, ltau, nne,   &aind[0], k0, k1, true);
-    var_int(ndep, ltau, pel,   &aind[0], k0, k1, true);
-    var_int(ndep, ltau, cmass, &aind[0], k0, k1, false);
-    var_int(ndep, ltau, z,     &aind[0], k0, k1, false);
-
-    memcpy(ltau, &aind[0], ndep*sizeof(double));
-
-    
-    //for(int ii=0; ii<ndep;ii++) fprintf(stderr,"[%3d] %f %f\n", ii, aind[ii], temp[ii]);
-    // exit(0);
   }
+  double ma = ltau[k1], mi = ltau[k0];
+  for(int ii=0; ii<ndep;ii++) aind[ii] = double(ii) / (ndep-1.0) * (ma-mi) + mi;
+  
+  
+  var_int(ndep, ltau, temp,  &aind[0], k0, k1, false);
+  var_int(ndep, ltau, v,     &aind[0], k0, k1, false);
+  var_int(ndep, ltau, vturb, &aind[0], k0, k1, false);
+  var_int(ndep, ltau, bl,    &aind[0], k0, k1, false);
+  var_int(ndep, ltau, bh,    &aind[0], k0, k1, false);
+  var_int(ndep, ltau, azi,   &aind[0], k0, k1, false);
+  var_int(ndep, ltau, pgas,  &aind[0], k0, k1, true);
+  var_int(ndep, ltau, rho,   &aind[0], k0, k1, true);
+  var_int(ndep, ltau, nne,   &aind[0], k0, k1, true);
+  var_int(ndep, ltau, pel,   &aind[0], k0, k1, true);
+  var_int(ndep, ltau, cmass, &aind[0], k0, k1, false);
+  var_int(ndep, ltau, z,     &aind[0], k0, k1, false);
+  
+  memcpy(ltau, &aind[0], ndep*sizeof(double));
+  
+  
+  //for(int ii=0; ii<ndep;ii++) fprintf(stderr,"[%3d] %f %f\n", ii, aind[ii], temp[ii]);
+    // exit(0);
+  
   
   
 }
@@ -503,7 +504,7 @@ void mdepth::fill_densities(ceos &eos, int keep_nne, int k0, int k1){
      inside fill_densities --- */
 
   int ndep1 = k1-k0+1;
-  eos.fill_densities(ndep1, &temp[k0], &pgas[k0], &rho[k0], &pel[k0], &nne[0], bound,  keep_nne, 1.e-5);
+  eos.fill_densities(ndep1, &temp[k0], &pgas[k0], &rho[k0], &pel[k0], &nne[k0], bound,  keep_nne, 1.e-5);
   
   
 
