@@ -109,8 +109,6 @@ class clm{
 			       clm_func fx, double *dregul, double rchi2);
   //  void compute_trial3(double *res, double **rf, double lambda,
   //	      double *x, double *xnew);
-  void compute_trial2(double *res, double **rf, double lambda,
-		      double *x, double *xnew, double *dregul);
   void compute_trial3(double *res, double **rf, double lambda,
 		      double *x, double *xnew, double *dregul);
   //void backsub(double **u, double *w, double **v, int n,

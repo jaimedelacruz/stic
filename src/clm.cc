@@ -731,103 +731,6 @@ double clm::fitdata(clm_func fx, double *x, void *mydat, int maxiter)
   return (double)orchi2 + tmp*regul_scal_in; 
 }
 
-/* -------------------------------------------------------------------------------- */
-
-void clm::compute_trial2(double *res, double **rf, double lambda,
-			 double *x, double *xnew, double *dregul)
-{
-
-  
-  /* --- Init Eigen-3 arrays --- */
-  
-  MatrixXd A(npar, npar);
-  VectorXd B(npar);
-  Map<VectorXd> RES(xnew, npar);
-
-  
-  /* --- 
-     compute the curvature matrix and the right-hand side of eq.: 
-     A*(dx) = B
-     where A = J.T # J
-           B = J.T # res
-	   and "dx" is the correction to the current model
-     --- */
-
-  for(int yy = 0; yy<npar; yy++){
-    
-    /* --- Compute the Hessian matrix --- */
-
-    for(int xx = 0; xx<=yy; xx++){
-      for(int ww = 0; ww<nd; ww++) tmp[ww] = rf[yy][ww] * rf[xx][ww];
-      
-      A(yy,xx) = sumarr_4(&tmp[0], nd);            
-    }
-
-    
-    /* --- It works better to store the largest diagonal terms
-       in this cycle and multiply lambda by this value than the 
-       current estimate. I am setting a cap on how much larger
-       it can be relative to the current value 
-       --- */
-    
-    diag[yy] = max(A(yy,yy), diag[yy]*0.6);
-    if(diag[yy] == 0.0 || diag[yy] < 1.e-6) diag[yy] = 1.0; 
-    //
-    double idia = diag[yy] , thrfac = 1.0e4;
-    if(idia > A(yy,yy)*thrfac) idia = A(yy,yy)*thrfac;
-
-    
-    /* --- Add regularization terms --- */
-
-    for(int xx = 0; xx<=yy; xx++){
-      if(dregul) A(yy,xx) += dregul[xx]*dregul[yy]*regul_scal*regul_scal;
-      A(xx,yy) = A(yy,xx); // Remember that A is symmetric!
-    }
-    
-    
-    /* --- Damp the diagonal of A --- */
-    
-    A(yy,yy) += lambda * idia;
-    //A(yy,yy) *= (1.0 + lambda);
-    
-    /* --- Compute J^t * Residue --- */
-    
-    for(int ww = 0; ww<nd; ww++) tmp[ww] = rf[yy][ww] * res[ww];
-    B[yy] = sumarr_4(&tmp[0], nd);
-    
-  } // yy
-
-  
-  
-  /* --- 
-     Solve linear system with SVD decomposition and singular value thresholding.
-     The SVD is computed with Eigen3 instead of LaPack.
-     --- */
-  
-  JacobiSVD<MatrixXd,ColPivHouseholderQRPreconditioner> svd(A, ComputeThinU | ComputeThinV);
-
-  svd.setThreshold(svd_thres);
-  RES = svd.solve(B);
-  
-  
-  /* --- 
-     New estimate of the parameters, xnew = x + dx.
-     Check for maximum change, add to current pars and normalize.
-     --- */
-  
-  scaleParameters(xnew);
-  checkMaxChange(xnew, x);
-  
-  for(int ii = 0; ii<npar; ii++) xnew[ii] += x[ii];
-
-
-  
-  /* --- Check that new parameters are within limits --- */
-  
-  if(!reset_par)
-    checkParameters(xnew);
-}
-
 
 /* -------------------------------------------------------------------------------- */
 
@@ -835,6 +738,12 @@ void clm::compute_trial3(double *res, double **rf, double lambda,
 			 double *x, double *xnew, double *dregul)
 {
 
+  /* --- 
+     Remember that dregul[npar] is the penalty term squared! 
+     dregul[npar] = gamma * gamma;
+
+     --- */
+  
   
   /* --- Init Eigen-3 arrays --- */
   
@@ -861,7 +770,7 @@ void clm::compute_trial3(double *res, double **rf, double lambda,
     for(int xx = 0; xx<=yy; xx++){
       for(int ww = 0; ww<nd; ww++) tmp[ww] = rf[yy][ww] * rf[xx][ww];
       
-      A(yy,xx) = sumarr_4(&tmp[0], nd);            
+      A(yy,xx) = A(xx,yy) = sumarr_4(&tmp[0], nd);  // Remember that A is symmetric!          
     }
 
     
@@ -872,19 +781,16 @@ void clm::compute_trial3(double *res, double **rf, double lambda,
        --- */
     
     diag[yy] = max(A(yy,yy), diag[yy]*0.6);
-    if(diag[yy] == 0.0) diag[yy] = 1.0; 
+    //if(diag[yy] == 0.0) diag[yy] = 1.e-6; 
     //
     double idia = diag[yy];// , thrfac = 1.0e4;
     //if(idia > A(yy,yy)*thrfac) idia = A(yy,yy)*thrfac;
 
 
     
-    for(int xx = 0; xx<=yy; xx++) A(xx,yy) = A(yy,xx); // Remember that A is symmetric!
-
+    /* --- Regularization terms are diagonal --- */
     
-    /* --- Regularization terms are diagonal (?) --- */
-    
-    if(dregul) A(yy,yy) += dregul[yy]*regul_scal;
+    if(dregul) A(yy,yy) -= dregul[yy]*dregul[yy]*regul_scal;
 
     
     
@@ -896,7 +802,12 @@ void clm::compute_trial3(double *res, double **rf, double lambda,
     /* --- Compute J^t * Residue --- */
     
     for(int ww = 0; ww<nd; ww++) tmp[ww] = rf[yy][ww] * res[ww];
-    B[yy] = sumarr_4(&tmp[0], nd);    
+    B[yy] = sumarr_4(&tmp[0], nd);
+
+    
+    /* --- add projection of penalty term to b: L * sqrt(regul^2) --- */
+    
+    if(dregul) B[yy] += regul_scal*sqrt(dregul[npar])*dregul[yy];
   } // yy
 
   
@@ -906,11 +817,10 @@ void clm::compute_trial3(double *res, double **rf, double lambda,
      The SVD is computed with Eigen3 instead of LaPack.
      --- */
   
-  //JacobiSVD<MatrixXd,FullPivHouseholderQRPreconditioner> svd(A, ComputeFullU | ComputeFullV);
   JacobiSVD<MatrixXd,ColPivHouseholderQRPreconditioner> svd(A, ComputeThinU | ComputeThinV);
   
 
-
+  
   if(nvar > 1){
     MatrixXd U = svd.matrixU(), V = svd.matrixV();
     VectorXd W = svd.singularValues();
