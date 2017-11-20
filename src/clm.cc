@@ -35,6 +35,10 @@
 	                      so the parameters are set to zero in every iteration. The 
 			      corresponding fx must account for this. So the parameters are
 			      added to the current version of, e.g., the model atmosphere.
+
+	   2017-11-20, JdlCR: Fixed regularization, there was a small error on the right-hand 
+	                      side term of the linear system that is solved to get the corrections
+			      to the model. 
 */
 
 #include <algorithm>
@@ -781,10 +785,7 @@ void clm::compute_trial3(double *res, double **rf, double lambda,
        --- */
     
     diag[yy] = max(A(yy,yy), diag[yy]*0.6);
-    //if(diag[yy] == 0.0) diag[yy] = 1.e-6; 
-    //
-    double idia = diag[yy];// , thrfac = 1.0e4;
-    //if(idia > A(yy,yy)*thrfac) idia = A(yy,yy)*thrfac;
+    double idia = diag[yy];
 
 
     
@@ -796,8 +797,8 @@ void clm::compute_trial3(double *res, double **rf, double lambda,
     
     /* --- Damp the diagonal of A --- */
     
-    //A(yy,yy) += lambda * idia;
-    A(yy,yy) *= (1.0 + lambda);
+    A(yy,yy) += lambda * idia;
+    //A(yy,yy) *= (1.0 + lambda);
     
     /* --- Compute J^t * Residue --- */
     

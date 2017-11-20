@@ -5,7 +5,7 @@
 #include "io.h"
 #include "cmemt.h"
 #include "atmosphere.h"
-#include "sparse.h"
+//#include "sparse.h"
 #include <mpi.h>
 #include "comm.h"
 #include "depthmodel.h"
@@ -300,11 +300,11 @@ void do_master_sparse(int myrank, int nprocs,  char hostname[]){
   
   /* --- Init sparse class --- */
   
-  sparse2d inv;
-  if(input.mode == 3)
-    inv.init(input,  dims, input.sparse_threshold, 
-		 string2wavelet(input.wavelet_type), input.wavelet_order, 
-		 spt_hard, input.master_threads);
+  // sparse2d inv;
+  //if(input.mode == 3)
+  // inv.init(input,  dims, input.sparse_threshold, 
+  //		 string2wavelet(input.wavelet_type), input.wavelet_order, 
+  //		 spt_hard, input.master_threads);
   
   //
   // Main loop
@@ -361,7 +361,7 @@ void do_master_sparse(int myrank, int nprocs,  char hostname[]){
 	slaveInversion(input, im, obs, model, chi2); // implemented above!
       
     }else if(input.mode == 2) slaveInversion(input, im, obs, model, chi2); // it won't invert if mode == 2
-    else if(input.mode == 3) inv.SparseOptimization(obs, model, w, im, pweight);
+    //else if(input.mode == 3) inv.SparseOptimization(obs, model, w, im, pweight);
     
     
     if(inversion){
