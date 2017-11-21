@@ -341,20 +341,20 @@ double clm::getChi2Pars(double *res, double **rf, double lambda,
 
   double *new_res = new double [nd]();
   double *new_dregul = NULL;
-  if(dregul) new_dregul = new double [nd]();
+  if(dregul) new_dregul = new double [2*npar+1]();
   
   int status = fx(npar, nd, xnew, new_res, NULL, mydat, new_dregul, false);
   if(status){
     if(verb)
       fprintf(stderr, "clm::fitdata: [p:%4d] ERROR in the evaluation of FX, aborting inversion\n", proc);
     error = true;
-  }else newchi2 = compute_chi2(new_res, (dregul)?new_dregul[npar]:0.0);
+  }else newchi2 = compute_chi2(new_res, (dregul)?new_dregul[2*npar]:0.0);
 
   delete [] new_res;
     
     
   /* --- compute Chi2 --- */
-  if(dregul) dregul[npar] = new_dregul[npar]; // The derivatives should not be updated here, only the penalty...
+  if(dregul) dregul[npar] = new_dregul[2*npar]; // The derivatives should not be updated here, only the penalty...
   if(new_dregul) delete [] new_dregul;
   return (double)newchi2;
 }
@@ -518,7 +518,7 @@ double clm::fitdata(clm_func fx, double *x, void *mydat, int maxiter)
   error = false;
 
   double *dregul = NULL;
-  if(regularize) dregul = new double [npar+1](); // To store derivatives of regularization terms
+  if(regularize) dregul = new double [2*npar+1](); // To store derivatives of regularization terms
   
   
   /* --- Init array for residues and response function --- */
@@ -552,14 +552,14 @@ double clm::fitdata(clm_func fx, double *x, void *mydat, int maxiter)
     scaleRF(rf);
     memcpy(&bestpars[0], &x[0], npar*sizeof(double));
     //
-    ochi2 = compute_chi2(res, (dregul)?dregul[npar]:0.0);
+    ochi2 = compute_chi2(res, (dregul)?dregul[2*npar]:0.0);
     bestchi2 = ochi2;
-    orchi2 = ochi2 - ((dregul)?dregul[npar]*regul_scal:0.0);
+    orchi2 = ochi2 - ((dregul)?dregul[2*npar]*regul_scal:0.0);
     
     
     if(verb)
       fprintf(stdout, "[p:%4d, Init] chi2=%f (%f), lambda=%e\n", proc,
-	      ochi2-((dregul)?dregul[npar]*regul_scal:0.0), ((dregul)?dregul[npar]*regul_scal:0.0) , lambda);
+	      ochi2-((dregul)?dregul[2*npar]*regul_scal:0.0), ((dregul)?dregul[2*npar]*regul_scal:0.0) , lambda);
   }
 
   /* --- Main iterations --- */
@@ -573,7 +573,7 @@ double clm::fitdata(clm_func fx, double *x, void *mydat, int maxiter)
        --- */
     if(error) break;
     chi2 = getChi2ParsLineSearch(res, rf, lambda, x, xnew, mydat, fx, dregul, bestchi2);
-    rchi2 = chi2 - ((dregul)?dregul[npar]*regul_scal:0.0);
+    rchi2 = chi2 - ((dregul)?dregul[2*npar]*regul_scal:0.0);
 	
     if(chi2 != chi2) error = true;
     if(error) break;
@@ -610,7 +610,7 @@ double clm::fitdata(clm_func fx, double *x, void *mydat, int maxiter)
       /* --- Store new best guessed model --- */
       
       bestchi2 = chi2;
-      orchi2  = chi2 - ((dregul)?dregul[npar]*regul_scal:0.0);
+      orchi2  = chi2 - ((dregul)?dregul[2*npar]*regul_scal:0.0);
       //
       memcpy(&bestpars[0], xnew, npar*sizeof(double));
       memcpy(&x[0],        xnew, npar*sizeof(double));
@@ -646,7 +646,7 @@ double clm::fitdata(clm_func fx, double *x, void *mydat, int maxiter)
 	  
 	if(verb)
 	  fprintf(stderr,"[p:%4d,i:%4d]  ->  chi2=%f (%f), increasing lambda [%e -> %e]\n",
-		  proc,iter, chi2-((dregul)?dregul[npar]*regul_scal:0.0), ((dregul)?dregul[npar]*regul_scal:0.0),olambda, lambda);
+		  proc,iter, chi2-((dregul)?dregul[2*npar]*regul_scal:0.0), ((dregul)?dregul[2*npar]*regul_scal:0.0),olambda, lambda);
 	continue;
       }
 	
@@ -658,7 +658,7 @@ double clm::fitdata(clm_func fx, double *x, void *mydat, int maxiter)
 
     if(verb)
       fprintf(stderr,"[p:%4d,i:%4d] chi2=%14.5f (%f, %f), dchi2=%e, lambda=%e, elapsed=%5.3fs %s\n",
-	      proc,iter, chi2-((dregul)?dregul[npar]*regul_scal:0.0), ((dregul)?dregul[npar]*regul_scal:0.0) ,regul_scal,chi2-ochi2, olambda, t1-t0,rej.c_str());
+	      proc,iter, chi2-((dregul)?dregul[2*npar]*regul_scal:0.0), ((dregul)?dregul[2*npar]*regul_scal:0.0) ,regul_scal,chi2-ochi2, olambda, t1-t0,rej.c_str());
     
     ochi2 = chi2;
 
@@ -689,7 +689,7 @@ double clm::fitdata(clm_func fx, double *x, void *mydat, int maxiter)
     
     t0 = t1;
     zero(res, rf);
-    if(dregul) memset(dregul, 0, npar*sizeof(double));
+    if(dregul) memset(dregul, 0, (2*npar+1)*sizeof(double));
     //
     status = fx(npar, nd, x, res, rf, mydat, dregul, false);
     //
@@ -724,7 +724,7 @@ double clm::fitdata(clm_func fx, double *x, void *mydat, int maxiter)
   delete [] res;
   delete [] bestpars;
   delete [] xnew;
-  double tmp = (dregul) ? dregul[npar] : 0.0;
+  double tmp = (dregul) ? dregul[2*npar] : 0.0;
   delete [] dregul;
 
 
@@ -754,7 +754,7 @@ void clm::compute_trial3(double *res, double **rf, double lambda,
   MatrixXd A(npar, npar);
   VectorXd B(npar);
   Map<VectorXd> RES(xnew, npar);
-  double ww[npar], wt[npar], wi[npar][2];
+  double ww[npar], wt[npar], wi[npar][2], *rregul = &dregul[npar];
   
   
   
@@ -791,14 +791,19 @@ void clm::compute_trial3(double *res, double **rf, double lambda,
     
     /* --- Regularization terms are diagonal --- */
     
-    if(dregul) A(yy,yy) -= dregul[yy]*dregul[yy]*regul_scal;
-
+    if(dregul) A(yy,yy) += dregul[yy]*dregul[yy]*regul_scal;
+    // if(dregul){
+    //  for(int xx=0;xx<npar;xx++){
+    //	A(yy,xx) -= regul_scal * dregul[yy]*dregul[xx];
+    //  }
+    // }
     
     
     /* --- Damp the diagonal of A --- */
     
     A(yy,yy) += lambda * idia;
     //A(yy,yy) *= (1.0 + lambda);
+    //A(yy,yy) += lambda * A(yy,yy);
     
     /* --- Compute J^t * Residue --- */
     
@@ -808,7 +813,7 @@ void clm::compute_trial3(double *res, double **rf, double lambda,
     
     /* --- add projection of penalty term to b: L * sqrt(regul^2) --- */
     
-    if(dregul) B[yy] += regul_scal*sqrt(dregul[npar])*dregul[yy];
+    if(dregul) B[yy] -= regul_scal*rregul[yy]*dregul[yy];
   } // yy
 
   

@@ -234,7 +234,7 @@ void atmos::randomizeParameters(nodes_t &n, int npar, double *pars){
 
 /* --------------------------------------------------------------------------------------------------- */
 
-double const_dregul(int n, double *ltau, double *var, double weight, double *res, double me, bool divide_by_n)
+double const_dregul(int n, double *ltau, double *var, double weight, double *res, double *res1, double me, bool divide_by_n)
 {
   
   /* --- 
@@ -258,11 +258,13 @@ double const_dregul(int n, double *ltau, double *var, double weight, double *res
       double tmp = var[ii] - me;
       //
       res[ii] = c * trange * tmp;
-      penalty += c1 * c * trange * tmp * tmp;
+      res1[ii] =  c1 * c * trange * tmp;
+      penalty +=  c1 * c * trange * tmp * tmp;
     }
   }else{
     double tmp = var[0]-me;
     penalty = weight / 7.0 * tmp*tmp;
+    res1[0] = weight / 7.0 * tmp;
     res[0] = weight  / 7.0 * tmp;
   }
 
@@ -271,11 +273,12 @@ double const_dregul(int n, double *ltau, double *var, double weight, double *res
 
 /* --------------------------------------------------------------------------------------------------- */
 
-double tikhonov1_dregul(int n, double *ltau, double *var, double weight, double *res)
+double tikhonov1_dregul(int n, double *ltau, double *var, double weight, double *res, double *res1)
 {
 
   if(n == 1){
     res[0] = 0.0;
+    res1[0] = 0.0;
     return 0.0;
   }
   
@@ -296,7 +299,8 @@ double tikhonov1_dregul(int n, double *ltau, double *var, double weight, double 
   
   res[0]   =  c * (var[0] - var[1]) / mth::sqr((ltau[0] - ltau[1]));// ltau_range;
   res[n-1] =  c * (var[n-1] - var[n-2]) / mth::sqr((ltau[n-1] - ltau[n-2])) ;/// ltau_range;
-  
+
+  res1[0]  =  0.0;
   
   /* --- Derivative in intermediate points --- */
 
@@ -310,6 +314,7 @@ double tikhonov1_dregul(int n, double *ltau, double *var, double weight, double 
   /* --- Penalty term --- */
 
   for(int ii = 1; ii<n; ii++){
+    res1[ii] = c*(var[ii] - var[ii-1]) / (ltau[ii] - ltau[ii-1]);
     penalty += mth::sqr((var[ii] - var[ii-1]) / (ltau[ii] - ltau[ii-1]));
   }
 
@@ -323,9 +328,10 @@ void getDregul2(double *m, int npar, double *dregul, nodes_t &n)
 {
   const double weights[7] = {0.0001, 7.0, 2.0, 1.0, 1.0, 1.0, 1.5};
   double penalty = 0.0, *ltau = NULL, we = 0.0;
+  double *pen = &dregul[npar];
   nodes_type_t ntype = none_node;
   int off = 0;
-  memset(dregul, 0, (npar+1)*sizeof(double)); // set derivatives to zero
+  memset(dregul, 0, (2*npar+1)*sizeof(double)); // set derivatives to zero
   
   
   /* --- Penalize temp ? Only allow Tikhonov, the rest don't make sense for temp --- */
@@ -339,7 +345,7 @@ void getDregul2(double *m, int npar, double *dregul, nodes_t &n)
     int nn = (int)n.temp.size();
     switch(n.regul_type[0]){
     case(1):
-      penalty += tikhonov1_dregul(nn, ltau, &m[off], we, &dregul[off]);
+      penalty += tikhonov1_dregul(nn, ltau, &m[off], we, &dregul[off], &pen[off]);
       break;
     default:
       break;
@@ -357,13 +363,13 @@ void getDregul2(double *m, int npar, double *dregul, nodes_t &n)
     
     switch(n.regul_type[1]){
     case(1):
-      penalty += tikhonov1_dregul(nn, ltau, &m[off], we, &dregul[off]);
+      penalty += tikhonov1_dregul(nn, ltau, &m[off], we, &dregul[off], &pen[off]);
       break;
     case(2):
-      penalty += const_dregul(nn, ltau, &m[off], we, &dregul[off], mth::mean(nn, &m[off]), true);
+      penalty += const_dregul(nn, ltau, &m[off], we, &dregul[off], &pen[off],  mth::mean(nn, &m[off]), true);
       break;
     case(3):
-      penalty += const_dregul(nn, ltau, &m[off], we, &dregul[off], 0.0, false);	    
+      penalty += const_dregul(nn, ltau, &m[off], we, &dregul[off], &pen[off], 0.0, false);	    
       break;
     default:
       break;
@@ -382,13 +388,13 @@ void getDregul2(double *m, int npar, double *dregul, nodes_t &n)
 
     switch(n.regul_type[2]){
     case(1):
-      penalty += tikhonov1_dregul(nn, ltau, &m[off], we, &dregul[off]);
+      penalty += tikhonov1_dregul(nn, ltau, &m[off], we, &dregul[off], &pen[off]);
       break;
     case(2):
-      penalty += const_dregul(nn, ltau, &m[off], we, &dregul[off], mth::mean(nn, &m[off]), true);
+      penalty += const_dregul(nn, ltau, &m[off], we, &dregul[off], &pen[off], mth::mean(nn, &m[off]), true);
       break;
     case(3):
-      penalty += const_dregul(nn, ltau, &m[off], we, &dregul[off], 0.0, false);	    
+      penalty += const_dregul(nn, ltau, &m[off], we, &dregul[off], &pen[off], 0.0, false);	    
       break;
     default:
       break;
@@ -407,13 +413,13 @@ void getDregul2(double *m, int npar, double *dregul, nodes_t &n)
 
     switch(n.regul_type[3]){
     case(1):
-      penalty += tikhonov1_dregul(nn, ltau, &m[off], we, &dregul[off]);
+      penalty += tikhonov1_dregul(nn, ltau, &m[off], we, &dregul[off], &pen[off]);
       break;
     case(2):
-      penalty += const_dregul(nn, ltau, &m[off], we, &dregul[off], mth::mean(nn, &m[off]), true);
+      penalty += const_dregul(nn, ltau, &m[off], we, &dregul[off], &pen[off], mth::mean(nn, &m[off]), true);
       break;
     case(3):
-      penalty += const_dregul(nn, ltau, &m[off], we, &dregul[off], 0.0, false);	    
+      penalty += const_dregul(nn, ltau, &m[off], we, &dregul[off], &pen[off], 0.0, false);	    
       break;
     default:
       break;
@@ -431,13 +437,13 @@ void getDregul2(double *m, int npar, double *dregul, nodes_t &n)
 
     switch(n.regul_type[4]){
     case(1):
-      penalty += tikhonov1_dregul(nn, ltau, &m[off], we, &dregul[off]);
+      penalty += tikhonov1_dregul(nn, ltau, &m[off], we, &dregul[off], &pen[off]);
       break;
     case(2):
-      penalty += const_dregul(nn, ltau, &m[off], we, &dregul[off], mth::mean(nn, &m[off]), true);
+      penalty += const_dregul(nn, ltau, &m[off], we, &dregul[off], &pen[off], mth::mean(nn, &m[off]), true);
       break;
     case(3):
-      penalty += const_dregul(nn, ltau, &m[off], we, &dregul[off], 0.0, false);	    
+      penalty += const_dregul(nn, ltau, &m[off], we, &dregul[off], &pen[off], 0.0, false);	    
       break;
     default:
       break;
@@ -455,10 +461,10 @@ void getDregul2(double *m, int npar, double *dregul, nodes_t &n)
 
     switch(n.regul_type[5]){
     case(1):
-      penalty += tikhonov1_dregul(nn, ltau, &m[off], we, &dregul[off]);
+      penalty += tikhonov1_dregul(nn, ltau, &m[off], we, &dregul[off], &pen[off]);
       break;
     case(2):
-      penalty += const_dregul(nn, ltau, &m[off], we, &dregul[off], mth::mean(nn, &m[off]), true);
+      penalty += const_dregul(nn, ltau, &m[off], we, &dregul[off], &pen[off], mth::mean(nn, &m[off]), true);
       break;
     default:
       break;
@@ -477,12 +483,13 @@ void getDregul2(double *m, int npar, double *dregul, nodes_t &n)
     off = (int)n.pgas_off;
     double tmp = (m[off] - 1.0);
     penalty += tmp * tmp * weights[6];
+    pen[off] = tmp * weights[6];
     dregul[off] = weights[6] * tmp;
   }
   
   /* --- Store it in the last element of the array --- */
   
-  dregul[npar] = penalty;
+  dregul[2*npar] = penalty;
   
 }
 
