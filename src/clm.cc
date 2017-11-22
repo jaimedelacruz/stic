@@ -354,7 +354,7 @@ double clm::getChi2Pars(double *res, double **rf, double lambda,
     
     
   /* --- compute Chi2 --- */
-  if(dregul) dregul[npar] = new_dregul[2*npar]; // The derivatives should not be updated here, only the penalty...
+  if(dregul) dregul[2*npar] = new_dregul[2*npar]; // The derivatives should not be updated here, only the penalty...
   if(new_dregul) delete [] new_dregul;
   return (double)newchi2;
 }
