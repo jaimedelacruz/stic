@@ -784,6 +784,7 @@ void clm::compute_trial3(double *res, double **rf, double lambda,
      --- */
 
   for(int yy = 0; yy<npar; yy++){
+
     
     /* --- Compute the Hessian matrix --- */
 
@@ -804,11 +805,13 @@ void clm::compute_trial3(double *res, double **rf, double lambda,
        -> The right hand side is modifed with the dot product of
        the L matrix with the individual penalties array (not squared).
        --- */
-    
+
+    B[yy] = 0.0;
+
     if(dregul){
       A(yy,yy) += dregul[yy]*dregul[yy]*rscal2;
-      B[yy] = -(dregul[yy]*rregul[yy]*rscal2);
-    }
+      B[yy] -= (dregul[yy]*rregul[yy]*rscal2);
+    } 
     
     
     
