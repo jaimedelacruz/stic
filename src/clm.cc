@@ -760,7 +760,7 @@ void clm::compute_trial3(double *res, double **rf, double lambda,
   
   double ww[npar], wt[npar], wi[npar][2], *rregul = &dregul[npar];
   double rscal2 = regul_scal * regul_scal; 
-
+  memset(&B[0], 0, npar*sizeof(double));
 
   
   /* --- 
@@ -806,7 +806,6 @@ void clm::compute_trial3(double *res, double **rf, double lambda,
        the L matrix with the individual penalties array (not squared).
        --- */
 
-    B[yy] = 0.0;
 
     if(dregul){
       A(yy,yy) += dregul[yy]*dregul[yy]*rscal2;
