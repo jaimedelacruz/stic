@@ -754,10 +754,14 @@ void clm::compute_trial3(double *res, double **rf, double lambda,
   MatrixXd A(npar, npar);
   VectorXd B(npar);
   Map<VectorXd> RES(xnew, npar);
+
+  
+  /* --- other arrays and constants --- */
+  
   double ww[npar], wt[npar], wi[npar][2], *rregul = &dregul[npar];
-  
-  
-  
+  double rscal2 = regul_scal * regul_scal; 
+
+
   
   /* --- 
      compute the curvature matrix and the right-hand side of eq.: 
@@ -765,6 +769,18 @@ void clm::compute_trial3(double *res, double **rf, double lambda,
      where A = J.T # J
            B = J.T # res
 	   and "dx" is the correction to the current model
+
+     If we have regulatization, then the system is:
+
+           A = J.T # T     +    L.T # L
+	   B = J.T # res   +    L.T # gamma 
+
+     where gamma is the vector of individual penalties
+     and L is a diagonal matrix with the derivatives of gamma.
+
+     dregul is a vector where [0:npar-1] contains the derivatives of the
+     gamma^2 functions, [npar:2*npar-1] contains the individual penalty 
+     functions (not squared), and [2*npar] is the penalty term.
      --- */
 
   for(int yy = 0; yy<npar; yy++){
@@ -774,46 +790,50 @@ void clm::compute_trial3(double *res, double **rf, double lambda,
     for(int xx = 0; xx<=yy; xx++){
       for(int ww = 0; ww<nd; ww++) tmp[ww] = rf[yy][ww] * rf[xx][ww];
       
-      A(yy,xx) = A(xx,yy) = sumarr_4(&tmp[0], nd);  // Remember that A is symmetric!          
-    }
+      A(yy,xx) = A(xx,yy) = sumarr_4(&tmp[0], nd); // Remember that A is symmetric!
+           
+    } // xx
 
-    
-    /* --- It works better to store the largest diagonal terms
-       in this cycle and multiply lambda by this value than the 
-       current estimate. I am setting a cap on how much larger
-       it can be relative to the current value 
+
+    /* --- 
+       Compensate linear system with regularization terms:
+
+       -> The Hessian matrix is modified in the diagonal addition of
+       the derivative of the penalty function squared.
+
+       -> The right hand side is modifed with the dot product of
+       the L matrix with the individual penalties array (not squared).
        --- */
     
-    diag[yy] = max(A(yy,yy), diag[yy]*0.6);
-    double idia = diag[yy];
+    if(dregul){
+      A(yy,yy) += dregul[yy]*dregul[yy]*rscal2;
+      B[yy] = -(dregul[yy]*rregul[yy]*rscal2);
+    }
+    
+    
+    
+    /* --- There are claims that it works better to store the 
+       largest diagonal terms in this cycle and multiply lambda 
+       by this value than the current estimate.
+       --- */
+    
+    //diag[yy] = max(A(yy,yy), diag[yy]*0.6);
+    //double idia = diag[yy];
 
 
-    
-    /* --- Regularization terms are diagonal --- */
-    
-    if(dregul) A(yy,yy) += dregul[yy]*dregul[yy]*regul_scal;
-    // if(dregul){
-    //  for(int xx=0;xx<npar;xx++){
-    //	A(yy,xx) -= regul_scal * dregul[yy]*dregul[xx];
-    //  }
-    // }
-    
     
     /* --- Damp the diagonal of A --- */
     
-    A(yy,yy) += lambda * idia;
-    //A(yy,yy) *= (1.0 + lambda);
-    //A(yy,yy) += lambda * A(yy,yy);
-    
-    /* --- Compute J^t * Residue --- */
-    
-    for(int ww = 0; ww<nd; ww++) tmp[ww] = rf[yy][ww] * res[ww];
-    B[yy] = sumarr_4(&tmp[0], nd);
+    A(yy,yy) += lambda * A(yy,yy);
+
 
     
-    /* --- add projection of penalty term to b: L * sqrt(regul^2) --- */
+    /* --- Compute J * Residue --- */
     
-    if(dregul) B[yy] -= regul_scal*rregul[yy]*dregul[yy];
+    for(int ww = 0; ww<nd; ww++) tmp[ww] = rf[yy][ww] * res[ww];
+    B[yy] += sumarr_4(&tmp[0], nd);
+
+    
   } // yy
 
   
