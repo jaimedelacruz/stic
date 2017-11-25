@@ -215,7 +215,7 @@ void reg_t::set(int npar_in, double scl_in)
 double reg_t::getReg()
 {
   if(npar > 0){
-    return sumarr(reg, npar);
+    return sumarr2(reg, npar);
   }else return 0.0;
 }
 
