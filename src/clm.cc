@@ -179,6 +179,105 @@ inline double sumarr_4(double *arr, int n){
   }
 }
 
+/* -------------------------------------------------------------------------------- */
+
+void reg_t::zero(){
+  if(to_reg && (npar > 0)){
+    memset(reg, 0, npar*sizeof(double));
+    memset(dreg[0], 0, npar*npar*sizeof(double));
+  }
+}
+
+/* -------------------------------------------------------------------------------- */
+
+void reg_t::set(int npar_in, double scl_in)
+{
+  
+  to_reg = false;
+  npar = 0;
+  reg = NULL;
+  dreg = NULL;
+  scl = 0.0;
+  
+  if(npar_in >0){
+    to_reg = true;
+    npar = npar_in;
+    scl = scl_in;
+    reg = new double [npar];
+    dreg = mat2d(npar, npar);
+    zero();
+  }
+  
+}
+
+/* -------------------------------------------------------------------------------- */
+
+double reg_t::getReg()
+{
+  if(npar > 0){
+    return sumarr(reg, npar);
+  }else return 0.0;
+}
+
+/* -------------------------------------------------------------------------------- */
+
+void reg_t::copyReg(double *reg_in)
+{
+  memcpy(reg, reg_in, npar*sizeof(double));
+}
+
+/* -------------------------------------------------------------------------------- */
+
+reg_t::reg_t(int npar_in, double scl_in)
+{
+  set(npar_in, scl_in); 
+}
+
+/* -------------------------------------------------------------------------------- */
+
+reg_t::reg_t(const reg_t &in)
+{
+
+  set(in.npar, in.scl);
+
+  if(npar > 0){
+    memcpy(reg, in.reg, npar*sizeof(double));
+    memcpy(dreg[0], in.dreg[0], npar*npar*sizeof(double));
+  }
+  
+}
+
+/* -------------------------------------------------------------------------------- */
+
+reg_t &reg_t::operator=(const reg_t &in)
+{
+  set(in.npar, in.scl);
+  
+  if(npar > 0){
+    memcpy(reg, in.reg, npar*sizeof(double));
+    memcpy(dreg[0], in.dreg[0], npar*npar*sizeof(double));
+  }
+  
+  return *this; 
+}
+
+/* -------------------------------------------------------------------------------- */
+
+void reg_t::del(){
+  
+  if(reg != NULL) delete [] reg;
+  if(dreg != NULL) del_mat(dreg);
+  to_reg = false;
+  npar = 0;
+  
+}
+
+
+/* -------------------------------------------------------------------------------- */
+
+reg_t::~reg_t(){
+  del();
+}
 
 /* -------------------------------------------------------------------------------- */
 
@@ -326,7 +425,7 @@ double clm::compute_chi2(double *res, double penalty)
 /* -------------------------------------------------------------------------------- */
 
 double clm::getChi2Pars(double *res, double **rf, double lambda,
-			double *x, double *xnew, void *mydat, clm_func fx, double *dregul)
+			double *x, double *xnew, void *mydat, clm_func fx, reg_t &dregul)
 {
 
   double newchi2 = 1.e13;
@@ -340,29 +439,31 @@ double clm::getChi2Pars(double *res, double **rf, double lambda,
   /* --- Evaluate the new model, no response function is needed --- */
 
   double *new_res = new double [nd]();
-  double *new_dregul = NULL;
-  if(dregul) new_dregul = new double [2*npar+1]();
+  reg_t new_dregul = dregul;
   
   int status = fx(npar, nd, xnew, new_res, NULL, mydat, new_dregul, false);
+
   if(status){
     if(verb)
       fprintf(stderr, "clm::fitdata: [p:%4d] ERROR in the evaluation of FX, aborting inversion\n", proc);
     error = true;
-  }else newchi2 = compute_chi2(new_res, (dregul)?new_dregul[2*npar]:0.0);
+  }else newchi2 = compute_chi2(new_res, new_dregul.getReg());
 
   delete [] new_res;
     
     
-  /* --- compute Chi2 --- */
-  if(dregul) dregul[2*npar] = new_dregul[2*npar]; // The derivatives should not be updated here, only the penalty...
-  if(new_dregul) delete [] new_dregul;
+  /* --- copy individual penalties and return chi2 --- */
+  
+  if(dregul.to_reg)
+    dregul.copyReg(new_dregul.reg);
+  
   return (double)newchi2;
 }
 
 /* -------------------------------------------------------------------------------- */
 
 double clm::getChi2ParsLineSearch(double *res, double **rf, double &lambda,
-				  double *x, double *xnew, void *mydat, clm_func fx, double *dregul, double rchi2)
+				  double *x, double *xnew, void *mydat, clm_func fx, reg_t &dregul, double rchi2)
 {
 
   /* --- Braket lambda/chi2 --- */
@@ -517,8 +618,8 @@ double clm::fitdata(clm_func fx, double *x, void *mydat, int maxiter)
   memset(&diag[0],0,npar*sizeof(double));
   error = false;
 
-  double *dregul = NULL;
-  if(regularize) dregul = new double [2*npar+1](); // To store derivatives of regularization terms
+  reg_t dregul;
+  if(regularize) dregul.set(npar, regul_scal); // To store derivatives of regularization terms
   
   
   /* --- Init array for residues and response function --- */
@@ -552,14 +653,15 @@ double clm::fitdata(clm_func fx, double *x, void *mydat, int maxiter)
     scaleRF(rf);
     memcpy(&bestpars[0], &x[0], npar*sizeof(double));
     //
-    ochi2 = compute_chi2(res, (dregul)?dregul[2*npar]:0.0);
+    ochi2 = compute_chi2(res, dregul.getReg());
     bestchi2 = ochi2;
-    orchi2 = ochi2 - ((dregul)?dregul[2*npar]*regul_scal:0.0);
+    orchi2 = ochi2 -  dregul.getReg();
     
-    
+
+    double reg =  dregul.getReg();
     if(verb)
       fprintf(stdout, "[p:%4d, Init] chi2=%f (%f), lambda=%e\n", proc,
-	      ochi2-((dregul)?dregul[2*npar]*regul_scal:0.0), ((dregul)?dregul[2*npar]*regul_scal:0.0) , lambda);
+	      ochi2-reg, reg , lambda);
   }
 
   /* --- Main iterations --- */
@@ -573,7 +675,7 @@ double clm::fitdata(clm_func fx, double *x, void *mydat, int maxiter)
        --- */
     if(error) break;
     chi2 = getChi2ParsLineSearch(res, rf, lambda, x, xnew, mydat, fx, dregul, bestchi2);
-    rchi2 = chi2 - ((dregul)?dregul[2*npar]*regul_scal:0.0);
+    rchi2 = chi2 - dregul.getReg();
 	
     if(chi2 != chi2) error = true;
     if(error) break;
@@ -610,7 +712,7 @@ double clm::fitdata(clm_func fx, double *x, void *mydat, int maxiter)
       /* --- Store new best guessed model --- */
       
       bestchi2 = chi2;
-      orchi2  = chi2 - ((dregul)?dregul[2*npar]*regul_scal:0.0);
+      orchi2  = chi2 -  dregul.getReg();
       //
       memcpy(&bestpars[0], xnew, npar*sizeof(double));
       memcpy(&x[0],        xnew, npar*sizeof(double));
@@ -643,10 +745,11 @@ double clm::fitdata(clm_func fx, double *x, void *mydat, int maxiter)
 	  regul_scal *= 0.75;
 	  dcreased = true;
 	}else dcreased = false;
-	  
+
+	double reg =  dregul.getReg();
 	if(verb)
 	  fprintf(stderr,"[p:%4d,i:%4d]  ->  chi2=%f (%f), increasing lambda [%e -> %e]\n",
-		  proc,iter, chi2-((dregul)?dregul[2*npar]*regul_scal:0.0), ((dregul)?dregul[2*npar]*regul_scal:0.0),olambda, lambda);
+		  proc,iter, chi2 - reg, reg,olambda, lambda);
 	continue;
       }
 	
@@ -655,10 +758,11 @@ double clm::fitdata(clm_func fx, double *x, void *mydat, int maxiter)
     /* --- printout --- */
     
     t1 = getTime();
+    double reg =  dregul.getReg();
 
     if(verb)
       fprintf(stderr,"[p:%4d,i:%4d] chi2=%14.5f (%f, %f), dchi2=%e, lambda=%e, elapsed=%5.3fs %s\n",
-	      proc,iter, chi2-((dregul)?dregul[2*npar]*regul_scal:0.0), ((dregul)?dregul[2*npar]*regul_scal:0.0) ,regul_scal,chi2-ochi2, olambda, t1-t0,rej.c_str());
+	      proc,iter, chi2-reg, reg ,regul_scal,chi2-ochi2, olambda, t1-t0,rej.c_str());
     
     ochi2 = chi2;
 
@@ -689,7 +793,7 @@ double clm::fitdata(clm_func fx, double *x, void *mydat, int maxiter)
     
     t0 = t1;
     zero(res, rf);
-    if(dregul) memset(dregul, 0, (2*npar+1)*sizeof(double));
+    dregul.zero();
     //
     status = fx(npar, nd, x, res, rf, mydat, dregul, false);
     //
@@ -724,22 +828,21 @@ double clm::fitdata(clm_func fx, double *x, void *mydat, int maxiter)
   delete [] res;
   delete [] bestpars;
   delete [] xnew;
-  double tmp = (dregul) ? dregul[2*npar] : 0.0;
-  delete [] dregul;
+  //delete [] dregul;
 
 
   /* --- Since the best solution between different inversions of the same pixel may have
      reduced the regularization term by different amounts, it makes more sense to scale the 
      regularization with the initial scale factor (not the decreased one) --- */
   
-  return (double)orchi2 + tmp*regul_scal_in; 
+  return (double)orchi2 + dregul.getReg(); 
 }
 
 
 /* -------------------------------------------------------------------------------- */
 
 void clm::compute_trial3(double *res, double **rf, double lambda,
-			 double *x, double *xnew, double *dregul)
+			 double *x, double *xnew, reg_t &dregul)
 {
 
   /* --- 
@@ -751,20 +854,19 @@ void clm::compute_trial3(double *res, double **rf, double lambda,
   
   /* --- Init Eigen-3 arrays --- */
   
-  MatrixXd A(npar, npar);
-  VectorXd B(npar);
+  MatrixXd A(npar, npar); A.Zero(npar, npar);
+  VectorXd B(npar); B.Zero(npar);
   Map<VectorXd> RES(xnew, npar);
-
+  
+  
   
   /* --- other arrays and constants --- */
-  
-  double ww[npar], wt[npar], wi[npar][2], *rregul = &dregul[npar];
-  double rscal2 = regul_scal * regul_scal; 
-  memset(&B[0], 0, npar*sizeof(double));
 
+  double **LL = mat2d(npar,npar), *tmp1 = new double [npar]();
+  double ww[npar], wt[npar], wi[npar][2];
   
   /* --- 
-     compute the curvature matrix and the right-hand side of eq.: 
+     compute the Hessian matrix and the right-hand side of eq.: 
      A*(dx) = B
      where A = J.T # J
            B = J.T # res
@@ -772,8 +874,8 @@ void clm::compute_trial3(double *res, double **rf, double lambda,
 
      If we have regulatization, then the system is:
 
-           A = J.T # T     +    L.T # L
-	   B = J.T # res   +    L.T # gamma 
+           A = J.T # J     +    L.T # L
+	   B = J   # res   +    L.T # gamma 
 
      where gamma is the vector of individual penalties
      and L is a diagonal matrix with the derivatives of gamma.
@@ -783,6 +885,34 @@ void clm::compute_trial3(double *res, double **rf, double lambda,
      functions (not squared), and [2*npar] is the penalty term.
      --- */
 
+  
+  if(dregul.to_reg){
+    /* --- 
+       Compensate linear system with regularization terms:
+       
+       -> The Hessian matrix is modified in the diagonal addition of
+       the derivative of the penalty function squared.
+       
+       -> The right hand side is modifed with the dot product of
+       the L matrix with the individual penalties array (not squared).
+       --- */
+
+    for(int yy = 0; yy<npar; yy++){
+      for(int xx = 0; xx<npar; xx++){
+	for(int jj=0;jj<npar; jj++)
+	  tmp1[jj] = dregul.dreg[yy][jj] * dregul.dreg[xx][jj]; // L.t # L = L # L.t
+	LL[yy][xx] = sumarr(tmp1, npar);
+      }//xx
+      
+      for(int jj=0;jj<npar; jj++)
+	tmp1[jj] = - dregul.dreg[jj][yy] * dregul.reg[jj]; // - L.t # gamm
+      B[yy]  = -sumarr(tmp1, npar);
+      
+    }//yy
+  }
+  
+  
+  
   for(int yy = 0; yy<npar; yy++){
 
     
@@ -792,24 +922,15 @@ void clm::compute_trial3(double *res, double **rf, double lambda,
       for(int ww = 0; ww<nd; ww++) tmp[ww] = rf[yy][ww] * rf[xx][ww];
       
       A(yy,xx) = A(xx,yy) = sumarr_4(&tmp[0], nd); // Remember that A is symmetric!
-           
+
     } // xx
 
 
-    /* --- 
-       Compensate linear system with regularization terms:
-
-       -> The Hessian matrix is modified in the diagonal addition of
-       the derivative of the penalty function squared.
-
-       -> The right hand side is modifed with the dot product of
-       the L matrix with the individual penalties array (not squared).
-       --- */
 
 
-    if(dregul){
-      A(yy,yy) += dregul[yy]*dregul[yy]*rscal2;
-      B[yy] -= (dregul[yy]*rregul[yy]*rscal2);
+    if(dregul.to_reg){
+      for(int xx=0;xx<npar;xx++)
+	A(yy,xx) += LL[yy][xx];
     } 
     
     
@@ -838,7 +959,8 @@ void clm::compute_trial3(double *res, double **rf, double lambda,
     
   } // yy
 
-  
+  del_mat(LL);
+  delete [] tmp1;
   
   /* --- 
      Solve linear system with SVD decomposition and singular value thresholding.

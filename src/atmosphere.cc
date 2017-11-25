@@ -234,105 +234,108 @@ void atmos::randomizeParameters(nodes_t &n, int npar, double *pars){
 
 /* --------------------------------------------------------------------------------------------------- */
 
-double const_dregul(int n, double *ltau, double *var, double weight, double *res, double *res1, double me, bool divide_by_n)
+void const_dregul(int n, double *ltau, double *var, double weight, double **dreg, double *reg, double m, int off)
+{
+  
+  /* --- 
+     Penalize deviations from me, removed the factor x2 from the derivative
+     to be consistent with our LM definition 
+     --- */  
+  
+  double c = sqrt(weight / double(n));
+  for(int yy=0;yy<n; yy++){
+    
+    double tmp = c*(var[yy] - m);
+    
+    reg[off+yy] = tmp;
+    dreg[off+yy][off+yy] = c*tmp;
+  }
+  
+}
+
+/* --------------------------------------------------------------------------------------------------- */
+
+void mean_dregul(int n, double *ltau, double *var, double weight, double **dreg, double *reg, int off)
 {
   
   /* --- 
      Penalize deviations from me, removed the factor x2 from the derivative
      to be consistent with our LM definition 
      --- */
-  double penalty = 0.0, nn = (double)n;
-  
-  double c1 = (divide_by_n && (n > 0)) ? ((nn-1.0) / (nn)) : 1.0;
-  
-  
-  if(n > 1){
-    double c =  weight / fabs(ltau[n-1] - ltau[0]);
-    
-    for(int ii = 0; ii<n; ii++){
-      //
-      int i0=std::max(ii-1, 0);
-      int i1=std::min(ii+1, n-1);
-      //
-      double trange = fabs(ltau[i0]-ltau[i1]) * 0.5;
-      double tmp = var[ii] - me;
-      //
-      res[ii] = c * trange * tmp;
-      res1[ii] =  c1 * c * trange * tmp;
-      penalty +=  c1 * c * trange * tmp * tmp;
-    }
-  }else{
-    double tmp = var[0]-me;
-    penalty = weight / 7.0 * tmp*tmp;
-    res1[0] = weight / 7.0 * tmp;
-    res[0] = weight  / 7.0 * tmp;
+
+  if(n == 1){
+    reg[off] = 0.0;
+    dreg[off][off] = 0.0;
+    return;
   }
 
-  return penalty;
+  
+  double dn = double(n);
+  double c = sqrt(weight / dn);
+  double me = mth::mean(n, var);
+    
+  for(int yy=0;yy<n; yy++){
+    
+    double tmp = c*(var[yy] - me);
+    reg[off+yy] = tmp;
+
+    for(int xx=0; xx<n; xx++){
+      double c1 = ((xx==yy)? 1.0 : 0.0);
+      dreg[off+yy][off+xx] = c * tmp * (c1 - (1./dn) - (me-var[xx]/dn));
+    }
+  }
+  
 }
 
 /* --------------------------------------------------------------------------------------------------- */
 
-double tikhonov1_dregul(int n, double *ltau, double *var, double weight, double *res, double *res1)
+void tikhonov1_dregul(int n, double *ltau, double *var, double weight, double **dreg, double *reg, int off)
 {
 
   if(n == 1){
-    res[0] = 0.0;
-    res1[0] = 0.0;
-    return 0.0;
+    reg[off] = 0.0;
+    dreg[off][off] = 0.0;
+    return;
   }
   
-  double penalty = 0.0, c = weight / (n-1.0);
-  
+  double c = weight / (double)(n-1);
+  double c_sqrt = sqrt(c);
   
   /* --- Derivative in the first and last points:
 
      Penalty = c * ((var[k+1] - var[k])/dltau)**2
 
-     der_0 = 2c * (var[0] - var[1]) / dltau**2
-     der_i = 2c * ((var[i] -var[i-1]) / dltau[i]**2 + (var[i] - var[i+1])/dltau[i+1]**2) 
-     der_n = 2c * (var[n] - var[n-1]) / dltau[n]**2
-
      In the LM we have divided the x2 in all terms so we do it here too in the implementation.
 
      --- */
-  
-  res[0]   =  c * (var[0] - var[1]) / mth::sqr((ltau[0] - ltau[1]));// ltau_range;
-  res[n-1] =  c * (var[n-1] - var[n-2]) / mth::sqr((ltau[n-1] - ltau[n-2])) ;/// ltau_range;
 
-  res1[0]  =  0.0;
-  
-  /* --- Derivative in intermediate points --- */
+  reg[off+0] = 0.0;
+  dreg[off+0][off+0] = 0.0; // If penalty is zero, then the derivative must be zero
 
-  if(n > 2)
-    for(int kk=1;kk<n-1;kk++ ){
-      double dt0 = (ltau[kk]-ltau[kk-1]), dt1 = (ltau[kk+1]-ltau[kk]);//, dtau = dt0+dt1;
-      res[kk] =  c * ( (var[kk] - var[kk-1]) / (dt0*dt0) + (var[kk] - var[kk+1]) / (dt1*dt1 )) ;//* (dtau / ltau_range);
-    }
-  
+  for(int yy = 1; yy<n; yy++){
 
-  /* --- Penalty term --- */
-
-  for(int ii = 1; ii<n; ii++){
-    res1[ii] = c*(var[ii] - var[ii-1]) / (ltau[ii] - ltau[ii-1]);
-    penalty += mth::sqr((var[ii] - var[ii-1]) / (ltau[ii] - ltau[ii-1]));
+    /* --- 2 terms around the diagonal of J --- */
+    
+    double dtau = (ltau[yy] - ltau[yy-1]);
+    double tmp = (var[yy] - var[yy-1]) / dtau;
+    
+    reg[yy+off] = c_sqrt * tmp;
+    dreg[yy+off][yy+off] = c * tmp / dtau;
+    dreg[yy+off][yy-1+off] = - dreg[yy+off][yy+off];
   }
-
-
-return penalty*c;///ltau_range;
+  
 }
 
 /* --------------------------------------------------------------------------------------------------- */
 
-void getDregul2(double *m, int npar, double *dregul, nodes_t &n)
+void getDregul2(double *m, int npar, reg_t &dregul, nodes_t &n)
 {
   const double weights[7] = {0.0001, 7.0, 2.0, 1.0, 1.0, 1.0, 1.5};
-  double penalty = 0.0, *ltau = NULL, we = 0.0;
-  double *pen = &dregul[npar];
+  double  *ltau = NULL, we = 0.0;
   nodes_type_t ntype = none_node;
   int off = 0;
-  memset(dregul, 0, (2*npar+1)*sizeof(double)); // set derivatives to zero
   
+  dregul.zero();
   
   /* --- Penalize temp ? Only allow Tikhonov, the rest don't make sense for temp --- */
 
@@ -340,12 +343,12 @@ void getDregul2(double *m, int npar, double *dregul, nodes_t &n)
     ntype = temp_node;
     off = (int)n.temp_off;
     ltau =  &n.temp[0];
-    we = weights[0];
+    we = weights[0]*dregul.scl;
     
     int nn = (int)n.temp.size();
     switch(n.regul_type[0]){
     case(1):
-      penalty += tikhonov1_dregul(nn, ltau, &m[off], we, &dregul[off], &pen[off]);
+      tikhonov1_dregul(nn-1, ltau, &m[off], we, dregul.dreg, dregul.reg, off);
       break;
     default:
       break;
@@ -359,17 +362,17 @@ void getDregul2(double *m, int npar, double *dregul, nodes_t &n)
     ntype = v_node;
     off = (int)n.v_off;
     ltau =  &n.v[0];
-    we = weights[1];
+    we = weights[1]*dregul.scl;
     
     switch(n.regul_type[1]){
     case(1):
-      penalty += tikhonov1_dregul(nn, ltau, &m[off], we, &dregul[off], &pen[off]);
+      tikhonov1_dregul(nn, ltau, &m[off], we, dregul.dreg, dregul.reg, off);
       break;
     case(2):
-      penalty += const_dregul(nn, ltau, &m[off], we, &dregul[off], &pen[off],  mth::mean(nn, &m[off]), true);
+      mean_dregul(nn, ltau, &m[off], we, dregul.dreg, dregul.reg, off);
       break;
     case(3):
-      penalty += const_dregul(nn, ltau, &m[off], we, &dregul[off], &pen[off], 0.0, false);	    
+      const_dregul(nn, ltau, &m[off], we, dregul.dreg, dregul.reg, 0.0, off);
       break;
     default:
       break;
@@ -384,17 +387,17 @@ void getDregul2(double *m, int npar, double *dregul, nodes_t &n)
     ntype = vturb_node;
     off = (int)n.vturb_off;
     ltau =  &n.vturb[0];
-    we = weights[2];
+    we = weights[2]*dregul.scl;
 
     switch(n.regul_type[2]){
     case(1):
-      penalty += tikhonov1_dregul(nn, ltau, &m[off], we, &dregul[off], &pen[off]);
+      tikhonov1_dregul(nn, ltau, &m[off], we, dregul.dreg, dregul.reg, off);
       break;
     case(2):
-      penalty += const_dregul(nn, ltau, &m[off], we, &dregul[off], &pen[off], mth::mean(nn, &m[off]), true);
+      mean_dregul(nn, ltau, &m[off], we, dregul.dreg, dregul.reg, off);
       break;
     case(3):
-      penalty += const_dregul(nn, ltau, &m[off], we, &dregul[off], &pen[off], 0.0, false);	    
+      const_dregul(nn, ltau, &m[off], we, dregul.dreg, dregul.reg, 0.0, off);
       break;
     default:
       break;
@@ -409,17 +412,17 @@ void getDregul2(double *m, int npar, double *dregul, nodes_t &n)
     ntype = bl_node;
     off = (int)n.bl_off;
     ltau =  &n.bl[0];
-    we = weights[3];
+    we = weights[3]*dregul.scl;
 
     switch(n.regul_type[3]){
     case(1):
-      penalty += tikhonov1_dregul(nn, ltau, &m[off], we, &dregul[off], &pen[off]);
+      tikhonov1_dregul(nn, ltau, &m[off], we, dregul.dreg, dregul.reg, off);
       break;
     case(2):
-      penalty += const_dregul(nn, ltau, &m[off], we, &dregul[off], &pen[off], mth::mean(nn, &m[off]), true);
+      mean_dregul(nn, ltau, &m[off], we, dregul.dreg, dregul.reg, off);
       break;
     case(3):
-      penalty += const_dregul(nn, ltau, &m[off], we, &dregul[off], &pen[off], 0.0, false);	    
+      const_dregul(nn, ltau, &m[off], we, dregul.dreg, dregul.reg, 0.0, off);
       break;
     default:
       break;
@@ -433,17 +436,17 @@ void getDregul2(double *m, int npar, double *dregul, nodes_t &n)
     ntype = bh_node;
     off = (int)n.bh_off;
     ltau =  &n.bh[0];
-    we = weights[4];
+    we = weights[4]*dregul.scl;
 
     switch(n.regul_type[4]){
     case(1):
-      penalty += tikhonov1_dregul(nn, ltau, &m[off], we, &dregul[off], &pen[off]);
+      tikhonov1_dregul(nn, ltau, &m[off], we, dregul.dreg, dregul.reg, off);
       break;
     case(2):
-      penalty += const_dregul(nn, ltau, &m[off], we, &dregul[off], &pen[off], mth::mean(nn, &m[off]), true);
+      mean_dregul(nn, ltau, &m[off], we, dregul.dreg, dregul.reg, off);
       break;
     case(3):
-      penalty += const_dregul(nn, ltau, &m[off], we, &dregul[off], &pen[off], 0.0, false);	    
+      const_dregul(nn, ltau, &m[off], we, dregul.dreg, dregul.reg, 0.0, off);
       break;
     default:
       break;
@@ -457,14 +460,14 @@ void getDregul2(double *m, int npar, double *dregul, nodes_t &n)
     ntype = azi_node;
     off = (int)n.azi_off;
     ltau =  &n.azi[0];
-    we = weights[5];
+    we = weights[5]*dregul.scl;
 
     switch(n.regul_type[5]){
     case(1):
-      penalty += tikhonov1_dregul(nn, ltau, &m[off], we, &dregul[off], &pen[off]);
+      tikhonov1_dregul(nn, ltau, &m[off], we, dregul.dreg, dregul.reg, off);
       break;
     case(2):
-      penalty += const_dregul(nn, ltau, &m[off], we, &dregul[off], &pen[off], mth::mean(nn, &m[off]), true);
+      mean_dregul(nn, ltau, &m[off], we, dregul.dreg, dregul.reg, off);
       break;
     default:
       break;
@@ -482,20 +485,20 @@ void getDregul2(double *m, int npar, double *dregul, nodes_t &n)
 
     off = (int)n.pgas_off;
     double tmp = (m[off] - 1.0);
-    penalty += tmp * tmp * weights[6];
-    pen[off] = tmp * weights[6];
-    dregul[off] = weights[6] * tmp;
+    dregul.reg[off] = tmp * sqrt(weights[6]*dregul.scl);
+    dregul.dreg[off][off] = weights[6]*dregul.scl * tmp;
   }
   
-  /* --- Store it in the last element of the array --- */
-  
-  dregul[2*npar] = penalty;
-  
+  //for(int yy=0; yy<npar; yy++){
+  // for(int xx=0; xx<npar; xx++)
+  //   fprintf(stderr,"%e ", dregul.dreg[yy][xx]);
+  // fprintf(stderr,"\n");
+  //}
 }
 
 /* --------------------------------------------------------------------------------------------------- */
 
-int getChi2(int npar1, int nd, double *pars1, double *dev, double **derivs, void *tmp1, double *dregul, bool store){
+int getChi2(int npar1, int nd, double *pars1, double *dev, double **derivs, void *tmp1,  reg_t &dregul, bool store){
 
   
   /* --- Cast tmp1 into a double --- */
@@ -587,7 +590,7 @@ int getChi2(int npar1, int nd, double *pars1, double *dev, double **derivs, void
 
   /* ---  compute regularization --- */ 
 
-  if(dregul)
+  if(dregul.to_reg)
     getDregul2(pars1, npar1, dregul, atm.input.nodes);
       
   /* --- clean up --- */

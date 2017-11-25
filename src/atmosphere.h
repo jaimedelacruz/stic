@@ -11,6 +11,7 @@
 #include "instruments.h"
 #include "spectral.h"
 #include "depthmodel.h"
+#include "clm.h"
 #include "ceos.h"
 //
 class atmos{
@@ -58,8 +59,8 @@ class atmos{
   virtual std::vector<double> get_max_change(nodes_t &n);
 };
 //
-int getChi2(int nd, int npar1, double *pars1, double *dev, double **derivs, void *tmp1, double *dregul, bool store = 0);
-void getDregul(mdepth &m, int npar, double *dregul, nodes_t &n);
+int getChi2(int nd, int npar1, double *pars1, double *dev, double **derivs, void *tmp1, reg_t &dregul, bool store = 0);
+void getDregul(mdepth &m, int npar, reg_t &dregul, nodes_t &n);
 
 //
 #endif

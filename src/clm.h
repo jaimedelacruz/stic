@@ -57,6 +57,29 @@ struct clmf{
   bool relchange;
 };
 
+/* --- Struct to store the regularization terms --- */
+
+struct reg_t{
+  bool to_reg;
+  int npar;
+  double scl;
+  double **dreg;
+  double *reg;
+
+reg_t():to_reg(false), npar(0), scl(1.0), dreg(NULL), reg(NULL){};
+  reg_t(int npar_in, double scl_in);
+  reg_t(const reg_t &in);
+  ~reg_t();
+  
+  void set(int npar_in, double scl_in);
+  void zero();
+  double getReg();
+  void del();
+  void copyReg(double *reg_in);
+  reg_t &operator=(const reg_t &in);
+  
+  
+};
 
 
 
@@ -65,7 +88,7 @@ struct clmf{
    --- */
 
 typedef int (*clm_func)(int npar, int nd, double *x, double *res,
-			double **rf, void *mydata, double *dregul, bool store);
+			double **rf, void *mydata, reg_t &regul, bool store);
 
 double sumarr(double *arr, size_t n);
 double sumarr2(double *arr, int n);
@@ -103,14 +126,14 @@ class clm{
   double fitdata(clm_func ifx, double *x, void *mydat, int maxiter = 50);
   double compute_chi2(double *res, double penalty);
   double getChi2Pars(double *res, double **rf, double lambda,
-		     double *x, double *xnew, void *mydat, clm_func fx, double *dregul);
+		     double *x, double *xnew, void *mydat, clm_func fx, reg_t &regul);
   double getChi2ParsLineSearch(double *res, double **rf, double &lambda,
 			       double *x, double *xnew, void *mydat,
-			       clm_func fx, double *dregul, double rchi2);
+			       clm_func fx, reg_t &regul, double rchi2);
   //  void compute_trial3(double *res, double **rf, double lambda,
   //	      double *x, double *xnew);
   void compute_trial3(double *res, double **rf, double lambda,
-		      double *x, double *xnew, double *dregul);
+		      double *x, double *xnew, reg_t &regul);
   //void backsub(double **u, double *w, double **v, int n,
   //	       double *b, double *x);
   void scaleRF(double **rf);
