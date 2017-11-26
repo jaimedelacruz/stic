@@ -304,7 +304,7 @@ void mean_dregul(int n, double *ltau, double *var, double weight, double **dreg,
   
   double dn = double(n);
   double c = sqrt(weight / dn);
-  double me = sumarr(var,n) / dn;//mth::mean(n, var);
+  double me = mth::mean(n, var);
     
   for(int yy=0;yy<n; yy++){
     
