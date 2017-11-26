@@ -1,3 +1,15 @@
+/* ---
+   This is a base class for the RT type. In the end
+   a lot of functions ended up here, and probably they should be moved elsewhere.
+
+   The 1D pixel to pixel fitting routines could be part of the depthmodel base class
+   instead of the RT base class.
+
+   Regularization could also be moved.
+
+   Coded by J. de la Cruz Rodriguez (ISP-SU 2016/2017)
+
+   --- */
 #include <vector>
 #include <iostream>
 #include <cstdio>
@@ -240,6 +252,14 @@ void const_dregul(int n, double *ltau, double *var, double weight, double **dreg
   /* --- 
      Penalize deviations from me, removed the factor x2 from the derivative
      to be consistent with our LM definition 
+     
+     Penalty: pe = we * (xi - c)**2
+     d/dxi pe  = 2*we*(xi-x)
+
+     I am actually dividing everything by npar,
+     so that the penalty remains relatively constant regardless
+     of the number of nodes. It is a mean value when all the penalties
+     are summed.
      --- */  
   
   double c = sqrt(weight / double(n));
@@ -260,7 +280,19 @@ void mean_dregul(int n, double *ltau, double *var, double weight, double **dreg,
   
   /* --- 
      Penalize deviations from me, removed the factor x2 from the derivative
-     to be consistent with our LM definition 
+     to be consistent with our LM definition. Very similar to const_dregul, 
+     but it is non-diagonal because all variables contribute to the mean
+     and therefore we have all the block full with values.
+
+     Penalty: pe = we * (xi - sum xj/N)**2
+
+     Derivative:
+     d/dxi pe = 2 * we*(xi - sum xj/N) * (dij - 1/N)
+
+     where dij is a Kronecker delta that takes value 1 for j==i terms 
+     and zero for non-diagonal terms. Obviously (sum xj/N) is the mean value
+     of the physical parameter as a function of height.
+
      --- */
 
   if(n == 1){
@@ -272,7 +304,7 @@ void mean_dregul(int n, double *ltau, double *var, double weight, double **dreg,
   
   double dn = double(n);
   double c = sqrt(weight / dn);
-  double me = mth::mean(n, var);
+  double me = sumarr(var,n) / dn;//mth::mean(n, var);
     
   for(int yy=0;yy<n; yy++){
     
@@ -281,7 +313,7 @@ void mean_dregul(int n, double *ltau, double *var, double weight, double **dreg,
 
     for(int xx=0; xx<n; xx++){
       double c1 = ((xx==yy)? 1.0 : 0.0);
-      dreg[off+yy][off+xx] = c * tmp * (c1 - (1./dn) - (me-var[xx]/dn));
+      dreg[off+yy][off+xx] = c * tmp * (c1 - (1./dn));
     }
   }
   
@@ -303,10 +335,12 @@ void tikhonov1_dregul(int n, double *ltau, double *var, double weight, double **
   
   /* --- Derivative in the first and last points:
 
-     Penalty = c * ((var[k+1] - var[k])/dltau)**2
+     Penalty: pe =  c * ((var[k+1] - var[k])/|dltau|)**2
+     d/x_i pe     = 2c * (x_i - x_i-1) / dltau**2
+     d/x_i-1 pe  = 2c * (-1)*(x_i - x_i-1) / dltau**2 = -d/dx_i pe
 
      In the LM we have divided the x2 in all terms so we do it here too in the implementation.
-
+     
      --- */
 
   reg[off+0] = 0.0;
@@ -316,7 +350,7 @@ void tikhonov1_dregul(int n, double *ltau, double *var, double weight, double **
 
     /* --- 2 terms around the diagonal of J --- */
     
-    double dtau = (ltau[yy] - ltau[yy-1]);
+    double dtau = fabs(ltau[yy] - ltau[yy-1]);
     double tmp = (var[yy] - var[yy-1]) / dtau;
     
     reg[yy+off] = c_sqrt * tmp;
@@ -348,7 +382,8 @@ void getDregul2(double *m, int npar, reg_t &dregul, nodes_t &n)
     int nn = (int)n.temp.size();
     switch(n.regul_type[0]){
     case(1):
-      tikhonov1_dregul(nn-1, ltau, &m[off], we, dregul.dreg, dregul.reg, off);
+      if((nn-1) >= 2)
+	tikhonov1_dregul(nn-1, ltau, &m[off], we, dregul.dreg, dregul.reg, off);
       break;
     default:
       break;
@@ -366,7 +401,8 @@ void getDregul2(double *m, int npar, reg_t &dregul, nodes_t &n)
     
     switch(n.regul_type[1]){
     case(1):
-      tikhonov1_dregul(nn, ltau, &m[off], we, dregul.dreg, dregul.reg, off);
+      if(nn >= 2)
+	tikhonov1_dregul(nn, ltau, &m[off], we, dregul.dreg, dregul.reg, off);
       break;
     case(2):
       mean_dregul(nn, ltau, &m[off], we, dregul.dreg, dregul.reg, off);
@@ -391,7 +427,8 @@ void getDregul2(double *m, int npar, reg_t &dregul, nodes_t &n)
 
     switch(n.regul_type[2]){
     case(1):
-      tikhonov1_dregul(nn, ltau, &m[off], we, dregul.dreg, dregul.reg, off);
+      if(nn >= 2)
+	tikhonov1_dregul(nn, ltau, &m[off], we, dregul.dreg, dregul.reg, off);
       break;
     case(2):
       mean_dregul(nn, ltau, &m[off], we, dregul.dreg, dregul.reg, off);
@@ -416,7 +453,8 @@ void getDregul2(double *m, int npar, reg_t &dregul, nodes_t &n)
 
     switch(n.regul_type[3]){
     case(1):
-      tikhonov1_dregul(nn, ltau, &m[off], we, dregul.dreg, dregul.reg, off);
+      if(nn >= 2)
+	tikhonov1_dregul(nn, ltau, &m[off], we, dregul.dreg, dregul.reg, off);
       break;
     case(2):
       mean_dregul(nn, ltau, &m[off], we, dregul.dreg, dregul.reg, off);
@@ -440,7 +478,8 @@ void getDregul2(double *m, int npar, reg_t &dregul, nodes_t &n)
 
     switch(n.regul_type[4]){
     case(1):
-      tikhonov1_dregul(nn, ltau, &m[off], we, dregul.dreg, dregul.reg, off);
+      if(nn >= 2)
+	tikhonov1_dregul(nn, ltau, &m[off], we, dregul.dreg, dregul.reg, off);
       break;
     case(2):
       mean_dregul(nn, ltau, &m[off], we, dregul.dreg, dregul.reg, off);
@@ -464,7 +503,8 @@ void getDregul2(double *m, int npar, reg_t &dregul, nodes_t &n)
 
     switch(n.regul_type[5]){
     case(1):
-      tikhonov1_dregul(nn, ltau, &m[off], we, dregul.dreg, dregul.reg, off);
+      if(nn >= 2)
+	tikhonov1_dregul(nn, ltau, &m[off], we, dregul.dreg, dregul.reg, off);
       break;
     case(2):
       mean_dregul(nn, ltau, &m[off], we, dregul.dreg, dregul.reg, off);

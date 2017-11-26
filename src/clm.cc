@@ -905,8 +905,8 @@ void clm::compute_trial3(double *res, double **rf, double lambda,
       }//xx
       
       for(int jj=0;jj<npar; jj++)
-	tmp1[jj] = - dregul.dreg[jj][yy] * dregul.reg[jj]; // - L.t # gamm
-      B[yy]  = -sumarr(tmp1, npar);
+	tmp1[jj] =  dregul.dreg[jj][yy] * dregul.reg[jj]; // L.t # gamm
+      B[yy]  = - sumarr(tmp1, npar);
       
     }//yy
   }
