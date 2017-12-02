@@ -246,7 +246,7 @@ void atmos::randomizeParameters(nodes_t &n, int npar, double *pars){
 
 /* --------------------------------------------------------------------------------------------------- */
 
-void const_dregul(int n, double *ltau, double *var, double weight, double **dreg, double *reg, double m, int off)
+int const_dregul(int n, double *ltau, double *var, double weight, double **dreg, double *reg, double m, int off, int roff)
 {
   
   /* --- 
@@ -267,15 +267,15 @@ void const_dregul(int n, double *ltau, double *var, double weight, double **dreg
     
     double tmp = c*(var[yy] - m);
     
-    reg[off+yy] = tmp;
-    dreg[off+yy][off+yy] = c*tmp;
+    reg[roff+yy] = tmp;
+    dreg[roff+yy][off+yy] = c*tmp;
   }
-  
+  return n;
 }
 
 /* --------------------------------------------------------------------------------------------------- */
 
-void mean_dregul(int n, double *ltau, double *var, double weight, double **dreg, double *reg, int off)
+int mean_dregul(int n, double *ltau, double *var, double weight, double **dreg, double *reg, int off, int roff)
 {
   
   /* --- 
@@ -296,9 +296,9 @@ void mean_dregul(int n, double *ltau, double *var, double weight, double **dreg,
      --- */
 
   if(n == 1){
-    reg[off] = 0.0;
-    dreg[off][off] = 0.0;
-    return;
+    reg[roff] = 0.0;
+    dreg[roff][off] = 0.0;
+    return 1;
   }
 
   
@@ -309,26 +309,21 @@ void mean_dregul(int n, double *ltau, double *var, double weight, double **dreg,
   for(int yy=0;yy<n; yy++){
     
     double tmp = c*(var[yy] - me);
-    reg[off+yy] = tmp;
+    reg[roff+yy] = tmp;
 
     for(int xx=0; xx<n; xx++){
       double c1 = ((xx==yy)? 1.0 : 0.0);
-      dreg[off+yy][off+xx] = c * tmp * (c1 - (1./dn));
+      dreg[roff+yy][off+xx] = c * tmp * (c1 - (1./dn));
     }
   }
-  
+  return n;
 }
 
 /* --------------------------------------------------------------------------------------------------- */
 
-void tikhonov1_dregul(int n, double *ltau, double *var, double weight, double **dreg, double *reg, int off)
+int tikhonov1_dregul(int n, double *ltau, double *var, double weight, double **dreg, double *reg, int off, int roff)
 {
 
-  if(n == 1){
-    reg[off] = 0.0;
-    dreg[off][off] = 0.0;
-    return;
-  }
   
   double c = weight / (double)(n-1);
   double c_sqrt = sqrt(c);
@@ -343,8 +338,8 @@ void tikhonov1_dregul(int n, double *ltau, double *var, double weight, double **
      
      --- */
 
-  reg[off+0] = 0.0;
-  dreg[off+0][off+0] = 0.0; // If penalty is zero, then the derivative must be zero
+  //reg[off+0] = 0.0;
+  //dreg[off+0][off+0] = 0.0; // If penalty is zero, then the derivative must be zero
 
   for(int yy = 1; yy<n; yy++){
 
@@ -353,21 +348,23 @@ void tikhonov1_dregul(int n, double *ltau, double *var, double weight, double **
     double dtau = fabs(ltau[yy] - ltau[yy-1]);
     double tmp = (var[yy] - var[yy-1]) / dtau;
     
-    reg[yy+off] = c_sqrt * tmp;
-    dreg[yy+off][yy+off] = c * tmp / dtau;
-    dreg[yy+off][yy-1+off] = - dreg[yy+off][yy+off];
+    reg[yy-1+roff] = c_sqrt * tmp;
+    dreg[yy-1+roff][yy+off] = c * tmp / dtau;
+    dreg[yy-1+roff][yy-1+off] = - dreg[yy-1+roff][yy+off];
   }
-  
+  return n-1;
 }
 
 /* --------------------------------------------------------------------------------------------------- */
 
 void getDregul2(double *m, int npar, reg_t &dregul, nodes_t &n)
 {
-  const double weights[7] = {0.0001, 7.0, 2.0, 1.0, 1.0, 1.0, 1.5};
+  //const double weights[7] = {0.001, 7.0, 2.0, 1.0, 1.0, 1.0, 1.5};
+  const double weights[7] = {0.02, 1.0, 1.0, 1.0, 1.0, 1.0, 1.5};
+
   double  *ltau = NULL, we = 0.0;
   nodes_type_t ntype = none_node;
-  int off = 0;
+  int off = 0, roff = 0;
   
   dregul.zero();
   
@@ -383,7 +380,7 @@ void getDregul2(double *m, int npar, reg_t &dregul, nodes_t &n)
     switch(n.regul_type[0]){
     case(1):
       if((nn-1) >= 2)
-	tikhonov1_dregul(nn-1, ltau, &m[off], we, dregul.dreg, dregul.reg, off);
+	roff += tikhonov1_dregul(nn-1, &ltau[1], &m[off+1], we, dregul.dreg, dregul.reg, off, roff);
       break;
     default:
       break;
@@ -402,13 +399,13 @@ void getDregul2(double *m, int npar, reg_t &dregul, nodes_t &n)
     switch(n.regul_type[1]){
     case(1):
       if(nn >= 2)
-	tikhonov1_dregul(nn, ltau, &m[off], we, dregul.dreg, dregul.reg, off);
+	roff += tikhonov1_dregul(nn, ltau, &m[off], we, dregul.dreg, dregul.reg, off, roff);
       break;
     case(2):
-      mean_dregul(nn, ltau, &m[off], we, dregul.dreg, dregul.reg, off);
+      roff += mean_dregul(nn, ltau, &m[off], we, dregul.dreg, dregul.reg, off, roff);
       break;
     case(3):
-      const_dregul(nn, ltau, &m[off], we, dregul.dreg, dregul.reg, 0.0, off);
+      roff += const_dregul(nn, ltau, &m[off], we, dregul.dreg, dregul.reg, 0.0, off, roff);
       break;
     default:
       break;
@@ -428,13 +425,13 @@ void getDregul2(double *m, int npar, reg_t &dregul, nodes_t &n)
     switch(n.regul_type[2]){
     case(1):
       if(nn >= 2)
-	tikhonov1_dregul(nn, ltau, &m[off], we, dregul.dreg, dregul.reg, off);
+	roff += tikhonov1_dregul(nn, ltau, &m[off], we, dregul.dreg, dregul.reg, off, roff);
       break;
     case(2):
-      mean_dregul(nn, ltau, &m[off], we, dregul.dreg, dregul.reg, off);
+      roff += mean_dregul(nn, ltau, &m[off], we, dregul.dreg, dregul.reg, off, roff);
       break;
     case(3):
-      const_dregul(nn, ltau, &m[off], we, dregul.dreg, dregul.reg, 0.0, off);
+      roff = const_dregul(nn, ltau, &m[off], we, dregul.dreg, dregul.reg, 0.0, off, roff);
       break;
     default:
       break;
@@ -454,13 +451,13 @@ void getDregul2(double *m, int npar, reg_t &dregul, nodes_t &n)
     switch(n.regul_type[3]){
     case(1):
       if(nn >= 2)
-	tikhonov1_dregul(nn, ltau, &m[off], we, dregul.dreg, dregul.reg, off);
+	roff += tikhonov1_dregul(nn, ltau, &m[off], we, dregul.dreg, dregul.reg, off, roff);
       break;
     case(2):
-      mean_dregul(nn, ltau, &m[off], we, dregul.dreg, dregul.reg, off);
+      roff += mean_dregul(nn, ltau, &m[off], we, dregul.dreg, dregul.reg, off, roff);
       break;
     case(3):
-      const_dregul(nn, ltau, &m[off], we, dregul.dreg, dregul.reg, 0.0, off);
+      roff += const_dregul(nn, ltau, &m[off], we, dregul.dreg, dregul.reg, 0.0, off, roff);
       break;
     default:
       break;
@@ -479,13 +476,13 @@ void getDregul2(double *m, int npar, reg_t &dregul, nodes_t &n)
     switch(n.regul_type[4]){
     case(1):
       if(nn >= 2)
-	tikhonov1_dregul(nn, ltau, &m[off], we, dregul.dreg, dregul.reg, off);
+	roff += tikhonov1_dregul(nn, ltau, &m[off], we, dregul.dreg, dregul.reg, off, roff);
       break;
     case(2):
-      mean_dregul(nn, ltau, &m[off], we, dregul.dreg, dregul.reg, off);
+      roff += mean_dregul(nn, ltau, &m[off], we, dregul.dreg, dregul.reg, off, roff);
       break;
     case(3):
-      const_dregul(nn, ltau, &m[off], we, dregul.dreg, dregul.reg, 0.0, off);
+      roff += const_dregul(nn, ltau, &m[off], we, dregul.dreg, dregul.reg, 0.0, off, roff);
       break;
     default:
       break;
@@ -504,10 +501,10 @@ void getDregul2(double *m, int npar, reg_t &dregul, nodes_t &n)
     switch(n.regul_type[5]){
     case(1):
       if(nn >= 2)
-	tikhonov1_dregul(nn, ltau, &m[off], we, dregul.dreg, dregul.reg, off);
+	roff += tikhonov1_dregul(nn, ltau, &m[off], we, dregul.dreg, dregul.reg, off, roff);
       break;
     case(2):
-      mean_dregul(nn, ltau, &m[off], we, dregul.dreg, dregul.reg, off);
+      roff += mean_dregul(nn, ltau, &m[off], we, dregul.dreg, dregul.reg, off, roff);
       break;
     default:
       break;
@@ -519,7 +516,7 @@ void getDregul2(double *m, int npar, reg_t &dregul, nodes_t &n)
   /* --- Penalize pgas enhancement factor ? --- */
   
   if(n.toinv[6] && (n.regul_type[6] > 0)){ // pgas
-
+    
     
     /* --- Penalize deviations from 1.0 --- */
 
@@ -527,13 +524,9 @@ void getDregul2(double *m, int npar, reg_t &dregul, nodes_t &n)
     double tmp = (m[off] - 1.0);
     dregul.reg[off] = tmp * sqrt(weights[6]*dregul.scl);
     dregul.dreg[off][off] = weights[6]*dregul.scl * tmp;
+    roff++;
   }
-  
-  //for(int yy=0; yy<npar; yy++){
-  // for(int xx=0; xx<npar; xx++)
-  //   fprintf(stderr,"%e ", dregul.dreg[yy][xx]);
-  // fprintf(stderr,"\n");
-  //}
+
 }
 
 /* --------------------------------------------------------------------------------------------------- */
@@ -640,6 +633,60 @@ int getChi2(int npar1, int nd, double *pars1, double *dev, double **derivs, void
   return 0;
 }
 
+reg_t init_dregul(int npar, nodes_t &n, double scl)
+{
+
+
+  /* --- detect number of penalty functions --- */
+
+  int npen = 0, nn = 0;
+  if(n.toinv[0] && (n.regul_type[0] > 0)){
+    nn = n.temp.size();
+    if((n.regul_type[0] == 1) && (nn >= 3)) npen += nn-2; 
+  }
+
+  if(n.toinv[1] && (n.regul_type[1] > 0)){
+    nn = n.v.size();
+    if((n.regul_type[1] == 1) && (nn >= 2)) npen += nn-1;
+    else                     npen += nn;
+  }
+
+
+  if(n.toinv[2] && (n.regul_type[2] > 0)){
+    nn = n.vturb.size();
+    if((n.regul_type[2] == 1) && (nn >= 2)) npen += nn-1;
+    else                     npen += nn;
+  }
+
+  if(n.toinv[3] && (n.regul_type[3] > 0)){
+    nn = n.bl.size();
+    if((n.regul_type[3] == 1) && (nn >= 2)) npen += nn-1;
+    else                     npen += nn;
+  }
+
+  if(n.toinv[4] && (n.regul_type[4] > 0)){
+    nn = n.bh.size();
+    if((n.regul_type[4] == 1) && (nn >= 2)) npen += nn-1;
+    else                     npen += nn;
+  }
+  
+  if(n.toinv[5] && (n.regul_type[5] > 0)){
+    nn = n.azi.size();
+    if((n.regul_type[5] == 1) && (nn >= 2)) npen += nn-1;
+    else if((n.regul_type[5] == 2)) npen += nn;
+  }
+
+  if(n.toinv[6] && (n.regul_type[6] > 0)){
+    npen += 1;
+  }
+  
+  reg_t res;
+  if(npen > 0)
+    res.set(npar, npen, scl);
+  return res;
+}
+
+
 double atmos::fitModel2(mdepth_t &m, int npar, double *pars, int nobs, double *o, mat<double> &weights){
 
 
@@ -647,7 +694,7 @@ double atmos::fitModel2(mdepth_t &m, int npar, double *pars, int nobs, double *o
   /* --- compute tau scale ---*/
   
   for(int k = 0; k < (int)m.ndep; k++) m.tau[k] = pow(10.0, m.ltau[k]);
-
+  
   
   /* --- point to obs and weights --- */
   mdepth_t m1 = m, m2 = m, best_m = m;
@@ -666,7 +713,10 @@ double atmos::fitModel2(mdepth_t &m, int npar, double *pars, int nobs, double *o
   }else          imodel->ref_m = NULL;
 
 
-  
+  /* --- get regularization --- */
+  reg_t regul;
+  if(input.regularize >= 1.e-5)
+    regul = init_dregul(npar, input.nodes, input.regularize);
 
   
   /* --- Invert pixel randomizing parameters if iter > 0 --- */
@@ -772,7 +822,7 @@ double atmos::fitModel2(mdepth_t &m, int npar, double *pars, int nobs, double *o
     
     /* --- Call clm --- */
 
-    double chi2 = lm.fitdata(getChi2, &ipars[0], (void*)this, input.max_inv_iter);
+    double chi2 = lm.fitdata(getChi2, &ipars[0], (void*)this, input.max_inv_iter, regul);
 
     
     

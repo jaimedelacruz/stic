@@ -61,17 +61,17 @@ struct clmf{
 
 struct reg_t{
   bool to_reg;
-  int npar;
+  int npar, nreg;
   double scl;
   double **dreg;
   double *reg;
 
-reg_t():to_reg(false), npar(0), scl(1.0), dreg(NULL), reg(NULL){};
-  reg_t(int npar_in, double scl_in);
+reg_t():to_reg(false), npar(0), nreg(0), scl(1.0), dreg(NULL), reg(NULL){};
+  reg_t(int npar_in, int nreg_in, double scl_in);
   reg_t(const reg_t &in);
   ~reg_t();
   
-  void set(int npar_in, double scl_in);
+  void set(int npar_in, int nreg_in, double scl_in);
   void zero();
   double getReg();
   void del();
@@ -123,7 +123,7 @@ class clm{
   void checkMaxChange(double *dx, double *x);
   void normalizeParameters(double *x);
   void scaleParameters(double *x);
-  double fitdata(clm_func ifx, double *x, void *mydat, int maxiter = 50);
+  double fitdata(clm_func ifx, double *x, void *mydat, int maxiter, reg_t &reg);
   double compute_chi2(double *res, double penalty);
   double getChi2Pars(double *res, double **rf, double lambda,
 		     double *x, double *xnew, void *mydat, clm_func fx, reg_t &regul);

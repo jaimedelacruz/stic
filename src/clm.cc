@@ -183,18 +183,19 @@ inline double sumarr_4(double *arr, int n){
 
 void reg_t::zero(){
   if(to_reg && (npar > 0)){
-    memset(reg, 0, npar*sizeof(double));
-    memset(dreg[0], 0, npar*npar*sizeof(double));
+    memset(reg, 0, nreg*sizeof(double));
+    memset(dreg[0], 0, nreg*npar*sizeof(double));
   }
 }
 
 /* -------------------------------------------------------------------------------- */
 
-void reg_t::set(int npar_in, double scl_in)
+void reg_t::set(int npar_in, int nreg_in, double scl_in)
 {
   
   to_reg = false;
   npar = 0;
+  nreg = 0;
   reg = NULL;
   dreg = NULL;
   scl = 0.0;
@@ -202,9 +203,10 @@ void reg_t::set(int npar_in, double scl_in)
   if(npar_in >0){
     to_reg = true;
     npar = npar_in;
+    nreg = nreg_in;
     scl = scl_in;
-    reg = new double [npar];
-    dreg = mat2d(npar, npar);
+    reg = new double [nreg];
+    dreg = mat2d(nreg, npar);
     zero();
   }
   
@@ -214,8 +216,8 @@ void reg_t::set(int npar_in, double scl_in)
 
 double reg_t::getReg()
 {
-  if(npar > 0){
-    return sumarr2(reg, npar);
+  if((nreg > 0) && (to_reg)){
+    return sumarr2(reg, nreg);
   }else return 0.0;
 }
 
@@ -223,14 +225,14 @@ double reg_t::getReg()
 
 void reg_t::copyReg(double *reg_in)
 {
-  memcpy(reg, reg_in, npar*sizeof(double));
+  memcpy(reg, reg_in, nreg*sizeof(double));
 }
 
 /* -------------------------------------------------------------------------------- */
 
-reg_t::reg_t(int npar_in, double scl_in)
+reg_t::reg_t(int npar_in, int nreg_in, double scl_in)
 {
-  set(npar_in, scl_in); 
+  set(npar_in, nreg_in, scl_in); 
 }
 
 /* -------------------------------------------------------------------------------- */
@@ -238,11 +240,11 @@ reg_t::reg_t(int npar_in, double scl_in)
 reg_t::reg_t(const reg_t &in)
 {
 
-  set(in.npar, in.scl);
+  set(in.npar, in. nreg, in.scl);
 
   if(npar > 0){
-    memcpy(reg, in.reg, npar*sizeof(double));
-    memcpy(dreg[0], in.dreg[0], npar*npar*sizeof(double));
+    memcpy(reg, in.reg, nreg*sizeof(double));
+    memcpy(dreg[0], in.dreg[0], nreg*npar*sizeof(double));
   }
   
 }
@@ -251,11 +253,11 @@ reg_t::reg_t(const reg_t &in)
 
 reg_t &reg_t::operator=(const reg_t &in)
 {
-  set(in.npar, in.scl);
+  set(in.npar, in.nreg, in.scl);
   
   if(npar > 0){
-    memcpy(reg, in.reg, npar*sizeof(double));
-    memcpy(dreg[0], in.dreg[0], npar*npar*sizeof(double));
+    memcpy(reg, in.reg, nreg*sizeof(double));
+    memcpy(dreg[0], in.dreg[0], nreg*npar*sizeof(double));
   }
   
   return *this; 
@@ -269,7 +271,7 @@ void reg_t::del(){
   if(dreg != NULL) del_mat(dreg);
   to_reg = false;
   npar = 0;
-  
+  nreg = 0;
 }
 
 
@@ -600,7 +602,7 @@ void clm::scaleRF(double **rf)
 
 /* -------------------------------------------------------------------------------- */
 
-double clm::fitdata(clm_func fx, double *x, void *mydat, int maxiter)
+double clm::fitdata(clm_func fx, double *x, void *mydat, int maxiter, reg_t &dregul)
 {
 
   /* --- Init variables --- */
@@ -618,8 +620,8 @@ double clm::fitdata(clm_func fx, double *x, void *mydat, int maxiter)
   memset(&diag[0],0,npar*sizeof(double));
   error = false;
 
-  reg_t dregul;
-  if(regularize) dregul.set(npar, regul_scal); // To store derivatives of regularization terms
+  //reg_t dregul;
+  //if(regularize) dregul.set(npar, regul_scal); // To store derivatives of regularization terms
   
   
   /* --- Init array for residues and response function --- */
@@ -857,12 +859,12 @@ void clm::compute_trial3(double *res, double **rf, double lambda,
   MatrixXd A(npar, npar); A.Zero(npar, npar);
   VectorXd B(npar); B.Zero(npar);
   Map<VectorXd> RES(xnew, npar);
-  
+  int npen = dregul.nreg;
   
   
   /* --- other arrays and constants --- */
 
-  double **LL = mat2d(npar,npar), *tmp1 = new double [npar]();
+  double **LL = mat2d(npar,npar), *tmp1 = new double [npen]();
   double ww[npar], wt[npar], wi[npar][2];
   
   /* --- 
@@ -898,16 +900,19 @@ void clm::compute_trial3(double *res, double **rf, double lambda,
        --- */
 
     for(int yy = 0; yy<npar; yy++){
+
       for(int xx = 0; xx<npar; xx++){
-	for(int jj=0;jj<npar; jj++)
-	  tmp1[jj] = dregul.dreg[yy][jj] * dregul.dreg[xx][jj]; // L.t # L = L # L.t
-	LL[yy][xx] = sumarr(tmp1, npar);
+	
+	for(int jj=0; jj<npen; jj++)
+	  tmp1[jj] = dregul.dreg[jj][xx] * dregul.dreg[jj][yy]; // L.t # L = L # L.t
+	
+	LL[yy][xx] = sumarr(tmp1, npen);
       }//xx
       
-      for(int jj=0;jj<npar; jj++)
+      for(int jj=0;jj<npen; jj++)
 	tmp1[jj] =  dregul.dreg[jj][yy] * dregul.reg[jj]; // L.t # gamm
-      B[yy]  = - sumarr(tmp1, npar);
       
+      B[yy]  = - sumarr(tmp1, npen);    
     }//yy
   }
   
