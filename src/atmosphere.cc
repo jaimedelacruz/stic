@@ -262,13 +262,17 @@ int const_dregul(int n, double *ltau, double *var, double weight, double **dreg,
      are summed.
      --- */  
   
-  double c = sqrt(weight / double(n));
+  double c = sqrt(weight / double(n)), dtau = 7.0;
+  
   for(int yy=0;yy<n; yy++){
-    
-    double tmp = c*(var[yy] - m);
+
+    if((yy == 0) && (n > 1)) dtau = fabs(ltau[0] - ltau[1]);
+    else if((yy > 0) && (yy < (n-1)) && (n > 1)) dtau = fabs(ltau[yy+1] - ltau[yy-1])*0.5;
+    else if((yy == (n-1)) && (n > 1)) dtau = fabs(ltau[yy] - ltau[yy-1]);
+    double tmp = c*(var[yy] - m) / dtau;
     
     reg[roff+yy] = tmp;
-    dreg[roff+yy][off+yy] = c*tmp;
+    dreg[roff+yy][off+yy] = c*tmp / dtau;
   }
   return n;
 }
@@ -304,16 +308,20 @@ int mean_dregul(int n, double *ltau, double *var, double weight, double **dreg, 
   
   double dn = double(n);
   double c = sqrt(weight / dn);
-  double me = mth::mean(n, var);
+  double me = mth::mean(n, var), dtau = 7.0;
     
   for(int yy=0;yy<n; yy++){
+
+    if((yy == 0) && (n > 1)) dtau = fabs(ltau[0] - ltau[1]);
+    else if((yy > 0) && (yy < (n-1)) && (n > 1)) dtau = fabs(ltau[yy+1] - ltau[yy-1])*0.5;
+    else if((yy == (n-1)) && (n > 1)) dtau = fabs(ltau[yy] - ltau[yy-1]);
     
-    double tmp = c*(var[yy] - me);
+    double tmp = c*(var[yy] - me) / dtau;
     reg[roff+yy] = tmp;
 
     for(int xx=0; xx<n; xx++){
       double c1 = ((xx==yy)? 1.0 : 0.0);
-      dreg[roff+yy][off+xx] = c * tmp * (c1 - (1./dn));
+      dreg[roff+yy][off+xx] = c * tmp * (c1 - (1./dn)) / dtau;
     }
   }
   return n;
@@ -360,7 +368,7 @@ int tikhonov1_dregul(int n, double *ltau, double *var, double weight, double **d
 void getDregul2(double *m, int npar, reg_t &dregul, nodes_t &n)
 {
   //const double weights[7] = {0.001, 7.0, 2.0, 1.0, 1.0, 1.0, 1.5};
-  const double weights[7] = {0.02, 1.0, 1.0, 1.0, 1.0, 1.0, 1.5};
+  const double weights[7] = {0.01, 12.0, 12.0, 10.0, 10.0,10.0,10.0};
 
   double  *ltau = NULL, we = 0.0;
   nodes_type_t ntype = none_node;
@@ -379,8 +387,9 @@ void getDregul2(double *m, int npar, reg_t &dregul, nodes_t &n)
     int nn = (int)n.temp.size();
     switch(n.regul_type[0]){
     case(1):
-      if((nn-1) >= 2)
-	roff += tikhonov1_dregul(nn-1, &ltau[1], &m[off+1], we, dregul.dreg, dregul.reg, off, roff);
+      if((nn-1) >= 2){
+	roff += tikhonov1_dregul(nn-1, &ltau[1], &m[off+1], we, dregul.dreg, dregul.reg, off+1, roff);
+      }
       break;
     default:
       break;
@@ -527,6 +536,16 @@ void getDregul2(double *m, int npar, reg_t &dregul, nodes_t &n)
     roff++;
   }
 
+  if(0){
+    for(int ii=0; ii<dregul.nreg; ii++){
+      for(int jj=0; jj<dregul.npar; jj++) fprintf(stderr,"%e ",dregul.dreg[ii][jj]);
+      cerr<<endl;
+    }
+    cerr<<endl;
+    
+    for(int ii=0; ii<dregul.nreg; ii++) fprintf(stderr,"%e ",dregul.reg[ii]);
+    cerr<<endl;
+  }
 }
 
 /* --------------------------------------------------------------------------------------------------- */

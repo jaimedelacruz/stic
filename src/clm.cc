@@ -205,8 +205,10 @@ void reg_t::set(int npar_in, int nreg_in, double scl_in)
     npar = npar_in;
     nreg = nreg_in;
     scl = scl_in;
+    
     reg = new double [nreg];
     dreg = mat2d(nreg, npar);
+
     zero();
   }
   
@@ -421,7 +423,7 @@ void clm::zero(double *res, double **rf)
 
 double clm::compute_chi2(double *res, double penalty)
 {
-  return (double)sumarr2_4(res,nd)/double(nd) + penalty*regul_scal;				 
+  return (double)sumarr2_4(res,nd)/double(nd) + penalty;				 
 }
 
 /* -------------------------------------------------------------------------------- */
@@ -465,13 +467,15 @@ double clm::getChi2Pars(double *res, double **rf, double lambda,
 /* -------------------------------------------------------------------------------- */
 
 double clm::getChi2ParsLineSearch(double *res, double **rf, double &lambda,
-				  double *x, double *xnew, void *mydat, clm_func fx, reg_t &dregul, double rchi2)
+				  double *x, double *xnew, void *mydat, clm_func fx, reg_t &dregul_in, double rchi2)
 {
 
   /* --- Braket lambda/chi2 --- */
 
   vector<vector<double>> ixnew;
+  vector<reg_t> mreg;
   vector<double> ilamb, ichi, tmp(npar, 0.0);
+  reg_t dregul = dregul_in;
   ilamb.push_back(lambda);
   
 
@@ -479,6 +483,7 @@ double clm::getChi2ParsLineSearch(double *res, double **rf, double &lambda,
   /* --- Init chi2 --- */
   
   ichi.push_back(getChi2Pars(res, rf, ilamb[0], x, xnew, mydat, fx, dregul));
+  mreg.push_back(dregul);
   memcpy(&tmp[0],xnew, npar*sizeof(double)), ixnew.push_back(tmp);
   
 
@@ -490,6 +495,8 @@ double clm::getChi2ParsLineSearch(double *res, double **rf, double &lambda,
       double ilfac = lfac;//(ilamb[kk] > 0.1)? lfac : sqrt(lfac);
       ilamb.push_back(ilamb[kk] / ilfac);
       ichi.push_back(getChi2Pars(res, rf, ilamb[kk+1], x, xnew, mydat, fx, dregul));
+      mreg.push_back(dregul);
+      
       memcpy(&tmp[0],xnew, npar*sizeof(double)), ixnew.push_back(tmp);
       kk += 1;
     }
@@ -510,6 +517,7 @@ double clm::getChi2ParsLineSearch(double *res, double **rf, double &lambda,
     if(idx == (nn-1)){
       memcpy(xnew, &ixnew[idx][0], npar*sizeof(double));
       lambda = ilamb[idx];
+      dregul.copyReg( mreg[idx].reg);
       return ichi[idx];
     }
 
@@ -519,10 +527,12 @@ double clm::getChi2ParsLineSearch(double *res, double **rf, double &lambda,
        chi2 with larger lambda values --- */
     
     kk = 0;
-    while(idx == 0 && kk++ <= 2){
+    while(idx == 0 && kk++ <= 4){
       double ilfac = lfac;//(ilamb[0]  >= 0.1)? lfac : sqrt(lfac);
       ilamb.insert(ilamb.begin(), ilamb[0] * ilfac);
       ichi.insert(ichi.begin(), getChi2Pars(res, rf, ilamb[0], x, xnew, mydat, fx, dregul));
+      mreg.push_back(dregul);
+
       memcpy(&tmp[0],xnew, npar*sizeof(double)), ixnew.insert(ixnew.begin(), tmp);
       
       /* --- Check the index of the smallest chi2 after adding a new element --- */
@@ -543,7 +553,7 @@ double clm::getChi2ParsLineSearch(double *res, double **rf, double &lambda,
        --- */
     
     if(idx != 0){
-      for(int ii=0; ii<2; ii++){
+      for(int ii=0; ii<3; ii++){
 	vector<double> cc = parab_fit<double>(log(ilamb[idx-1]), log(ilamb[idx]),
 					      log(ilamb[idx+1]), (ichi[idx-1]), (ichi[idx]),
 					      (ichi[idx+1]));
@@ -553,6 +563,7 @@ double clm::getChi2ParsLineSearch(double *res, double **rf, double &lambda,
 	
 	if(gchi < ichi[idx]){
 	  ichi.push_back(gchi);
+	  mreg.push_back(dregul);
 	  ilamb.push_back(glamb);
 	  ixnew.push_back(tmp);
 	  idx = (int)ichi.size()-1;
@@ -561,6 +572,7 @@ double clm::getChi2ParsLineSearch(double *res, double **rf, double &lambda,
 	  int dir = -1;
 	  if(glamb < ilamb[idx]) dir = 1;
 	  ichi[idx+dir] = gchi;
+	  mreg[idx+dir] = dregul;
 	  ilamb[idx+dir] = glamb;
 	  ixnew[idx+dir] = tmp;
 	}
@@ -569,7 +581,7 @@ double clm::getChi2ParsLineSearch(double *res, double **rf, double &lambda,
     
     if(0){
       fprintf(stderr,"[ %f(%e) ", ichi[0], ilamb[0]);
-      for(int ii=1; ii<(int)ichi.size(); ii++) fprintf(stderr,"%f(%e) ",  ichi[ii], ilamb[ii]);
+      for(int ii=1; ii<(int)ichi.size(); ii++) fprintf(stderr,"%f(%e) ",  ichi[ii], mreg[ii].getReg());
       fprintf(stderr,"] -> %f(%e)\n", ichi[idx], ilamb[idx]);
     }
     
@@ -577,6 +589,8 @@ double clm::getChi2ParsLineSearch(double *res, double **rf, double &lambda,
     
     memcpy(xnew, &ixnew[idx][0], npar*sizeof(double));
     lambda = ilamb[idx];
+    dregul_in.copyReg(mreg[idx].reg);
+    
     return ichi[idx];
     
   }else{ // Chi2 is worse than reference chi2
@@ -613,7 +627,7 @@ double clm::fitdata(clm_func fx, double *x, void *mydat, int maxiter, reg_t &dre
   
   getParTypes();
   double chi2 = 1.e13, ochi2 = 1.e13, bestchi2 = 1.e13, olambda = 0.0, t0 = 0, t1 = 0;
-  double orchi2=1.e13, rchi2=1.e13;
+  double orchi2=1.e13, rchi2=1.e13, reg = 0.0;
   int iter = 0, nretry = 0;
   bool exitme = false, toolittle = false, dcreased = false;
   string rej = "";
@@ -655,15 +669,15 @@ double clm::fitdata(clm_func fx, double *x, void *mydat, int maxiter, reg_t &dre
     scaleRF(rf);
     memcpy(&bestpars[0], &x[0], npar*sizeof(double));
     //
-    ochi2 = compute_chi2(res, dregul.getReg());
+    reg =  dregul.getReg();
+    ochi2 = compute_chi2(res, reg);
     bestchi2 = ochi2;
-    orchi2 = ochi2 -  dregul.getReg();
+    orchi2 = ochi2 - reg;
     
 
-    double reg =  dregul.getReg();
     if(verb)
       fprintf(stdout, "[p:%4d, Init] chi2=%f (%f), lambda=%e\n", proc,
-	      ochi2-reg, reg , lambda);
+	      orchi2, reg , lambda);
   }
 
   /* --- Main iterations --- */
@@ -677,7 +691,8 @@ double clm::fitdata(clm_func fx, double *x, void *mydat, int maxiter, reg_t &dre
        --- */
     if(error) break;
     chi2 = getChi2ParsLineSearch(res, rf, lambda, x, xnew, mydat, fx, dregul, bestchi2);
-    rchi2 = chi2 - dregul.getReg();
+    reg = dregul.getReg();
+    rchi2 = chi2 - reg;
 	
     if(chi2 != chi2) error = true;
     if(error) break;
@@ -701,7 +716,7 @@ double clm::fitdata(clm_func fx, double *x, void *mydat, int maxiter, reg_t &dre
       
       lambda *= lfac; // Helps to braket the solution
       if(lambda <= 1.e-3) lambda = 1.e-1;
-      if(lambda >= 1.e2) lambda = 10.0;
+      if(lambda >= 1.e5) lambda = 1e4;
       
       /* --- is the improvements below our threshold? --- */
 
@@ -714,7 +729,7 @@ double clm::fitdata(clm_func fx, double *x, void *mydat, int maxiter, reg_t &dre
       /* --- Store new best guessed model --- */
       
       bestchi2 = chi2;
-      orchi2  = chi2 -  dregul.getReg();
+      orchi2  = rchi2; //chi2 -  dregul.getReg();
       //
       memcpy(&bestpars[0], xnew, npar*sizeof(double));
       memcpy(&x[0],        xnew, npar*sizeof(double));
@@ -748,10 +763,9 @@ double clm::fitdata(clm_func fx, double *x, void *mydat, int maxiter, reg_t &dre
 	  dcreased = true;
 	}else dcreased = false;
 
-	double reg =  dregul.getReg();
 	if(verb)
 	  fprintf(stderr,"[p:%4d,i:%4d]  ->  chi2=%f (%f), increasing lambda [%e -> %e]\n",
-		  proc,iter, chi2 - reg, reg,olambda, lambda);
+		  proc,iter, chi2 - reg, reg, olambda, lambda);
 	continue;
       }
 	
@@ -760,11 +774,10 @@ double clm::fitdata(clm_func fx, double *x, void *mydat, int maxiter, reg_t &dre
     /* --- printout --- */
     
     t1 = getTime();
-    double reg =  dregul.getReg();
 
     if(verb)
       fprintf(stderr,"[p:%4d,i:%4d] chi2=%14.5f (%f, %f), dchi2=%e, lambda=%e, elapsed=%5.3fs %s\n",
-	      proc,iter, chi2-reg, reg ,regul_scal,chi2-ochi2, olambda, t1-t0,rej.c_str());
+	      proc,iter, rchi2, reg ,regul_scal,chi2-ochi2, olambda, t1-t0,rej.c_str());
     
     ochi2 = chi2;
 
@@ -836,8 +849,8 @@ double clm::fitdata(clm_func fx, double *x, void *mydat, int maxiter, reg_t &dre
   /* --- Since the best solution between different inversions of the same pixel may have
      reduced the regularization term by different amounts, it makes more sense to scale the 
      regularization with the initial scale factor (not the decreased one) --- */
-  
-  return (double)orchi2 + dregul.getReg(); 
+
+  return (double)bestchi2;//orchi2 + dregul.getReg(); 
 }
 
 
@@ -861,7 +874,6 @@ void clm::compute_trial3(double *res, double **rf, double lambda,
   Map<VectorXd> RES(xnew, npar);
   int npen = dregul.nreg;
   
-  
   /* --- other arrays and constants --- */
 
   double **LL = mat2d(npar,npar), *tmp1 = new double [npen]();
@@ -877,7 +889,7 @@ void clm::compute_trial3(double *res, double **rf, double lambda,
      If we have regulatization, then the system is:
 
            A = J.T # J     +    L.T # L
-	   B = J   # res   +    L.T # gamma 
+	   B = J   # res   -    L.T # gamma 
 
      where gamma is the vector of individual penalties
      and L is a diagonal matrix with the derivatives of gamma.
@@ -888,7 +900,7 @@ void clm::compute_trial3(double *res, double **rf, double lambda,
      --- */
 
   
-  if(dregul.to_reg){
+  if(dregul.to_reg && true){
     /* --- 
        Compensate linear system with regularization terms:
        
@@ -907,16 +919,31 @@ void clm::compute_trial3(double *res, double **rf, double lambda,
 	  tmp1[jj] = dregul.dreg[jj][xx] * dregul.dreg[jj][yy]; // L.t # L = L # L.t
 	
 	LL[yy][xx] = sumarr(tmp1, npen);
+
       }//xx
-      
       for(int jj=0;jj<npen; jj++)
 	tmp1[jj] =  dregul.dreg[jj][yy] * dregul.reg[jj]; // L.t # gamm
       
       B[yy]  = - sumarr(tmp1, npen);    
     }//yy
   }
+
   
+  // Totally splitting the function in vectors and not using dreg as a matrix
   
+  if(dregul.to_reg && false ){
+    for(int jj = 0; jj<npen; jj++)
+      for(int yy = 0; yy<npar; yy++){
+	
+	for(int xx = 0; xx<npar; xx++) LL[yy][xx] += dregul.dreg[jj][xx] * dregul.dreg[jj][yy];
+     
+	B[yy] -=  dregul.dreg[jj][yy] * dregul.reg[jj];     
+      }//yy
+  }
+  
+
+  
+  //cerr<<endl;
   
   for(int yy = 0; yy<npar; yy++){
 
@@ -1041,8 +1068,8 @@ void clm::compute_trial3(double *res, double **rf, double lambda,
     svd.setThreshold(svd_thres);
     RES = svd.solve(B);
   }
-  
-  
+  //double relative_error = (A*RES - B).norm() / B.norm();
+  //fprintf(stderr,"The relative error is: %e\n", relative_error);
   
   /* --- 
      New estimate of the parameters, xnew = x + dx.
