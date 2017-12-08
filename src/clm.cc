@@ -494,6 +494,7 @@ double clm::getChi2ParsLineSearch(double *res, double **rf, double &lambda,
     while((kk<1) || ((ichi[kk] < ichi[kk-1]) && (iter++ < 4) && (lambda > 1.e-5))){
       double ilfac = lfac;//(ilamb[kk] > 0.1)? lfac : sqrt(lfac);
       ilamb.push_back(ilamb[kk] / ilfac);
+      dregul = dregul_in;
       ichi.push_back(getChi2Pars(res, rf, ilamb[kk+1], x, xnew, mydat, fx, dregul));
       mreg.push_back(dregul);
       
@@ -530,6 +531,7 @@ double clm::getChi2ParsLineSearch(double *res, double **rf, double &lambda,
     while(idx == 0 && kk++ <= 4){
       double ilfac = lfac;//(ilamb[0]  >= 0.1)? lfac : sqrt(lfac);
       ilamb.insert(ilamb.begin(), ilamb[0] * ilfac);
+      dregul = dregul_in;
       ichi.insert(ichi.begin(), getChi2Pars(res, rf, ilamb[0], x, xnew, mydat, fx, dregul));
       mreg.push_back(dregul);
 
@@ -559,6 +561,7 @@ double clm::getChi2ParsLineSearch(double *res, double **rf, double &lambda,
 					      (ichi[idx+1]));
 	
 	double glamb = exp(-0.5 * cc[1]/cc[2]);
+	dregul = dregul_in;
 	double gchi  = getChi2Pars(res, rf, glamb, x, &tmp[0], mydat, fx, dregul);
 	
 	if(gchi < ichi[idx]){
@@ -582,7 +585,7 @@ double clm::getChi2ParsLineSearch(double *res, double **rf, double &lambda,
     if(0){
       fprintf(stderr,"[ %f(%e) ", ichi[0], ilamb[0]);
       for(int ii=1; ii<(int)ichi.size(); ii++) fprintf(stderr,"%f(%e) ",  ichi[ii], mreg[ii].getReg());
-      fprintf(stderr,"] -> %f(%e)\n", ichi[idx], ilamb[idx]);
+      fprintf(stderr,"] -> %f(%e)\n", ichi[idx], mreg[idx].getReg());
     }
     
     /* --- Copy best solution to output array --- */
