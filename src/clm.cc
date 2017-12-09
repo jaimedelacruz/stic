@@ -470,12 +470,24 @@ double clm::getChi2ParsLineSearch(double *res, double **rf, double &lambda,
 				  double *x, double *xnew, void *mydat, clm_func fx, reg_t &dregul_in, double rchi2)
 {
 
+  /* ---
+     JdlCR:
+     Remember! we need to keep the original "reg" terms before calling getChi2Pars, 
+     because they are used by the LM algorithm to estimate the new step. But 
+     we need to new "reg" terms to compute the new Chi2 after taking the actual step. 
+
+     Solution:
+     Define best_chi2, where we store the new reg term of the best chi2, and make sure
+     that we copy again the original reg terms before calling getChi2Pars into dregul.
+
+     --- */
+  
+  
   /* --- Braket lambda/chi2 --- */
 
   vector<vector<double>> ixnew;
-  vector<reg_t> mreg;
   vector<double> ilamb, ichi, tmp(npar, 0.0);
-  reg_t dregul = dregul_in;
+  reg_t dregul = dregul_in, best_dregul = dregul_in;
   ilamb.push_back(lambda);
   
 
@@ -483,7 +495,6 @@ double clm::getChi2ParsLineSearch(double *res, double **rf, double &lambda,
   /* --- Init chi2 --- */
   
   ichi.push_back(getChi2Pars(res, rf, ilamb[0], x, xnew, mydat, fx, dregul));
-  mreg.push_back(dregul);
   memcpy(&tmp[0],xnew, npar*sizeof(double)), ixnew.push_back(tmp);
   
 
@@ -491,12 +502,14 @@ double clm::getChi2ParsLineSearch(double *res, double **rf, double &lambda,
   
   if(ichi[0] < rchi2){ // Things improved compared to reference chi2, try to go further!
     int kk = 0, iter = 0;
-    while((kk<1) || ((ichi[kk] < ichi[kk-1]) && (iter++ < 4) && (lambda > 1.e-5))){
+    best_dregul.copyReg(dregul.reg);
+    
+    while((kk<1) || ((ichi[kk] < ichi[kk-1]) && (iter++ < 5) && (lambda > 1.e-5))){
       double ilfac = lfac;//(ilamb[kk] > 0.1)? lfac : sqrt(lfac);
       ilamb.push_back(ilamb[kk] / ilfac);
       dregul = dregul_in;
       ichi.push_back(getChi2Pars(res, rf, ilamb[kk+1], x, xnew, mydat, fx, dregul));
-      mreg.push_back(dregul);
+      if(ichi[kk+1] < ichi[kk]) best_dregul.copyReg(dregul.reg);
       
       memcpy(&tmp[0],xnew, npar*sizeof(double)), ixnew.push_back(tmp);
       kk += 1;
@@ -518,7 +531,9 @@ double clm::getChi2ParsLineSearch(double *res, double **rf, double &lambda,
     if(idx == (nn-1)){
       memcpy(xnew, &ixnew[idx][0], npar*sizeof(double));
       lambda = ilamb[idx];
-      dregul.copyReg( mreg[idx].reg);
+
+      dregul_in.copyReg(best_dregul.reg);
+      
       return ichi[idx];
     }
 
@@ -528,13 +543,15 @@ double clm::getChi2ParsLineSearch(double *res, double **rf, double &lambda,
        chi2 with larger lambda values --- */
     
     kk = 0;
-    while(idx == 0 && kk++ <= 4){
+    while(idx == 0 && kk++ <= 5){
       double ilfac = lfac;//(ilamb[0]  >= 0.1)? lfac : sqrt(lfac);
       ilamb.insert(ilamb.begin(), ilamb[0] * ilfac);
       dregul = dregul_in;
       ichi.insert(ichi.begin(), getChi2Pars(res, rf, ilamb[0], x, xnew, mydat, fx, dregul));
-      mreg.push_back(dregul);
+      if(ichi[0] < ichi[1]) best_dregul.copyReg(dregul.reg);
 
+      
+      
       memcpy(&tmp[0],xnew, npar*sizeof(double)), ixnew.insert(ixnew.begin(), tmp);
       
       /* --- Check the index of the smallest chi2 after adding a new element --- */
@@ -566,7 +583,7 @@ double clm::getChi2ParsLineSearch(double *res, double **rf, double &lambda,
 	
 	if(gchi < ichi[idx]){
 	  ichi.push_back(gchi);
-	  mreg.push_back(dregul);
+	  best_dregul.copyReg(dregul.reg);
 	  ilamb.push_back(glamb);
 	  ixnew.push_back(tmp);
 	  idx = (int)ichi.size()-1;
@@ -575,24 +592,18 @@ double clm::getChi2ParsLineSearch(double *res, double **rf, double &lambda,
 	  int dir = -1;
 	  if(glamb < ilamb[idx]) dir = 1;
 	  ichi[idx+dir] = gchi;
-	  mreg[idx+dir] = dregul;
 	  ilamb[idx+dir] = glamb;
 	  ixnew[idx+dir] = tmp;
 	}
       }
     }
     
-    if(0){
-      fprintf(stderr,"[ %f(%e) ", ichi[0], ilamb[0]);
-      for(int ii=1; ii<(int)ichi.size(); ii++) fprintf(stderr,"%f(%e) ",  ichi[ii], mreg[ii].getReg());
-      fprintf(stderr,"] -> %f(%e)\n", ichi[idx], mreg[idx].getReg());
-    }
     
     /* --- Copy best solution to output array --- */
     
     memcpy(xnew, &ixnew[idx][0], npar*sizeof(double));
     lambda = ilamb[idx];
-    dregul_in.copyReg(mreg[idx].reg);
+    dregul_in.copyReg(best_dregul.reg);
     
     return ichi[idx];
     
