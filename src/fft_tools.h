@@ -12,9 +12,12 @@
 #include <cmath>
 #include <algorithm>
 #include <cstring>
+#include <string>
 #include <complex>
 #include <fftw3.h>
 #include <cstdio>
+#include "cfits.h"
+#include "cmemt2.h"
 
 namespace mfft{
   
@@ -71,8 +74,7 @@ namespace mfft{
       //
       for(size_t ii = 0; ii<n1; ii++) ppsf[ii] = (double)psf[ii] * psf_tot;
       std::rotate(&ppsf[0], &ppsf[n1/2], &ppsf[npad]);
-      
-      
+
       
       /* --- init FFT plans and execute FFTW --- */
       
@@ -201,7 +203,7 @@ namespace mfft{
     }
   /* ------------------------------------------------------------------------------- */
     
-    void convolve(size_t n_in, T *d){
+    inline void convolve(size_t n_in, T *d){
       
       if(n_in != n){
 	fprintf(stderr, "error: fftconvol1D::convolve: n_in [%d] != n [%d], not convolving!\n", n_in, n);
@@ -247,7 +249,7 @@ namespace mfft{
 
       /* --- Init output array and map psf to a 2D array --- */
       
-      double **ppsf = mat2d<double>(npy, npx, true);
+      double **ppsf = mat2d<double>(npy, npx, true), **tpsf = mat2d<double>(npx, npy, true);
       T **psf = var2dim<T>(psf_in, ny1, nx1);
       //
       double sum = 0.0;
@@ -258,21 +260,28 @@ namespace mfft{
       
       /* --- copy PSF to padded array and shift it 1/2 of the domain in X and Y --- */
       
-      // size_t xoff = ((nx1/2)*2 == nx1) ? 2 : 2;
-      // size_t yoff = ((ny1/2)*2 == ny1) ? 2 : 2;
+      for(size_t yy=0; yy<ny1; yy++)
+	for(size_t xx=0; xx<nx1; xx++)
+	  ppsf[yy][xx] = (double)psf[yy][xx]*sum;
+
+      /* --- shift psf --- */
       
-      size_t n2 = ny1/2, n22 = npy-n2+2;//yoff;
-      size_t n1 = nx1/2, n11 = npx-n1+2;//xoff;
-      //
-      for(size_t yy=0;yy<n2;yy++){
-	for(size_t xx=0;xx<n1;xx++)   ppsf[n22-n2+yy][n11-n1+xx] = psf[yy][xx] * sum;
-	for(size_t xx=n1;xx<nx1;xx++) ppsf[n22-n2+yy][xx-n1]  = psf[yy][xx] * sum;
+      for(size_t yy=0; yy<npy; yy++){
+	std::rotate(&ppsf[yy][0], &ppsf[yy][nx1/2], &ppsf[yy][npx]);
+	
+	for(size_t xx=0; xx<npx; xx++) tpsf[xx][yy] = ppsf[yy][xx];	  
       }
+
+      /* --- shift the transposed matrix --- */
       
-      for(size_t yy=n2;yy<ny1;yy++){
-	for(size_t xx=0;xx<n1;xx++)   ppsf[yy-n2][n11-n1+xx] = psf[yy][xx] * sum;
-	for(size_t xx=n1;xx<nx1;xx++) ppsf[yy-n2][xx-n1]  = psf[yy][xx] * sum;
+      for(size_t yy=0; yy<npx; yy++){
+	std::rotate(&tpsf[yy][0], &tpsf[yy][ny1/2], &tpsf[yy][npy]);
+	for(size_t xx=0;xx<npy;xx++) ppsf[xx][yy] = tpsf[yy][xx];
+	
       }
+	
+      delete [] tpsf[0];
+      delete [] tpsf;
       
       
       /* --- Clean-up --- */
@@ -293,24 +302,24 @@ namespace mfft{
 	
 	for(size_t xx = 0; xx<nx; xx++)
 	  pad[yy][xx] = (double)img[yy][xx]; // copy image
-	  
 	
-	for(size_t xx = 0; xx<np/2; xx++)
-	  pad[yy][xx+nx] = (double)pad[yy][nx-xx-1]; // bottom right 1/2
-	  
+	for(size_t xx = 0; xx<np/2; xx++){
+	  pad[yy][xx+nx] = pad[yy][nx-xx-1]; // bottom right 1/2
+	}
 	for(size_t xx = np/2; xx<np; xx++)
-	  pad[yy][xx+nx] = (double)pad[yy][np2-xx]; // bottom right 2/2
+	  pad[yy][xx+nx] = pad[yy][np-xx]; // bottom right 2/2
 	
       }
 
       np = npy-ny;
       np2= np-np/2+1;
       //
+
       for(size_t yy=0; yy<np/2; yy++){
 	memcpy(pad[yy+ny], pad[ny-yy-1], npx*sizeof(double));	
       }
       for(size_t yy=np/2; yy<np; yy++) {
-	memcpy(pad[yy+ny], pad[np2-yy], npx*sizeof(double));
+	memcpy(pad[yy+ny], pad[np2-yy+np/2-1], npx*sizeof(double));
       }
             
     }
@@ -484,7 +493,6 @@ namespace mfft{
 	 The padding is done my mirroring the image --- */
       
       pad_image_mirror<T>(ny, nx, img, npy, npx, pad);
-
       
       /* --- Forward FFT --- */
       
@@ -502,11 +510,12 @@ namespace mfft{
 
 
       /* --- Copy in place from padded array --- */
-
+      
       for(size_t yy=0; yy<ny;yy++)
 	for(size_t xx=0;xx<nx;xx++)
 	  img[yy][xx] = pad[yy][xx];
-      
+
+
 
       /* --- Clean-up --- */
 

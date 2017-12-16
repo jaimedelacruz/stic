@@ -311,8 +311,8 @@ clm::clm(int ind, int inpar){
   xtol = 1.e-5;       // Controls the minimum relative change to Chi2
   chi2_thres = 1.0;   // Exit inversion if Chi2 is lower than this
   svd_thres = 1.e-13; // Cut-off "relative" thres. for small singular values
-  lmax = 1.0e4;       // Maximum lambda value
-  lmin = 1.0e-4;      // Minimum lambda value
+  lmax = 1.0e5;       // Maximum lambda value
+  lmin = 1.0e-5;      // Minimum lambda value
   lfac = 10.0;         // Change lambda by this amount
   ilambda = 1.0;      // Initial damping parameter for the Hessian giag.
   maxreject = 7;      // Max failed evaluations of lambda.
@@ -437,7 +437,7 @@ double clm::getChi2Pars(double *res, double **rf, double lambda,
   /* --- Get new estimate of the model for the current lambda value --- */
   
   memset(xnew, 0, sizeof(double)*npar);
-  compute_trial3(res, rf, lambda, x, xnew, dregul);
+  compute_trial3(res, rf, lambda, x, xnew, dregul, mydat, fx);
 
 
   /* --- Evaluate the new model, no response function is needed --- */
@@ -466,6 +466,43 @@ double clm::getChi2Pars(double *res, double **rf, double lambda,
 
 /* -------------------------------------------------------------------------------- */
 
+inline int MYinsert(std::vector<double> &x, std::vector<double> &y, double xx, double yy)
+{
+
+  size_t nn = x.size() + 1;
+  std::vector<double> tx(nn,0.0), ty(nn,0.0);
+  int kk = 0, idx = 0;
+  
+  if(xx > x[0]){
+    tx[kk] = xx, ty[kk++] = yy;
+    tx[kk] = x[0], ty[kk++] = y[0];
+  }else{
+    tx[kk] = x[0], ty[kk++] = y[0];
+  }
+  
+  for(size_t ii=1;ii<(nn-1) ; ii++){
+    
+    if((xx < x[ii-1]) && (xx >= x[ii])){
+      tx[kk] = xx, ty[kk++] = yy;
+      tx[kk] = x[ii], ty[kk++] = y[ii];
+    }else{
+      tx[kk] = x[ii], ty[kk++] = y[ii];
+    }
+    
+  }
+
+  for(size_t ii=1;ii<nn;ii++)
+    if(ty[ii] < ty[ii-1]) idx = (int)ii;
+
+  x = tx, y = ty;
+  //for(size_t ii=0;ii<nn;ii++) fprintf(stderr,"%f ", tx[ii]);
+  //cerr<<idx<<endl;
+
+  return idx;
+}
+
+/* -------------------------------------------------------------------------------- */
+
 double clm::getChi2ParsLineSearch(double *res, double **rf, double &lambda,
 				  double *x, double *xnew, void *mydat, clm_func fx, reg_t &dregul_in, double rchi2)
 {
@@ -485,8 +522,7 @@ double clm::getChi2ParsLineSearch(double *res, double **rf, double &lambda,
   
   /* --- Braket lambda/chi2 --- */
 
-  vector<vector<double>> ixnew;
-  vector<double> ilamb, ichi, tmp(npar, 0.0);
+  vector<double> ilamb, ichi, tmp(npar, 0.0), bx(npar, 0.0);
   reg_t dregul = dregul_in, best_dregul = dregul_in;
   ilamb.push_back(lambda);
   
@@ -494,8 +530,8 @@ double clm::getChi2ParsLineSearch(double *res, double **rf, double &lambda,
   
   /* --- Init chi2 --- */
   
-  ichi.push_back(getChi2Pars(res, rf, ilamb[0], x, xnew, mydat, fx, dregul));
-  memcpy(&tmp[0],xnew, npar*sizeof(double)), ixnew.push_back(tmp);
+  ichi.push_back(getChi2Pars(res, rf, ilamb[0], x, &tmp[0], mydat, fx, dregul));
+  bx = tmp;
   
 
   /* --- Can we take larger steps if Chi2 was ok? --- */
@@ -504,14 +540,17 @@ double clm::getChi2ParsLineSearch(double *res, double **rf, double &lambda,
     int kk = 0, iter = 0;
     best_dregul.copyReg(dregul.reg);
     
-    while((kk<1) || ((ichi[kk] < ichi[kk-1]) && (iter++ < 5) && (lambda > 1.e-5))){
+    while((kk<1) || ((ichi[kk] < ichi[kk-1]) && (iter++ < 8) && (lambda > lmin))){
       double ilfac = lfac;//(ilamb[kk] > 0.1)? lfac : sqrt(lfac);
       ilamb.push_back(ilamb[kk] / ilfac);
       dregul = dregul_in;
-      ichi.push_back(getChi2Pars(res, rf, ilamb[kk+1], x, xnew, mydat, fx, dregul));
-      if(ichi[kk+1] < ichi[kk]) best_dregul.copyReg(dregul.reg);
-      
-      memcpy(&tmp[0],xnew, npar*sizeof(double)), ixnew.push_back(tmp);
+      ichi.push_back(getChi2Pars(res, rf, ilamb[kk+1], x, &tmp[0], mydat, fx, dregul));
+
+      if(ichi[kk+1] < ichi[kk]){
+	best_dregul.copyReg(dregul.reg);
+	bx = tmp;
+      }
+
       kk += 1;
     }
 
@@ -529,7 +568,7 @@ double clm::getChi2ParsLineSearch(double *res, double **rf, double &lambda,
        just return the best we have --- */
     
     if(idx == (nn-1)){
-      memcpy(xnew, &ixnew[idx][0], npar*sizeof(double));
+      memcpy(xnew, &bx[0], npar*sizeof(double));
       lambda = ilamb[idx];
 
       dregul_in.copyReg(best_dregul.reg);
@@ -543,16 +582,18 @@ double clm::getChi2ParsLineSearch(double *res, double **rf, double &lambda,
        chi2 with larger lambda values --- */
     
     kk = 0;
-    while(idx == 0 && kk++ <= 5){
+    while((idx == 0) && (kk++ <= 5) && (ilamb[0] < lmax)){
       double ilfac = lfac;//(ilamb[0]  >= 0.1)? lfac : sqrt(lfac);
       ilamb.insert(ilamb.begin(), ilamb[0] * ilfac);
       dregul = dregul_in;
-      ichi.insert(ichi.begin(), getChi2Pars(res, rf, ilamb[0], x, xnew, mydat, fx, dregul));
-      if(ichi[0] < ichi[1]) best_dregul.copyReg(dregul.reg);
-
+      ichi.insert(ichi.begin(), getChi2Pars(res, rf, ilamb[0], x, &tmp[0], mydat, fx, dregul));
+      
+      if(ichi[0] < ichi[1]){
+	best_dregul.copyReg(dregul.reg);
+	bx = tmp;
+      }
       
       
-      memcpy(&tmp[0],xnew, npar*sizeof(double)), ixnew.insert(ixnew.begin(), tmp);
       
       /* --- Check the index of the smallest chi2 after adding a new element --- */
       
@@ -572,36 +613,41 @@ double clm::getChi2ParsLineSearch(double *res, double **rf, double &lambda,
        --- */
     
     if(idx != 0){
-      for(int ii=0; ii<3; ii++){
-	vector<double> cc = parab_fit<double>(log(ilamb[idx-1]), log(ilamb[idx]),
-					      log(ilamb[idx+1]), (ichi[idx-1]), (ichi[idx]),
-					      (ichi[idx+1]));
+      for(int ii=0; ii<2; ii++){
+	
+	int idxu = idx-1, idx0 = idx, idxd = idx+1;
+	if(idx0 == 0) idxd+=1, idx0 += 1, idxu += 1;
+	if(idx0 == int(ilamb.size()-1)) idxd -= 1, idx0 -= 1, idxu -= 1;
+	
+	vector<double> cc = parab_fit<double>(log(ilamb[idxu]), log(ilamb[idx0]),log(ilamb[idxd]),
+					          (ichi[idxu]),     (ichi[idx0]),    (ichi[idxd]));
 	
 	double glamb = exp(-0.5 * cc[1]/cc[2]);
 	dregul = dregul_in;
 	double gchi  = getChi2Pars(res, rf, glamb, x, &tmp[0], mydat, fx, dregul);
 	
-	if(gchi < ichi[idx]){
-	  ichi.push_back(gchi);
+
+	//fprintf(stderr,"%e(%e) %e(%e), %e(%e) -> %e(%e)\n", ilamb[idx-1], ichi[idx-1],ilamb[idx], ichi[idx],ilamb[idx+1], ichi[idx+1], glamb, gchi);
+	
+	/* --- Insert new values in arrays so we can re-fit the parabola --- */
+	
+	double ochi = ichi[idx];
+	idx = MYinsert(ilamb, ichi, glamb, gchi);
+	
+	if(gchi < ochi){
 	  best_dregul.copyReg(dregul.reg);
-	  ilamb.push_back(glamb);
-	  ixnew.push_back(tmp);
-	  idx = (int)ichi.size()-1;
-	  break;
-	}else{ // Braket one more time with this new value
-	  int dir = -1;
-	  if(glamb < ilamb[idx]) dir = 1;
-	  ichi[idx+dir] = gchi;
-	  ilamb[idx+dir] = glamb;
-	  ixnew[idx+dir] = tmp;
+	  bx = tmp;
+	  break; // if we already got a better value, then exit
 	}
+
+	
       }
     }
     
     
     /* --- Copy best solution to output array --- */
     
-    memcpy(xnew, &ixnew[idx][0], npar*sizeof(double));
+    memcpy(xnew, &bx[0], npar*sizeof(double));
     lambda = ilamb[idx];
     dregul_in.copyReg(best_dregul.reg);
     
@@ -730,7 +776,7 @@ double clm::fitdata(clm_func fx, double *x, void *mydat, int maxiter, reg_t &dre
       
       lambda *= lfac; // Helps to braket the solution
       if(lambda <= 1.e-3) lambda = 1.e-1;
-      if(lambda >= 1.e5) lambda = 1e4;
+      if(lambda >= 1.e5) lambda = 1e3;
       
       /* --- is the improvements below our threshold? --- */
 
@@ -791,7 +837,7 @@ double clm::fitdata(clm_func fx, double *x, void *mydat, int maxiter, reg_t &dre
 
     if(verb)
       fprintf(stderr,"[p:%4d,i:%4d] chi2=%14.5f (%f, %f), dchi2=%e, lambda=%e, elapsed=%5.3fs %s\n",
-	      proc,iter, rchi2, reg ,regul_scal,chi2-ochi2, olambda, t1-t0,rej.c_str());
+	      proc,iter, rchi2, reg ,chi2, chi2-ochi2, olambda, t1-t0,rej.c_str());
     
     ochi2 = chi2;
 
@@ -867,11 +913,89 @@ double clm::fitdata(clm_func fx, double *x, void *mydat, int maxiter, reg_t &dre
   return (double)bestchi2;//orchi2 + dregul.getReg(); 
 }
 
+/* -------------------------------------------------------------------------------- */
+
+void clm::geoAcceleration(double *x, double *dx, double h,
+			  MatrixXd &Ap, MatrixXd &LL,
+			  double *res, void *mydat, reg_t &dregul, double **rf, clm_func fx, double lam)
+{
+
+  /* ----
+     Low curvature acceleration by Mark K. Transtrum, James P. Sethna (2012)
+     https://arxiv.org/abs/1201.5885
+
+     --- */
+  
+  /* --- Get the residual for x + h*dx --- */
+
+  double hh = h*h;
+  int npen = dregul.nreg;
+  Map<VectorXd> V(dx, npar);
+  
+  VectorXd acu(npar), acd(npar), dresu(nd), dresd(nd), B(npar), dpen(npen); B.Zero(npar);
+  bool regme = dregul.to_reg;
+
+  
+  for(int ii=0;ii<npar;ii++){
+    acu[ii] = x[ii] + h * dx[ii];
+    acd[ii] = x[ii] - h * dx[ii];
+  }
+
+  /* --- Get the residue --- */
+
+  reg_t udregul = dregul, ddregul = dregul;
+  
+  int status = fx(npar, nd, &acu[0], &dresu[0], NULL, mydat, udregul, false);
+      status = fx(npar, nd, &acd[0], &dresd[0], NULL, mydat, ddregul, false);
+      
+  
+  /* --- Now we have to build up the acceleration term --- */
+
+  for(int ii=0;ii<nd;ii++) dresu[ii] = (dresu[ii] - 2.0*res[ii] + dresd[ii]) / hh;
+  
+  if(regme )
+    for(int ii=0;ii<npen;ii++)
+      dpen[ii] = (udregul.reg[ii] - 2.0 * dregul.reg[ii] + ddregul.reg[ii]) / hh;
+
+  for(int yy=0;yy<npar;yy++){
+
+    if(regme ){
+      for(int xx=0;xx<npen;xx++)
+	B[yy] -= dregul.dreg[xx][yy] * dpen[xx];
+    }
+
+    for(int xx = 0; xx<nd; xx++) B[yy] += rf[yy][xx] * dresu[xx];
+
+    
+    if(regme) for(int xx =0; xx<npar; xx++) Ap(yy,xx) += LL(yy,xx);
+    Ap(yy,yy) += Ap(yy,yy)*std::max(lam,10.);
+  }
+  
+   /* --- 
+     Solve linear system with SVD decomposition and singular value thresholding.
+     The SVD is computed with Eigen3 instead of LaPack.
+     --- */
+  JacobiSVD<MatrixXd,ColPivHouseholderQRPreconditioner> svd(Ap, ComputeThinU | ComputeThinV);
+  svd.setThreshold(5.e-3);
+
+  VectorXd RES = svd.solve(B);
+  scaleParameters(&RES[0]);
+
+  
+  double ratio = 2.0*(RES.norm() / V.norm());
+  if(ratio <= 1.0) V += 0.5*RES;
+  cerr<<ratio<<endl;
+  
+  checkMaxChange(dx, x);
+
+
+  
+}
 
 /* -------------------------------------------------------------------------------- */
 
 void clm::compute_trial3(double *res, double **rf, double lambda,
-			 double *x, double *xnew, reg_t &dregul)
+			 double *x, double *xnew, reg_t &dregul, void *mydat, clm_func fx)
 {
 
   /* --- 
@@ -883,14 +1007,14 @@ void clm::compute_trial3(double *res, double **rf, double lambda,
   
   /* --- Init Eigen-3 arrays --- */
   
-  MatrixXd A(npar, npar); A.Zero(npar, npar);
+  MatrixXd A(npar, npar), LL(npar,npar), Ap(npar,npar); A.Zero(npar, npar), LL.Zero(npar,npar);
   VectorXd B(npar); B.Zero(npar);
   Map<VectorXd> RES(xnew, npar);
   int npen = dregul.nreg;
   
   /* --- other arrays and constants --- */
 
-  double **LL = mat2d(npar,npar), *tmp1 = new double [npen]();
+  double *tmp1 = new double [npen]();
   double ww[npar], wt[npar], wi[npar][2];
   
   /* --- 
@@ -926,13 +1050,12 @@ void clm::compute_trial3(double *res, double **rf, double lambda,
        --- */
 
     for(int yy = 0; yy<npar; yy++){
-
       for(int xx = 0; xx<npar; xx++){
 	
 	for(int jj=0; jj<npen; jj++)
 	  tmp1[jj] = dregul.dreg[jj][xx] * dregul.dreg[jj][yy]; // L.t # L = L # L.t
 	
-	LL[yy][xx] = sumarr(tmp1, npen);
+	LL(yy,xx) = sumarr(tmp1, npen);
 
       }//xx
       for(int jj=0;jj<npen; jj++)
@@ -941,23 +1064,6 @@ void clm::compute_trial3(double *res, double **rf, double lambda,
       B[yy]  = - sumarr(tmp1, npen);    
     }//yy
   }
-
-  
-  // Totally splitting the function in vectors and not using dreg as a matrix
-  
-  if(dregul.to_reg && false ){
-    for(int jj = 0; jj<npen; jj++)
-      for(int yy = 0; yy<npar; yy++){
-	
-	for(int xx = 0; xx<npar; xx++) LL[yy][xx] += dregul.dreg[jj][xx] * dregul.dreg[jj][yy];
-     
-	B[yy] -=  dregul.dreg[jj][yy] * dregul.reg[jj];     
-      }//yy
-  }
-  
-
-  
-  //cerr<<endl;
   
   for(int yy = 0; yy<npar; yy++){
 
@@ -967,7 +1073,7 @@ void clm::compute_trial3(double *res, double **rf, double lambda,
     for(int xx = 0; xx<=yy; xx++){
       for(int ww = 0; ww<nd; ww++) tmp[ww] = rf[yy][ww] * rf[xx][ww];
       
-      A(yy,xx) = A(xx,yy) = sumarr_4(&tmp[0], nd); // Remember that A is symmetric!
+      A(yy,xx) = A(xx,yy) = Ap(yy,xx) = Ap(xx,yy) = sumarr_4(&tmp[0], nd); // Remember that A is symmetric!
 
     } // xx
 
@@ -976,7 +1082,7 @@ void clm::compute_trial3(double *res, double **rf, double lambda,
 
     if(dregul.to_reg){
       for(int xx=0;xx<npar;xx++)
-	A(yy,xx) += LL[yy][xx];
+	A(yy,xx) += LL(yy,xx);
     } 
     
     
@@ -1005,7 +1111,6 @@ void clm::compute_trial3(double *res, double **rf, double lambda,
     
   } // yy
 
-  del_mat(LL);
   delete [] tmp1;
   
   /* --- 
@@ -1018,6 +1123,9 @@ void clm::compute_trial3(double *res, double **rf, double lambda,
 
   
   if(nvar > 1){
+
+    /* --- Use decomposition of parameters as SIR --- */
+    
     MatrixXd U = svd.matrixU(), V = svd.matrixV();
     VectorXd W = svd.singularValues();
 
@@ -1030,7 +1138,6 @@ void clm::compute_trial3(double *res, double **rf, double lambda,
 
       for(int nn=0;nn<nvar;nn++){
 	memset( wt,0,npar*sizeof(double));
-
 	
 	/* --- Get submatrix --- */
 	
@@ -1084,6 +1191,9 @@ void clm::compute_trial3(double *res, double **rf, double lambda,
   }
   //double relative_error = (A*RES - B).norm() / B.norm();
   //fprintf(stderr,"The relative error is: %e\n", relative_error);
+
+
+  
   
   /* --- 
      New estimate of the parameters, xnew = x + dx.
@@ -1092,6 +1202,13 @@ void clm::compute_trial3(double *res, double **rf, double lambda,
   
   scaleParameters(xnew);
   checkMaxChange(xnew, x);
+
+  /* --- Use low curvature acceleration? (testing!) --- */
+  
+  if(use_geo_accel > 0){
+    geoAcceleration(x, xnew, 0.065, Ap, LL, res, mydat, dregul, rf, fx, lambda);
+  }
+  
   
   for(int ii = 0; ii<npar; ii++) xnew[ii] += x[ii];
 

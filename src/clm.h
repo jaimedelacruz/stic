@@ -107,7 +107,7 @@ class clm{
   std::vector<std::vector<unsigned>> pidx;
   bool verb, regularize, first;
   double xtol, chi2_thres, svd_thres, lfac, lmax, lmin, ilambda, regul_scal, regul_scal_in, reset_par;
-  int maxreject, proc, nvar;
+  int maxreject, proc, nvar, use_geo_accel;
 
   
   /* --- Constructor / Destructor --- */
@@ -133,7 +133,7 @@ class clm{
   //  void compute_trial3(double *res, double **rf, double lambda,
   //	      double *x, double *xnew);
   void compute_trial3(double *res, double **rf, double lambda,
-		      double *x, double *xnew, reg_t &regul);
+		      double *x, double *xnew, reg_t &regul, void *mydat, clm_func fx);
   //void backsub(double **u, double *w, double **v, int n,
   //	       double *b, double *x);
   void scaleRF(double **rf);
@@ -141,6 +141,9 @@ class clm{
   void zero(double *res, double **rf);
   void getParTypes();
   void backSub(int n, Eigen::MatrixXd &u, Eigen::VectorXd &w, Eigen::MatrixXd &v,  double *b);
+  void geoAcceleration(double *x, double *dx, double h, Eigen::MatrixXd &A, Eigen::MatrixXd &LL,
+		       double *res, void *mydat, reg_t &dregul, double **rf, clm_func fx, double lam);
+
 
   double getTime(double t0 = -1.0){
     struct timeval dum;

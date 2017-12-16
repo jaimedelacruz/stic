@@ -103,6 +103,7 @@ iput_t read_input(std::string filename, bool verbose){
   input.random_first = 0;
   input.depth_model = 0;
   input.tcut = 100000.0;
+  input.use_geo_accel = 0;
   
   memset(input.nodes.regul_type, 0, 6*sizeof(int));
   
@@ -157,6 +158,10 @@ iput_t read_input(std::string filename, bool verbose){
       }
       else if(key == "mpi_pack"){
 	input.npack = atoi(field.c_str());
+	set = true;
+      }
+      else if(key == "use_geo_accel"){
+	input.use_geo_accel = atoi(field.c_str());
 	set = true;
       }
       else if(key == "depth_model"){
