@@ -185,11 +185,10 @@ void atmos::responseFunction(int npar, mdepth_t &m_in, double *pars, int nd, dou
       
     synth(m, &out[0], (cprof_solver)input.solver, store_pops);
     
-    
     /* --- Finite differences ---*/
     
     for(int ii = 0; ii<nd; ii++)
-      out[ii]  =  (out[ii] - syn[ii]) / pertu;
+      out[ii]  =  (out[ii] - syn[ii]) /  pertu;
   }
   
   
@@ -530,9 +529,9 @@ void getDregul2(double *m, int npar, reg_t &dregul, nodes_t &n)
     /* --- Penalize deviations from 1.0 --- */
 
     off = (int)n.pgas_off;
-    double tmp = (m[off] - 1.0);
-    dregul.reg[off] = tmp * sqrt(weights[6]*dregul.scl);
-    dregul.dreg[off][off] = weights[6]*dregul.scl * tmp;
+    double tmp = (m[off] - 0.1); // the normalization function is 10.
+    dregul.reg[roff] = tmp * sqrt(weights[6]*dregul.scl);
+    dregul.dreg[roff][off] = weights[6]*dregul.scl * tmp;
     roff++;
   }
 
@@ -621,6 +620,7 @@ int getChi2(int npar1, int nd, double *pars1, double *dev, double **derivs, void
 		
 	for(int ii = 0; ii<nd; ii++)
 	  derivs[pp][ii] *= (atm.scal[pp] / atm.w[ii]);
+	  //derivs[pp][ii]  /= atm.w[ii];
 	
       }
     }    
@@ -761,7 +761,7 @@ double atmos::fitModel2(mdepth_t &m, int npar, double *pars, int nobs, double *o
   lm.chi2_thres = input.chi2_thres;
   lm.lmax = 1.e5;
   lm.lmin = 1.e-5;
-  lm.lfac = 4.0;//sqrt(10.0);
+  lm.lfac = sqrt(10.0);
   lm.proc = input.myrank;
   if(input.regularize >= 1.e-5){
     lm.regularize = true;

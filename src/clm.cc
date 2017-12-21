@@ -313,13 +313,13 @@ clm::clm(int ind, int inpar){
   svd_thres = 1.e-13; // Cut-off "relative" thres. for small singular values
   lmax = 1.0e5;       // Maximum lambda value
   lmin = 1.0e-5;      // Minimum lambda value
-  lfac = 10.0;         // Change lambda by this amount
+  lfac = 10.0;        // Change lambda by this amount
   ilambda = 1.0;      // Initial damping parameter for the Hessian giag.
   maxreject = 7;      // Max failed evaluations of lambda.
-  error = false;
+  error = false;      //
   regularize = false; // Compute regularization terms in fx ?
   regul_scal = 1.0;   // scale factor for regularization terms
-  regul_scal_in = 0.0;   // scale factor for regularization terms input
+  regul_scal_in = 0.0;// scale factor for regularization terms input
   proc = 0;           // print-out processor number
   reset_par = false;  // If true, use perturbation approach
 }
@@ -540,7 +540,7 @@ double clm::getChi2ParsLineSearch(double *res, double **rf, double &lambda,
     int kk = 0, iter = 0;
     best_dregul.copyReg(dregul.reg);
     
-    while((kk<1) || ((ichi[kk] < ichi[kk-1]) && (iter++ < 8) && (lambda > lmin))){
+    while((kk<1) || ((ichi[kk] < ichi[kk-1]) && (iter++ < 8))){
       double ilfac = lfac;//(ilamb[kk] > 0.1)? lfac : sqrt(lfac);
       ilamb.push_back(ilamb[kk] / ilfac);
       dregul = dregul_in;
@@ -933,7 +933,7 @@ void clm::geoAcceleration(double *x, double *dx, double h,
   Map<VectorXd> V(dx, npar);
   
   VectorXd acu(npar), acd(npar), dresu(nd), dresd(nd), B(npar), dpen(npen); B.Zero(npar);
-  bool regme = dregul.to_reg;
+  bool regme = false;//dregul.to_reg;
 
   
   for(int ii=0;ii<npar;ii++){
@@ -968,7 +968,7 @@ void clm::geoAcceleration(double *x, double *dx, double h,
 
     
     if(regme) for(int xx =0; xx<npar; xx++) Ap(yy,xx) += LL(yy,xx);
-    Ap(yy,yy) += Ap(yy,yy)*std::max(lam,10.);
+    Ap(yy,yy) += Ap(yy,yy)*std::max(lam,15.);
   }
   
    /* --- 
@@ -1007,7 +1007,7 @@ void clm::compute_trial3(double *res, double **rf, double lambda,
   
   /* --- Init Eigen-3 arrays --- */
   
-  MatrixXd A(npar, npar), LL(npar,npar), Ap(npar,npar); A.Zero(npar, npar), LL.Zero(npar,npar);
+  MatrixXd A(npar, npar), LL(npar,npar), Ap(npar,npar); A.Zero(npar, npar), LL.Zero(npar,npar), Ap.Zero(npar,npar);
   VectorXd B(npar); B.Zero(npar);
   Map<VectorXd> RES(xnew, npar);
   int npen = dregul.nreg;
@@ -1015,7 +1015,6 @@ void clm::compute_trial3(double *res, double **rf, double lambda,
   /* --- other arrays and constants --- */
 
   double *tmp1 = new double [npen]();
-  double ww[npar], wt[npar], wi[npar][2];
   
   /* --- 
      compute the Hessian matrix and the right-hand side of eq.: 
@@ -1038,7 +1037,7 @@ void clm::compute_trial3(double *res, double **rf, double lambda,
      --- */
 
   
-  if(dregul.to_reg && true){
+  if(dregul.to_reg){
     /* --- 
        Compensate linear system with regularization terms:
        
@@ -1092,8 +1091,8 @@ void clm::compute_trial3(double *res, double **rf, double lambda,
        by this value than the current estimate.
        --- */
     
-    //diag[yy] = max(A(yy,yy), diag[yy]*0.6);
-    //double idia = diag[yy];
+    diag[yy] = std::max(A(yy,yy), diag[yy]*0.6);
+    double idia = diag[yy];
 
 
     
@@ -1125,7 +1124,8 @@ void clm::compute_trial3(double *res, double **rf, double lambda,
   if(nvar > 1){
 
     /* --- Use decomposition of parameters as SIR --- */
-    
+    double ww[npar], wt[npar], wi[npar][2];
+
     MatrixXd U = svd.matrixU(), V = svd.matrixV();
     VectorXd W = svd.singularValues();
 
@@ -1200,7 +1200,7 @@ void clm::compute_trial3(double *res, double **rf, double lambda,
      Check for maximum change, add to current pars and normalize.
      --- */
   
-  scaleParameters(xnew);
+  //scaleParameters(xnew);
   checkMaxChange(xnew, x);
 
   /* --- Use low curvature acceleration? (testing!) --- */
