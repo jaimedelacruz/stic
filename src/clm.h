@@ -129,7 +129,7 @@ class clm{
 		     double *x, double *xnew, void *mydat, clm_func fx, reg_t &regul);
   double getChi2ParsLineSearch(double *res, double **rf, double &lambda,
 			       double *x, double *xnew, void *mydat,
-			       clm_func fx, reg_t &regul, double rchi2);
+			       clm_func fx, reg_t &regul, double rchi2, bool braket = true);
   //  void compute_trial3(double *res, double **rf, double lambda,
   //	      double *x, double *xnew);
   void compute_trial3(double *res, double **rf, double lambda,

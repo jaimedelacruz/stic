@@ -89,7 +89,7 @@ void atmos::responseFunction(int npar, mdepth_t &m_in, double *pars, int nd, dou
     
     /* --- Up and down perturbations --- */
     double up = pertu * 0.5;
-    double down = - pertu * 0.5;
+    double down = -0.5 * pertu;
 
     
     /* --- Init temporary vars for storing spectra --- */
@@ -261,17 +261,21 @@ int const_dregul(int n, double *ltau, double *var, double weight, double **dreg,
      are summed.
      --- */  
   
-  double c = sqrt(weight / double(n)), dtau = 7.0;
-  
+  double c = sqrt(weight / double(n));
+  double dtau = 1.0, ttau = ((n>1)?fabs(ltau[n-1] - ltau[0]):1.0);
+
   for(int yy=0;yy<n; yy++){
 
-    if((yy == 0) && (n > 1)) dtau = fabs(ltau[0] - ltau[1]);
-    else if((yy > 0) && (yy < (n-1)) && (n > 1)) dtau = fabs(ltau[yy+1] - ltau[yy-1])*0.5;
-    else if((yy == (n-1)) && (n > 1)) dtau = fabs(ltau[yy] - ltau[yy-1]);
+    /*
+    if((yy == 0) && (n > 1)) dtau = fabs(ltau[0] - ltau[1])/ttau;
+    else if((yy > 0) && (yy < (n-1)) && (n > 1)) dtau = fabs(ltau[yy+1] - ltau[yy-1])*0.5/ttau;
+    else if((yy == (n-1)) && (n > 1)) dtau = fabs(ltau[yy] - ltau[yy-1])/ttau;
+    */
+    dtau = 1.0;
     double tmp = c*(var[yy] - m) / dtau;
-    
+
     reg[roff+yy] = tmp;
-    dreg[roff+yy][off+yy] = c*tmp / dtau;
+    dreg[roff+yy][off+yy] = c / dtau;
   }
   return n;
 }
@@ -304,23 +308,26 @@ int mean_dregul(int n, double *ltau, double *var, double weight, double **dreg, 
     return 1;
   }
 
-  
-  double dn = double(n);
+  double ttau = fabs(ltau[n-1] - ltau[0]);
+  double dn = double(n), idn = 1.0/dn;
   double c = sqrt(weight / dn);
   double me = mth::mean(n, var), dtau = 7.0;
     
   for(int yy=0;yy<n; yy++){
 
-    if((yy == 0) && (n > 1)) dtau = fabs(ltau[0] - ltau[1]);
-    else if((yy > 0) && (yy < (n-1)) && (n > 1)) dtau = fabs(ltau[yy+1] - ltau[yy-1])*0.5;
-    else if((yy == (n-1)) && (n > 1)) dtau = fabs(ltau[yy] - ltau[yy-1]);
+    /*
+    if((yy == 0) && (n > 1)) dtau = fabs(ltau[0] - ltau[1]) / ttau;
+    else if((yy > 0) && (yy < (n-1)) && (n > 1)) dtau = fabs((ltau[yy+1] - ltau[yy-1]) / ttau) * 0.5;
+    else if((yy == (n-1)) && (n > 1)) dtau = fabs(ltau[yy] - ltau[yy-1]) / ttau;
+    */
     
+    dtau = 1.0;
     double tmp = c*(var[yy] - me) / dtau;
     reg[roff+yy] = tmp;
 
     for(int xx=0; xx<n; xx++){
       double c1 = ((xx==yy)? 1.0 : 0.0);
-      dreg[roff+yy][off+xx] = c * tmp * (c1 - (1./dn)) / dtau;
+      dreg[roff+yy][off+xx] = c * (c1 - idn) / dtau;
     }
   }
   return n;
@@ -347,16 +354,17 @@ int tikhonov1_dregul(int n, double *ltau, double *var, double weight, double **d
 
   //reg[off+0] = 0.0;
   //dreg[off+0][off+0] = 0.0; // If penalty is zero, then the derivative must be zero
-
+  
+  double ttau = fabs(ltau[n-1] - ltau[0]);
   for(int yy = 1; yy<n; yy++){
 
     /* --- 2 terms around the diagonal of J --- */
     
-    double dtau = fabs(ltau[yy] - ltau[yy-1]);
+    double dtau = 1.0;//fabs(ltau[yy] - ltau[yy-1]) / ttau;
     double tmp = (var[yy] - var[yy-1]) / dtau;
     
     reg[yy-1+roff] = c_sqrt * tmp;
-    dreg[yy-1+roff][yy+off] = c * tmp / dtau;
+    dreg[yy-1+roff][yy+off] = c_sqrt / dtau;
     dreg[yy-1+roff][yy-1+off] = - dreg[yy-1+roff][yy+off];
   }
   return n-1;
@@ -366,8 +374,7 @@ int tikhonov1_dregul(int n, double *ltau, double *var, double weight, double **d
 
 void getDregul2(double *m, int npar, reg_t &dregul, nodes_t &n)
 {
-  //const double weights[7] = {0.001, 7.0, 2.0, 1.0, 1.0, 1.0, 1.5};
-  const double weights[7] = {0.01, 12.0, 12.0, 10.0, 10.0,10.0,10.0};
+  const double weights[7] = {0.0012, 1.0, 1.5, 0.6, 0.6,0.6,20.0};
 
   double  *ltau = NULL, we = 0.0;
   nodes_type_t ntype = none_node;
@@ -531,7 +538,7 @@ void getDregul2(double *m, int npar, reg_t &dregul, nodes_t &n)
     off = (int)n.pgas_off;
     double tmp = (m[off] - 0.1); // the normalization function is 10.
     dregul.reg[roff] = tmp * sqrt(weights[6]*dregul.scl);
-    dregul.dreg[roff][off] = weights[6]*dregul.scl * tmp;
+    dregul.dreg[roff][off] = sqrt(weights[6]*dregul.scl);
     roff++;
   }
 

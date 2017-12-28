@@ -52,6 +52,7 @@
 #include <eigen3/Eigen/SVD>
 #include "clm.h"
 #include "interpol.h"
+#include "math_tools.h"
 
 using namespace std;
 using namespace Eigen;
@@ -504,7 +505,8 @@ inline int MYinsert(std::vector<double> &x, std::vector<double> &y, double xx, d
 /* -------------------------------------------------------------------------------- */
 
 double clm::getChi2ParsLineSearch(double *res, double **rf, double &lambda,
-				  double *x, double *xnew, void *mydat, clm_func fx, reg_t &dregul_in, double rchi2)
+				  double *x, double *xnew, void *mydat, clm_func fx,
+				  reg_t &dregul_in, double rchi2, bool braket)
 {
 
   /* ---
@@ -518,6 +520,16 @@ double clm::getChi2ParsLineSearch(double *res, double **rf, double &lambda,
      that we copy again the original reg terms before calling getChi2Pars into dregul.
 
      --- */
+  
+  /* --- If traditional LM iteration, without braketing --- */
+
+  if(!braket){
+    reg_t dregul = dregul_in;
+    double chi2 = getChi2Pars(res, rf, lambda, x, xnew, mydat, fx, dregul);
+    dregul_in.copyReg(dregul.reg);
+    return chi2;
+  }
+  
   
   
   /* --- Braket lambda/chi2 --- */
@@ -540,7 +552,7 @@ double clm::getChi2ParsLineSearch(double *res, double **rf, double &lambda,
     int kk = 0, iter = 0;
     best_dregul.copyReg(dregul.reg);
     
-    while((kk<1) || ((ichi[kk] < ichi[kk-1]) && (iter++ < 8))){
+    while(((kk<1) || ((ichi[kk] < ichi[kk-1]) && (iter++ < 8))) && (ilamb[kk] > lmin)){
       double ilfac = lfac;//(ilamb[kk] > 0.1)? lfac : sqrt(lfac);
       ilamb.push_back(ilamb[kk] / ilfac);
       dregul = dregul_in;
@@ -682,7 +694,8 @@ double clm::fitdata(clm_func fx, double *x, void *mydat, int maxiter, reg_t &dre
   /* --- Init variables --- */
 
   regul_scal = regul_scal_in;
-
+  int n_bracket = 0;
+  
   if(reset_par) memset(x, 0, npar*sizeof(double));
   
   getParTypes();
@@ -749,8 +762,11 @@ double clm::fitdata(clm_func fx, double *x, void *mydat, int maxiter, reg_t &dre
        The new parameters are already checked for limits and too large corrections 
        inside getChi2Pars 
        --- */
+    bool braket = true;
+    if(iter < n_bracket) braket = false;
+    
     if(error) break;
-    chi2 = getChi2ParsLineSearch(res, rf, lambda, x, xnew, mydat, fx, dregul, bestchi2);
+    chi2 = getChi2ParsLineSearch(res, rf, lambda, x, xnew, mydat, fx, dregul, bestchi2, braket);
     reg = dregul.getReg();
     rchi2 = chi2 - reg;
 	
@@ -770,13 +786,18 @@ double clm::fitdata(clm_func fx, double *x, void *mydat, int maxiter, reg_t &dre
       /* --- Prep lambda for next iter. If we have been increasing lambda,
 	 do not decrease it again until next iteration 
 	 --- */
+
+      if(!braket)
+	lambda = checkLambda(lambda/lfac);
+      else
+	lambda *= lfac*0.5;
       
       //double ilfac = (lambda > 0.1)? lfac : sqrt(lfac);
       //if(nretry == 0 || lambda >= 1.0) lambda = checkLambda(lambda / ilfac);
       
-      lambda *= lfac; // Helps to braket the solution
-      if(lambda <= 1.e-3) lambda = 1.e-1;
-      if(lambda >= 1.e5) lambda = 1e3;
+      ////lambda *= lfac; // Helps to braket the solution
+      //if(lambda <= 1.e-3) lambda = 1.e-1;
+      //if(lambda >= 1.e5) lambda = 1e3;
       
       /* --- is the improvements below our threshold? --- */
 
@@ -812,14 +833,14 @@ double clm::fitdata(clm_func fx, double *x, void *mydat, int maxiter, reg_t &dre
       
       /* --- Prep lambda for next trial --- */
       
-      double ilfac = lfac*lfac;//(lambda >= 0.1)? lfac : sqrt(lfac);
-      lambda = checkLambda(lambda * ilfac);
+      double ilfac = lfac;//(lambda >= 0.1)? lfac : sqrt(lfac);
+      lambda = checkLambda(lambda * ilfac*1.5);
       nretry++;
       rej = " *";
       
       if(nretry < maxreject){
 	if((nretry == (maxreject-3)) && 0){
-	  regul_scal *= 0.75;
+	  dregul.scl *= 0.9;
 	  dcreased = true;
 	}else dcreased = false;
 
@@ -886,7 +907,7 @@ double clm::fitdata(clm_func fx, double *x, void *mydat, int maxiter, reg_t &dre
     /* --- Scale down the regularization term if needed --- */
 
     const int offset_iter = 4;
-    if( (fabs(reldchi) < 2.e-2) && 0){
+    if( (fabs(reldchi) < 2.e-2) && (!dcreased) && 0){
       regul_scal *= 0.75;
       dcreased = true;
     }
@@ -927,18 +948,19 @@ void clm::geoAcceleration(double *x, double *dx, double h,
      --- */
   
   /* --- Get the residual for x + h*dx --- */
-
-  double hh = h*h;
+  
   int npen = dregul.nreg;
   Map<VectorXd> V(dx, npar);
   
   VectorXd acu(npar), acd(npar), dresu(nd), dresd(nd), B(npar), dpen(npen); B.Zero(npar);
-  bool regme = false;//dregul.to_reg;
-
+  bool regme = dregul.to_reg;
+  double mdx = sqrt(mth::ksum2((size_t)npar, dx));
+  double mx = sqrt(mth::ksum2((size_t)npar, dx)), hh = mth::sqr(h*mdx);// * (mx*mx);
   
   for(int ii=0;ii<npar;ii++){
-    acu[ii] = x[ii] + h * dx[ii];
-    acd[ii] = x[ii] - h * dx[ii];
+    double corr = h * dx[ii];
+    acu[ii] = x[ii] + corr;
+    acd[ii] = x[ii] - corr;
   }
 
   /* --- Get the residue --- */
@@ -968,22 +990,23 @@ void clm::geoAcceleration(double *x, double *dx, double h,
 
     
     if(regme) for(int xx =0; xx<npar; xx++) Ap(yy,xx) += LL(yy,xx);
-    Ap(yy,yy) += Ap(yy,yy)*std::max(lam,15.);
+    Ap(yy,yy) += Ap(yy,yy)*lam;//std::max(lam,10.0);
   }
   
    /* --- 
      Solve linear system with SVD decomposition and singular value thresholding.
      The SVD is computed with Eigen3 instead of LaPack.
      --- */
+  
   JacobiSVD<MatrixXd,ColPivHouseholderQRPreconditioner> svd(Ap, ComputeThinU | ComputeThinV);
-  svd.setThreshold(5.e-3);
+  svd.setThreshold(5.0e-5);
 
   VectorXd RES = svd.solve(B);
   scaleParameters(&RES[0]);
 
   
   double ratio = 2.0*(RES.norm() / V.norm());
-  if(ratio <= 1.0) V += 0.5*RES;
+  if(ratio <= 1.0) V -= 0.5*RES;
   cerr<<ratio<<endl;
   
   checkMaxChange(dx, x);
@@ -1007,7 +1030,9 @@ void clm::compute_trial3(double *res, double **rf, double lambda,
   
   /* --- Init Eigen-3 arrays --- */
   
-  MatrixXd A(npar, npar), LL(npar,npar), Ap(npar,npar); A.Zero(npar, npar), LL.Zero(npar,npar), Ap.Zero(npar,npar);
+  MatrixXd A(npar, npar), LL(npar,npar), Ap(npar,npar);
+  A.Zero(npar, npar), LL.Zero(npar,npar), Ap.Zero(npar,npar);
+  
   VectorXd B(npar); B.Zero(npar);
   Map<VectorXd> RES(xnew, npar);
   int npen = dregul.nreg;
@@ -1060,7 +1085,7 @@ void clm::compute_trial3(double *res, double **rf, double lambda,
       for(int jj=0;jj<npen; jj++)
 	tmp1[jj] =  dregul.dreg[jj][yy] * dregul.reg[jj]; // L.t # gamm
       
-      B[yy]  = - sumarr(tmp1, npen);    
+      B[yy]  =  -sumarr(tmp1, npen);    
     }//yy
   }
   
@@ -1206,7 +1231,7 @@ void clm::compute_trial3(double *res, double **rf, double lambda,
   /* --- Use low curvature acceleration? (testing!) --- */
   
   if(use_geo_accel > 0){
-    geoAcceleration(x, xnew, 0.065, Ap, LL, res, mydat, dregul, rf, fx, lambda);
+    geoAcceleration(x, xnew, 0.4, Ap, LL, res, mydat, dregul, rf, fx, lambda);
   }
   
   
