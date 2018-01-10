@@ -78,8 +78,9 @@ void atmos::responseFunction(int npar, mdepth_t &m_in, double *pars, int nd, dou
     
   //
   if(input.depth_model == 0){
-    if(input.nodes.ntype[pp] == temp_node) pertu = input.dpar * pval * 0.25;
-    else                                   pertu = input.dpar * scal[pp];
+    //if(input.nodes.ntype[pp] == temp_node) pertu = input.dpar * pval * 0.25;
+    //else
+      pertu = input.dpar * scal[pp];
   }else  pertu = input.dpar * scal[pp];
     
   
@@ -225,7 +226,7 @@ void atmos::randomizeParameters(nodes_t &n, int npar, double *pars){
     else if(n.ntype[pp] == vturb_node){
       pertu =  (rnum - 0.75) * 2.e5;
     }else if(n.ntype[pp] == bl_node)
-      pertu =  (rnum-0.35) * scal[pp];
+      pertu =  (rnum-0.5) * scal[pp];
     else if(n.ntype[pp] == bh_node)
       pertu =  (rnum-0.5) * scal[pp];
     else if(n.ntype[pp] == azi_node)
@@ -266,15 +267,14 @@ int const_dregul(int n, double *ltau, double *var, double weight, double **dreg,
 
   for(int yy=0;yy<n; yy++){
 
-    /*
+    
     if((yy == 0) && (n > 1)) dtau = fabs(ltau[0] - ltau[1])/ttau;
     else if((yy > 0) && (yy < (n-1)) && (n > 1)) dtau = fabs(ltau[yy+1] - ltau[yy-1])*0.5/ttau;
     else if((yy == (n-1)) && (n > 1)) dtau = fabs(ltau[yy] - ltau[yy-1])/ttau;
-    */
-    dtau = 1.0;
-    double tmp = c*(var[yy] - m) / dtau;
+    
+    //dtau = 1.0;
 
-    reg[roff+yy] = tmp;
+    reg[roff+yy] = c*(var[yy] - m) / dtau;
     dreg[roff+yy][off+yy] = c / dtau;
   }
   return n;
@@ -311,23 +311,23 @@ int mean_dregul(int n, double *ltau, double *var, double weight, double **dreg, 
   double ttau = fabs(ltau[n-1] - ltau[0]);
   double dn = double(n), idn = 1.0/dn;
   double c = sqrt(weight / dn);
-  double me = mth::mean(n, var), dtau = 7.0;
+  double me = mth::mean(n, var), dtau = 1.0;
     
   for(int yy=0;yy<n; yy++){
 
-    /*
+    
     if((yy == 0) && (n > 1)) dtau = fabs(ltau[0] - ltau[1]) / ttau;
     else if((yy > 0) && (yy < (n-1)) && (n > 1)) dtau = fabs((ltau[yy+1] - ltau[yy-1]) / ttau) * 0.5;
     else if((yy == (n-1)) && (n > 1)) dtau = fabs(ltau[yy] - ltau[yy-1]) / ttau;
-    */
     
-    dtau = 1.0;
-    double tmp = c*(var[yy] - me) / dtau;
-    reg[roff+yy] = tmp;
+    
+    reg[roff+yy] = c*(var[yy] - me) / dtau;
 
     for(int xx=0; xx<n; xx++){
-      double c1 = ((xx==yy)? 1.0 : 0.0);
-      dreg[roff+yy][off+xx] = c * (c1 - idn) / dtau;
+
+      if(xx == yy) dreg[roff+yy][off+xx] = c * (1.0 - idn) / dtau;
+      else         dreg[roff+yy][off+xx] = c * (    - idn) / dtau;
+     
     }
   }
   return n;
@@ -344,26 +344,24 @@ int tikhonov1_dregul(int n, double *ltau, double *var, double weight, double **d
   
   /* --- Derivative in the first and last points:
 
-     Penalty: pe =  c * ((var[k+1] - var[k])/|dltau|)**2
-     d/x_i pe     = 2c * (x_i - x_i-1) / dltau**2
-     d/x_i-1 pe  = 2c * (-1)*(x_i - x_i-1) / dltau**2 = -d/dx_i pe
+     Penalty: pe =  c * ((var[k+1] - var[k])/|dltau|)
+     d/x_i pe     = c / |dltau|
+     d/x_i-1 pe  =  c * (-1) / |dltau| = -d/dx_i pe
 
-     In the LM we have divided the x2 in all terms so we do it here too in the implementation.
+     In the LM we have divided the x2 in all terms so we do it here too in 
+     the implementation.
      
      --- */
 
-  //reg[off+0] = 0.0;
-  //dreg[off+0][off+0] = 0.0; // If penalty is zero, then the derivative must be zero
   
   double ttau = fabs(ltau[n-1] - ltau[0]);
   for(int yy = 1; yy<n; yy++){
 
     /* --- 2 terms around the diagonal of J --- */
     
-    double dtau = 1.0;//fabs(ltau[yy] - ltau[yy-1]) / ttau;
-    double tmp = (var[yy] - var[yy-1]) / dtau;
-    
-    reg[yy-1+roff] = c_sqrt * tmp;
+    double dtau = fabs(ltau[yy] - ltau[yy-1]) / ttau;
+
+    reg[yy-1+roff] = c_sqrt * (var[yy] - var[yy-1]) / dtau;
     dreg[yy-1+roff][yy+off] = c_sqrt / dtau;
     dreg[yy-1+roff][yy-1+off] = - dreg[yy-1+roff][yy+off];
   }
@@ -374,7 +372,7 @@ int tikhonov1_dregul(int n, double *ltau, double *var, double weight, double **d
 
 void getDregul2(double *m, int npar, reg_t &dregul, nodes_t &n)
 {
-  const double weights[7] = {0.0012, 1.0, 1.5, 0.6, 0.6,0.6,20.0};
+  const double weights[7] = {0.0011, 0.1, 0.3, 0.1, 0.1, 0.1,20.0};
 
   double  *ltau = NULL, we = 0.0;
   nodes_type_t ntype = none_node;
@@ -421,6 +419,8 @@ void getDregul2(double *m, int npar, reg_t &dregul, nodes_t &n)
       break;
     case(3):
       roff += const_dregul(nn, ltau, &m[off], we, dregul.dreg, dregul.reg, 0.0, off, roff);
+
+      
       break;
     default:
       break;
@@ -447,6 +447,12 @@ void getDregul2(double *m, int npar, reg_t &dregul, nodes_t &n)
       break;
     case(3):
       roff = const_dregul(nn, ltau, &m[off], we, dregul.dreg, dregul.reg, 0.0, off, roff);
+
+    case(4):
+      if(nn >= 2){
+	roff += tikhonov1_dregul(nn, ltau, &m[off], we*0.5, dregul.dreg, dregul.reg, off, roff);
+	roff += const_dregul(nn, ltau, &m[off], we*0.5, dregul.dreg, dregul.reg, 0.0, off, roff);
+      }
       break;
     default:
       break;
@@ -681,6 +687,7 @@ reg_t init_dregul(int npar, nodes_t &n, double scl)
   if(n.toinv[2] && (n.regul_type[2] > 0)){
     nn = n.vturb.size();
     if((n.regul_type[2] == 1) && (nn >= 2)) npen += nn-1;
+    else if((n.regul_type[2] == 4) && (nn >= 2)) npen += nn-1 + nn;
     else                     npen += nn;
   }
 
@@ -763,11 +770,11 @@ double atmos::fitModel2(mdepth_t &m, int npar, double *pars, int nobs, double *o
   
   if(input.marquardt_damping > 0.0) lm.ilambda = input.marquardt_damping;
   else                              lm.ilambda = 1.0;
-  lm.maxreject = 6;
+  lm.maxreject = 10;
   lm.svd_thres = max(input.svd_thres, 1.e-16);
   lm.chi2_thres = input.chi2_thres;
   lm.lmax = 1.e5;
-  lm.lmin = 1.e-5;
+  lm.lmin = 1.e-4;
   lm.lfac = sqrt(10.0);
   lm.proc = input.myrank;
   if(input.regularize >= 1.e-5){
