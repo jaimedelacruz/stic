@@ -115,7 +115,7 @@ template <class T1, class T2> void hermpol(size_t ni, T1 *x, T1 *y, size_t nni, 
   
   // Init derivatives
   double odx = x[1] - x[0];
-  double oder = (y[1] - y[0]) / odx;
+  double oder = ((extrapolate)?((y[1] - y[0]) / odx):0.0);
   double ody = oder;
   double dy = 0;
   double der = 0;
@@ -135,9 +135,10 @@ template <class T1, class T2> void hermpol(size_t ni, T1 *x, T1 *y, size_t nni, 
 	double lambda = (1.0 + dx / (dx + odx)) / 3.0;
 	if(dy*ody > 0) der = (dy*ody) / ((1.0-lambda)*ody + lambda * dy);
 	else der = 0;
-      } else der = ody;
-      
-      
+      } else{
+	if(extrapolate) der = ody;
+	else der = 0.0;
+      }
       // Check if there are points to compute
       for(unsigned j = off; j<nn; j++){      
 	
@@ -173,7 +174,10 @@ template <class T1, class T2> void hermpol(size_t ni, T1 *x, T1 *y, size_t nni, 
 	double lambda = (1.0 + dx / (dx + odx)) / 3.0;
 	if(dy*ody > 0) der = (dy*ody) / ((1.0-lambda)*ody + lambda * dy);
 	else der = 0;
-      } else der = ody;
+      }  else{
+	if(extrapolate) der = ody;
+	else der = 0.0;
+      }
       
       
       // Check if there are points to compute

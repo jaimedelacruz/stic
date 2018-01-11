@@ -562,7 +562,7 @@ void getDregul2(double *m, int npar, reg_t &dregul, nodes_t &n)
 
 /* --------------------------------------------------------------------------------------------------- */
 
-int getChi2(int npar1, int nd, double *pars1, double *dev, double **derivs, void *tmp1,  reg_t &dregul, bool store){
+int getChi2(int npar1, int nd, double *pars1, double *syn_in, double *dev, double **derivs, void *tmp1,  reg_t &dregul, bool store){
 
   
   /* --- Cast tmp1 into a double --- */
@@ -594,14 +594,14 @@ int getChi2(int npar1, int nd, double *pars1, double *dev, double **derivs, void
   atm.checkBounds(m);
   m.getPressureScale(atm.input.nodes.depth_t, atm.input.boundary, atm.eos);
   
-
+  
   
   /* --- Compute synthetic spetra --- */
   
   memset(&atm.isyn[0], 0, nd*sizeof(double));
   //  for(int ii=0; ii<m.ndep;ii++) fprintf(stderr,"%e %e %e %e %e\n", m.cmass[ii], m.temp[ii], m.v[ii], m.vturb[ii], m.pgas[ii]);
-  bool conv = atm.synth( m , &atm.isyn[0], (cprof_solver)atm.input.solver, true);
-
+  bool conv = atm.synth( m , &atm.isyn[0], (cprof_solver)atm.input.solver, true);  
+  
   
   if(!conv){
     atm.cleanup();
@@ -643,7 +643,7 @@ int getChi2(int npar1, int nd, double *pars1, double *dev, double **derivs, void
   /* --- Degrade synthetic spectra --- */
   
   atm.spectralDegrade(atm.input.ns, (int)1, nd, &atm.isyn[0]);
-  
+  memcpy(syn_in, &atm.isyn[0], nd*sizeof(double));
 
 
   /* --- Compute residue --- */
@@ -872,6 +872,7 @@ double atmos::fitModel2(mdepth_t &m, int npar, double *pars, int nobs, double *o
       bestChi = chi2;
       memcpy(&bestPars[0], &ipars[0], npar*sizeof(double));
       memcpy(&best_m.cub.d[0], &m.cub.d[0], m.ndep*14*sizeof(double));
+      memcpy(&bestSyn[0], &lm.bestSyn[0], ndata*sizeof(double));
     }
 
     if(depth_per){
@@ -886,32 +887,13 @@ double atmos::fitModel2(mdepth_t &m, int npar, double *pars, int nobs, double *o
   } // iter
 
   
-
-  
-  /* --- re-scale fitted parameters and expand atmos ---*/
-  
-  for(int pp = 0; pp<npar; pp++)
-    pars[pp] = bestPars[pp] * scal[pp];
-
-  memset(&isyn[0],0,ndata*sizeof(double));
-  
-  if(!depth_per){
-    m.expand(input.nodes, &pars[0], input.dint, input.depth_model);
-    checkBounds(m);
-    m.getPressureScale(input.nodes.depth_t , input.boundary, eos);
-  } else  memcpy(&m.cub.d[0], &best_m.cub.d[0], m.ndep*14*sizeof(double));
-
-  synth( m , &isyn[0], (cprof_solver)input.solver, false);
-  spectralDegrade(input.ns, (int)1, input.nw_tot, &isyn[0]);
-  
-  
   double sum = 0.0;
   for(int ww = 0; ww<ndata;ww++){
-    double tmp = (obs[ww] - isyn[ww]) / weights.d[ww];
+    double tmp = (obs[ww] - bestSyn[ww]) / weights.d[ww];
     sum += (tmp*tmp);
   }
   fprintf(stderr,"Recomp chi2=%13.5f\n", sum/ndata);
-  memcpy(&obs[0], &isyn[0], ndata*sizeof(double));
+  memcpy(&obs[0], &bestSyn[0], ndata*sizeof(double));
   
   /* --- Clean-up --- */
   

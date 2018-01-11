@@ -87,7 +87,7 @@ reg_t():to_reg(false), npar(0), nreg(0), scl(1.0), dreg(NULL), reg(NULL){};
    Type for the function that will compute chi2 and the response function 
    --- */
 
-typedef int (*clm_func)(int npar, int nd, double *x, double *res,
+typedef int (*clm_func)(int npar, int nd, double *x, double *syn_in, double *res,
 			double **rf, void *mydata, reg_t &regul, bool store);
 
 double sumarr(double *arr, size_t n);
@@ -102,7 +102,7 @@ class clm{
   bool error;
  public:
   std::vector<clmf> fcnt;
-  std::vector<double> diag, tmp;
+  std::vector<double> diag, tmp, bestSyn, iSyn;
   std::vector<unsigned> ptype, ntype;
   std::vector<std::vector<unsigned>> pidx;
   bool verb, regularize, first;

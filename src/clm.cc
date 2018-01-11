@@ -313,7 +313,7 @@ clm::clm(int ind, int inpar){
   chi2_thres = 1.0;   // Exit inversion if Chi2 is lower than this
   svd_thres = 1.e-13; // Cut-off "relative" thres. for small singular values
   lmax = 1.0e5;       // Maximum lambda value
-  lmin = 1.0e-5;      // Minimum lambda value
+  lmin = 1.0e-4;      // Minimum lambda value
   lfac = 10.0;        // Change lambda by this amount
   ilambda = 1.0;      // Initial damping parameter for the Hessian giag.
   maxreject = 7;      // Max failed evaluations of lambda.
@@ -323,6 +323,9 @@ clm::clm(int ind, int inpar){
   regul_scal_in = 0.0;// scale factor for regularization terms input
   proc = 0;           // print-out processor number
   reset_par = false;  // If true, use perturbation approach
+
+  bestSyn.resize(nd, 0.0);
+  iSyn.resize(nd, 0.0);
 }
 
 /* -------------------------------------------------------------------------------- */
@@ -446,7 +449,7 @@ double clm::getChi2Pars(double *res, double **rf, double lambda,
   double *new_res = new double [nd]();
   reg_t new_dregul = dregul;
   
-  int status = fx(npar, nd, xnew, new_res, NULL, mydat, new_dregul, false);
+  int status = fx(npar, nd, xnew, &iSyn[0], new_res, NULL, mydat, new_dregul, false);
 
   if(status){
     if(verb)
@@ -534,7 +537,7 @@ double clm::getChi2ParsLineSearch(double *res, double **rf, double &lambda,
   
   /* --- Braket lambda/chi2 --- */
 
-  vector<double> ilamb, ichi, tmp(npar, 0.0), bx(npar, 0.0);
+  vector<double> ilamb, ichi, tmp(npar, 0.0), bx(npar, 0.0), bsyn(nd, 0.0);
   reg_t dregul = dregul_in, best_dregul = dregul_in;
   ilamb.push_back(lambda);
   
@@ -543,6 +546,7 @@ double clm::getChi2ParsLineSearch(double *res, double **rf, double &lambda,
   /* --- Init chi2 --- */
   
   ichi.push_back(getChi2Pars(res, rf, ilamb[0], x, &tmp[0], mydat, fx, dregul));
+  bsyn = iSyn;
   bx = tmp;
   
 
@@ -560,6 +564,7 @@ double clm::getChi2ParsLineSearch(double *res, double **rf, double &lambda,
 
       if(ichi[kk+1] < ichi[kk]){
 	best_dregul.copyReg(dregul.reg);
+	bsyn = iSyn;
 	bx = tmp;
       }
 
@@ -584,6 +589,7 @@ double clm::getChi2ParsLineSearch(double *res, double **rf, double &lambda,
       lambda = ilamb[idx];
 
       dregul_in.copyReg(best_dregul.reg);
+      iSyn = bsyn;
       
       return ichi[idx];
     }
@@ -602,6 +608,7 @@ double clm::getChi2ParsLineSearch(double *res, double **rf, double &lambda,
       
       if(ichi[0] < ichi[1]){
 	best_dregul.copyReg(dregul.reg);
+	bsyn = iSyn;
 	bx = tmp;
       }
       
@@ -648,6 +655,7 @@ double clm::getChi2ParsLineSearch(double *res, double **rf, double &lambda,
 	
 	if(gchi < ochi){
 	  best_dregul.copyReg(dregul.reg);
+	  bsyn = iSyn;
 	  bx = tmp;
 	  break; // if we already got a better value, then exit
 	}
@@ -662,7 +670,7 @@ double clm::getChi2ParsLineSearch(double *res, double **rf, double &lambda,
     memcpy(xnew, &bx[0], npar*sizeof(double));
     lambda = ilamb[idx];
     dregul_in.copyReg(best_dregul.reg);
-    
+    iSyn = bsyn;
     return ichi[idx];
     
   }else{ // Chi2 is worse than reference chi2
@@ -731,7 +739,7 @@ double clm::fitdata(clm_func fx, double *x, void *mydat, int maxiter, reg_t &dre
 
   /* --- Evaluate residues and RF, init chi2 --- */
 
-  int status = fx(npar, nd, x, res, rf, mydat, dregul, false);
+  int status = fx(npar, nd, x, &iSyn[0], res, rf, mydat, dregul, false);
   if(status){
     if(verb)
       fprintf(stderr, "clm::fitdata: [p:%4d] ERROR in the evaluation of FX, aborting inversion\n", proc);
@@ -779,7 +787,7 @@ double clm::fitdata(clm_func fx, double *x, void *mydat, int maxiter, reg_t &dre
 
     double reldchi = 2.0 * (chi2 - bestchi2) / (chi2 + bestchi2);
     olambda = lambda;
-    if(lambda >= 1.e4) lambda = 1.e2;
+    if(lambda >= lmax) lambda = lmax;
     
     if((!dcreased && (chi2 < bestchi2)) || (dcreased && (rchi2 < orchi2))){
       
@@ -814,6 +822,7 @@ double clm::fitdata(clm_func fx, double *x, void *mydat, int maxiter, reg_t &dre
       //
       memcpy(&bestpars[0], xnew, npar*sizeof(double));
       memcpy(&x[0],        xnew, npar*sizeof(double));
+      bestSyn = iSyn;
       nretry = 0;
 
       dcreased = false;
@@ -823,7 +832,7 @@ double clm::fitdata(clm_func fx, double *x, void *mydat, int maxiter, reg_t &dre
       /* --- Use perturbations approach --- */
       
       if(reset_par){
-	status = fx(npar, nd, x, res, rf, mydat, dregul, true);
+	status = fx(npar, nd, x, &iSyn[0], res, rf, mydat, dregul, true);
 	memset(x, 0, npar*sizeof(double));
 	memset(xnew, 0, npar*sizeof(double));
 
@@ -834,7 +843,7 @@ double clm::fitdata(clm_func fx, double *x, void *mydat, int maxiter, reg_t &dre
       /* --- Prep lambda for next trial --- */
       
       double ilfac = lfac;//(lambda >= 0.1)? lfac : sqrt(lfac);
-      lambda = checkLambda(lambda * ilfac*1.5);
+      lambda = checkLambda(lambda * ilfac*ilfac);
       nretry++;
       rej = " *";
       
@@ -891,7 +900,7 @@ double clm::fitdata(clm_func fx, double *x, void *mydat, int maxiter, reg_t &dre
     zero(res, rf);
     dregul.zero();
     //
-    status = fx(npar, nd, x, res, rf, mydat, dregul, false);
+    status = fx(npar, nd, x, &iSyn[0], res, rf, mydat, dregul, false);
     //
     if(status){
       if(verb)
@@ -952,7 +961,7 @@ void clm::geoAcceleration(double *x, double *dx, double h,
   int npen = dregul.nreg;
   Map<VectorXd> V(dx, npar);
   
-  VectorXd acu(npar), acd(npar), dresu(nd), dresd(nd), B(npar), dpen(npen); B.Zero(npar);
+  VectorXd acu(npar), acd(npar), dresu(nd), dresd(nd), B(npar), dpen(npen), dum(nd); B.Zero(npar);
   bool regme = dregul.to_reg;
   double mdx = sqrt(mth::ksum2((size_t)npar, dx));
   double mx = sqrt(mth::ksum2((size_t)npar, dx)), hh = mth::sqr(h*mdx);// * (mx*mx);
@@ -967,8 +976,8 @@ void clm::geoAcceleration(double *x, double *dx, double h,
 
   reg_t udregul = dregul, ddregul = dregul;
   
-  int status = fx(npar, nd, &acu[0], &dresu[0], NULL, mydat, udregul, false);
-      status = fx(npar, nd, &acd[0], &dresd[0], NULL, mydat, ddregul, false);
+  int status = fx(npar, nd, &acu[0], &dum[0], &dresu[0], NULL, mydat, udregul, false);
+      status = fx(npar, nd, &acd[0], &dum[0], &dresd[0], NULL, mydat, ddregul, false);
       
   
   /* --- Now we have to build up the acceleration term --- */
@@ -999,10 +1008,10 @@ void clm::geoAcceleration(double *x, double *dx, double h,
      --- */
   
   JacobiSVD<MatrixXd,ColPivHouseholderQRPreconditioner> svd(Ap, ComputeThinU | ComputeThinV);
-  svd.setThreshold(5.0e-5);
+  svd.setThreshold(5.0e-4);
 
   VectorXd RES = svd.solve(B);
-  scaleParameters(&RES[0]);
+  //scaleParameters(&RES[0]);
 
   
   double ratio = 2.0*(RES.norm() / V.norm());
@@ -1231,7 +1240,7 @@ void clm::compute_trial3(double *res, double **rf, double lambda,
   /* --- Use low curvature acceleration? (testing!) --- */
   
   if(use_geo_accel > 0){
-    geoAcceleration(x, xnew, 0.4, Ap, LL, res, mydat, dregul, rf, fx, lambda);
+    geoAcceleration(x, xnew, 0.15, Ap, LL, res, mydat, dregul, rf, fx, lambda);
   }
   
   
