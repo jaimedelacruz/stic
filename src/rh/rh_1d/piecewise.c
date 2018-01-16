@@ -74,10 +74,16 @@ void Piecewise_1D(int nspect, int mu, bool_t to_obs,
   double dtau_uw, dtau_dw, dS_uw, I_upw, dS_dw, c1, c2, w[3],
          zmu, Bnu[2];
 
-  double *z = geometry.cmass;
-  //double *chi1 = scl_opac(Ndep, chi);
-  double *chi1 = (double*)malloc(Ndep * sizeof(double));//scl_opac(Ndep, chi);
-  for(i=0;i<Ndep;i++) chi1[i] = chi[i] / atmos.rho[i];
+  double *z, *chi1;
+  
+  if(FALSE){
+    chi1 = (double*)malloc(Ndep * sizeof(double));//scl_opac(Ndep, chi);
+    for(i=0;i<Ndep;i++) chi1[i] = chi[i] / atmos.rho[i];
+    z = geometry.cmass;//
+  }else{
+    chi1 = chi;
+    z = geometry.height;
+  }
   
   zmu = 0.5 / geometry.muz[mu];
 
@@ -180,7 +186,8 @@ void Piecewise_1D(int nspect, int mu, bool_t to_obs,
     dtau_uw = dtau_dw;
   }
 
-  free(chi1);
+  if(chi1 != chi)
+    free(chi1);
   
 }
 /* ------- end ---------------------------- Piecewise_1D.c ---------- */
@@ -199,10 +206,17 @@ void PieceBezier_1D(int nspect, int mu, bool_t to_obs,
 
   zmu = 0.5 / geometry.muz[mu];
   
-  double *z = geometry.cmass;
-  //double *chi1 = scl_opac(Ndep, chi);
-  double *chi1 = (double*)malloc(Ndep * sizeof(double));//scl_opac(Ndep, chi);
-  for(i=0;i<Ndep;i++) chi1[i] = chi[i] / atmos.rho[i];
+  double *z, *chi1;
+  
+  if(FALSE){
+    chi1 = (double*)malloc(Ndep * sizeof(double));//scl_opac(Ndep, chi);
+    for(i=0;i<Ndep;i++) chi1[i] = chi[i] / atmos.rho[i];
+    z = geometry.cmass;//
+  }else{
+    chi1 = chi;
+    z = geometry.height;
+  }
+  
   
   /* --- Distinguish between rays going from BOTTOM to TOP
          (to_obs == TRUE), and vice versa --      -------------- */
@@ -317,7 +331,9 @@ void PieceBezier_1D(int nspect, int mu, bool_t to_obs,
   I[k_end] = (1.0 - U[0]) * I_uw + psi_uw*S[k_end-dk] + psi_0*S[k_end];
 
   if (Psi) Psi[k_end] = psi_0;
-  free(chi1);
+
+  if(chi1 != chi)
+    free(chi1);
 
   
 }
@@ -333,10 +349,18 @@ void Piecewise_Hermite_1D(int nspect, int mu, bool_t to_obs,
          zmu, Bnu[2];
   double dsup,dsdn,dt,dt2,dt3,ex,alpha,beta,alphaprim,betaprim,dsup2;
   double dS_up,dS_c,dchi_up,dchi_c,dchi_dn,dsdn2,dtau_up2;
-  double *z = geometry.cmass;
+  //double *z = geometry.cmass;
   // double *chi1 = scl_opac(Ndep, chi);
-  double *chi1 = (double*)malloc(Ndep * sizeof(double));//scl_opac(Ndep, chi);
-  for(i=0;i<Ndep;i++) chi1[i] = chi[i] / atmos.rho[i];
+  double *z, *chi1;
+  
+  if(FALSE){
+    chi1 = (double*)malloc(Ndep * sizeof(double));//scl_opac(Ndep, chi);
+    for(i=0;i<Ndep;i++) chi1[i] = chi[i] / atmos.rho[i];
+    z = geometry.cmass;//
+  }else{
+    chi1 = chi;
+    z = geometry.height;
+  }
   
   zmu = 0.5 / geometry.muz[mu];
 
@@ -467,8 +491,8 @@ void Piecewise_Hermite_1D(int nspect, int mu, bool_t to_obs,
     dS_up = dS_c;
 
   }
-
-  free(chi1);
+  if(chi1 != chi)
+    free(chi1);
   
 }
 /* ------- end -------------------- Piecewise_Hermite_1D.c ---------- */

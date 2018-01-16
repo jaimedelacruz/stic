@@ -62,11 +62,17 @@ void PiecewiseStokes(int nspect, int mu, bool_t to_obs,
   double dtau_uw, dtau_dw = 0.0, dS_uw[4], dS_dw[4], c1, c2, w[3],
     I_upw[4], zmu, P[4], Bnu[2], Q[4][4], **R, K[4][4], K_upw[4][4];
 
-  double *z = geometry.cmass;
-  //double *chi_I1 = scl_opac(Ndep, chi_I);
-  double *chi_I1 = (double*)malloc(Ndep * sizeof(double));//scl_opac(Ndep, chi);
-  for(i=0;i<Ndep;i++) chi_I1[i] = chi_I[i] / atmos.rho[i];
-
+  
+  double *z, *chi_I1;
+  
+  if(FALSE){
+    chi_I1 = (double*)malloc(Ndep * sizeof(double));//scl_opac(Ndep, chi);
+    for(i=0;i<Ndep;i++) chi_I1[i] = chi_I[i] / atmos.rho[i];
+    z = geometry.cmass;//
+  }else{
+    chi_I1 = chi_I;
+    z = geometry.height;
+  }
   
   zmu = 0.5 / geometry.muz[mu];
   R = matrix_double(4, 4);
@@ -187,6 +193,8 @@ void PiecewiseStokes(int nspect, int mu, bool_t to_obs,
     }
   }
   freeMatrix((void **) R);
-  free(chi_I1);
+
+  if(chi_I1 != chi_I)
+    free(chi_I1);
 }
 /* ------- end ---------------------------- PiecewiseStokes.c ------- */

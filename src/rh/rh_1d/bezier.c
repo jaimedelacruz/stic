@@ -298,13 +298,20 @@ void PiecewiseStokesBezier3(int nspect, int mu, bool_t to_obs,
   float Md[4][4];
   //double *z = geometry.tau_ref;
   //double *z = geometry.height;//geometry.tau_ref;//geometry.height;
-  double *z = geometry.cmass;//
+  //double *z = geometry.cmass;//
 
   ActiveSet *as;
-  double *chi1 = (double*)malloc(Ndep * sizeof(double));//scl_opac(Ndep, chi);
-  for(i=0;i<Ndep;i++) chi1[i] = chi[i] / atmos.rho[i];
+
+  double *z, *chi1;
   
-  
+  if(FALSE){
+    chi1 = (double*)malloc(Ndep * sizeof(double));//scl_opac(Ndep, chi);
+    for(i=0;i<Ndep;i++) chi1[i] = chi[i] / atmos.rho[i];
+    z = geometry.cmass;//
+  }else{
+    chi1 = chi;
+    z = geometry.height;
+  }
   
   if (to_obs) {
     dk      = -1;
@@ -519,8 +526,9 @@ void PiecewiseStokesBezier3(int nspect, int mu, bool_t to_obs,
     dchi_c  = dchi_dn;
       
   }
-
-  free(chi1);
+  
+  if(chi1 != chi)
+    free(chi1);
 }
 
 /* --------------------------------------------------------------- */
@@ -553,10 +561,16 @@ void Piecewise_Bezier3(int nspect, int mu, bool_t to_obs,
   double dS_up,dS_c,dchi_up,dchi_c,dchi_dn,dsdn2, tmp = 0.0;
   //double *z = geometry.height;//geometry.tau_ref;//
   //double *z = geometry.tau_ref;//
-  double *z = geometry.cmass;//
-
-  double *chi1 = (double*)malloc(Ndep * sizeof(double));//scl_opac(Ndep, chi);
-  for(i=0;i<Ndep;i++) chi1[i] = chi[i] / atmos.rho[i];
+  double *z, *chi1;
+  
+  if(FALSE){
+    chi1 = (double*)malloc(Ndep * sizeof(double));//scl_opac(Ndep, chi);
+    for(i=0;i<Ndep;i++) chi1[i] = chi[i] / atmos.rho[i];
+    z = geometry.cmass;//
+  }else{
+    chi1 = chi;
+    z = geometry.height;
+  }
   
   zmu = 1.0 / geometry.muz[mu];
 
@@ -714,7 +728,8 @@ void Piecewise_Bezier3(int nspect, int mu, bool_t to_obs,
     dS_up = dS_c;
   }
 
-  free(chi1);
+  if(chi1 != chi)
+    free(chi1);
   
 }
 
