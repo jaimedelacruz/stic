@@ -21,8 +21,8 @@
 /* --- Maximum number of iterations and minimum accuracy for hydrostatic
        equilibrium calculations --                     -------------- */
 
-#define N_MAX_HSE_ITER    20
-#define HSE_ITER_LIMIT    1.0E-2
+#define N_MAX_HSE_ITER    100
+#define HSE_ITER_LIMIT    1.0E-3
 
 
 /* --- Structure definitions --                        -------------- */
@@ -32,6 +32,7 @@ struct Linelist {
   double *adamp;
   AtomicLine *line;
 };
+
 
 /* --- Associated function prototypes --               -------------- */
 
@@ -55,6 +56,7 @@ int readBackground_j(int la, int mu, bool_t to_obs);
 int writeBackground_j(int la, int mu, bool_t to_obs,
 		      double *chi_c, double *eta_c, double *sca_c,
 		      double *chip_c);
+
 void init_Background_j();
 void Background_j(bool_t write_analyze_output, bool_t equilibria_only);
 
