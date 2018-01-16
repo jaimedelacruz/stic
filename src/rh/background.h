@@ -16,13 +16,13 @@
        equilibrium calculations --                     -------------- */
 
 #define N_MAX_CHEM_ITER    200
-#define CHEM_ITER_LIMIT    1.0E-4
+#define CHEM_ITER_LIMIT    1.0E-5
 
 /* --- Maximum number of iterations and minimum accuracy for hydrostatic
        equilibrium calculations --                     -------------- */
 
 #define N_MAX_HSE_ITER    200
-#define HSE_ITER_LIMIT    1.0E-4
+#define HSE_ITER_LIMIT    1.0E-3
 
 
 /* --- Structure definitions --                        -------------- */
