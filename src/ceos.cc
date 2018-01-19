@@ -828,6 +828,8 @@ void ceos::hydrostatic(int ndep, double *tau, double *t, double *Pg, double *rho
 
   }
 
+  for(int kk=0; kk<ndep; kk++) cmass[kk] = log10(cmass[kk]);
+  
   // cerr<<"ceos::hydrostatic: ITMAX="<<imax<<endl;
 }
 

@@ -291,7 +291,7 @@ int mean_dregul(int n, double *ltau, double *var, double weight, double **dreg, 
      but it is non-diagonal because all variables contribute to the mean
      and therefore we have all the block full with values.
 
-     Penalty: pe = we * (xi - sum xj/N)**2
+     Penalty: pe = we**0.5 * (xi - sum xj/N)
 
      Derivative:
      d/dxi pe = 2 * we*(xi - sum xj/N) * (dij - 1/N)
@@ -372,7 +372,7 @@ int tikhonov1_dregul(int n, double *ltau, double *var, double weight, double **d
 
 void getDregul2(double *m, int npar, reg_t &dregul, nodes_t &n)
 {
-  const double weights[7] = {0.0011, 0.1, 0.3, 0.1, 0.1, 0.1,20.0};
+  const double weights[7] = {0.0002, 0.6, 0.6, 0.1, 0.1, 0.1,20.0};
 
   double  *ltau = NULL, we = 0.0;
   nodes_type_t ntype = none_node;
@@ -917,3 +917,84 @@ void atmos::spectralDegrade(int ns, int npix, int ndata, double *obs){
 
   
 }
+
+
+//-------------------------------------------------------------------------- //
+
+
+void atmos::responseFunctionFull(mdepth_t &m, int nd, double *out_in, double *syn, int pp)
+{
+
+  double dpar = ((input.dpar >= 1.e-3)?input.dpar : 0.01);
+  double pertu = scal[pp] * dpar;
+  int ndep = (int)m.ndep, centder = input.centder;
+  bool store_pops = false;
+  double (&out)[ndep][nd] = *reinterpret_cast< double (*)[ndep][nd]>(out_in);
+
+  if(centder){
+    vector<double> syup(nd, 0.0), sydow(nd,0.0);
+
+    for(int kk=0;kk<ndep;kk++){
+      double pval = m.cub(pp, kk);
+      double up = pertu, down = -pertu;
+
+      /* --- upper perturbation --- */
+      
+      if((pval + pertu) > mmax[kk]){
+	up = 0.0;
+	memcpy(&syup[0],syn, nd*sizeof(double));
+      }else{
+	m.cub(pp,kk) = pval + up;
+	synth(m, &syup[0], (cprof_solver)input.solver, store_pops);
+      }
+
+
+      /* --- Lower perturbation --- */
+
+      if((pval - pertu) < mmin[kk]){
+	down = 0.0;
+	memcpy(&sydow[0],syn, nd*sizeof(double));
+      }else{
+	m.cub(pp,kk) = pval + down;
+	synth(m, &sydow[0], (cprof_solver)input.solver, store_pops);
+      }
+
+      
+      // --- restore value --- //
+      
+      m.cub(pp,kk) = pval;
+
+      
+      // --- compute response ---//
+
+      up += down;
+      if(up > 1.e-6) up = 1.0/up;
+      else           up = 0.0;
+      
+      for(int ww=0;ww<nd;ww++) out[kk][ww] = (syup[ww]-sydow[ww]) * up;
+    }// kk
+    
+    syup.clear();
+    sydow.clear();
+    
+  }else{ // side derivative
+    
+    for(int kk=0;kk<ndep;kk++){
+      double pval = m.cub(pp, kk);
+      double per = (((pval+pertu) < mmax[pp])? pertu : -pertu);
+
+      m.cub(pp,kk) += per;
+      synth(m, &out[kk][0], (cprof_solver)input.solver, store_pops);
+
+      m.cub(pp, kk) = pval;
+
+      per = 1.0/per;
+      for(int ww=0;ww<nd;ww++) out[kk][ww] = (out[kk][ww]-syn[ww]) * per;
+    } // kk
+
+  }//else
+  
+}
+
+
+

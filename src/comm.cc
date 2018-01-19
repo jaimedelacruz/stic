@@ -48,7 +48,14 @@ void comm_get_buffer_size(iput_t &input){
 			    input.nw_tot*4*input.npar*sizeof(double) + // Derivatives
 			    1*sizeof(double)) * input.npack +// perturbation to the parameter
 	                    13*input.npack*input.ndep*sizeof(double)+ // Send back the pressure scale
-	                    6*sizeof(int); // xx, yy, ipix, npacked, iproc 
+	                    6*sizeof(int); // xx, yy, ipix, npacked, iproc
+
+    case 4:// Synthesis + derivatives at all heights
+      input.buffer_size =
+	(13 * input.ndep * sizeof(double)) * input.npack + // depth-stratified quantities
+	6*sizeof(int); // xx, yy, iproc, pix, action, npacked
+      
+      input.buffer_size1 = (input.nw_tot*4*sizeof(double) * (input.ndep*6+1)) + 6*sizeof(int);
       break;
     default:
       cout << input.myid<< inam <<"ERROR, work mode ("<<input.mode<<") not valid"<<endl;
@@ -418,7 +425,20 @@ void comm_master_pack_data(iput_t &input, mat<double> &obs, mat<double> &model,
        
 	break;
       }
+    case 4:
+      { // synthesis + derivatives at all heights
+	comm_get_xy(ipix, model.size(1), yy, xx);
+	int pint[3] = {(int)ipix, (int)xx, (int)yy};
+	status = MPI_Pack(&pint[0]       , 3,     MPI_INT,    &buffer[0],
+			  input.buffer_size, &pos, MPI_COMM_WORLD);
 
+	/* --- pack ful model --- */
+	len = input.ndep * 13*nPacked;
+	status = MPI_Pack(&m.cub(yy,xx,0,0), len, MPI_DOUBLE, &buffer[0],
+			  input.buffer_size, &pos, MPI_COMM_WORLD);
+	ipix += nPacked; // Increase the pixel count
+	break;
+      }
     } // Switch case
 
   
@@ -590,6 +610,26 @@ void comm_slave_unpack_data(iput_t &input, int &action, mat<double> &obs, mat<do
 	  
 	  break;
 	}
+      case 4:
+	status = MPI_Unpack(buffer, input.buffer_size, &pos, &nPacked, 1, MPI_INT, MPI_COMM_WORLD );
+	input.nPacked = nPacked;
+	m.resize(nPacked);
+
+	obs.set({nPacked, input.nw_tot, input.ns});
+	status = MPI_Unpack(buffer, input.buffer_size, &pos, &input.ipix, 1,
+			    MPI_INT, MPI_COMM_WORLD );
+	status = MPI_Unpack(buffer, input.buffer_size, &pos, &input.xx,   1,
+			    MPI_INT, MPI_COMM_WORLD );
+	status = MPI_Unpack(buffer, input.buffer_size, &pos, &input.yy,   1,
+			    MPI_INT, MPI_COMM_WORLD );
+
+	len = 13 * input.ndep;
+	for(auto &it: m){
+	  it.setsize(input.ndep);
+	  status = MPI_Unpack(buffer, input.buffer_size, &pos, &it.cub.d[0], len,
+			      MPI_DOUBLE, MPI_COMM_WORLD );
+	}
+	break;
       }
   } // action = 1
     
@@ -704,6 +744,26 @@ void comm_master_unpack_data(int &iproc, iput_t input, mat<double> &obs, mat<dou
 	
 	break;
       }
+    case 4:
+      {
+	int pix, xx, yy, nx;
+	nx = (int)obs.size(1);
+	status = MPI_Unpack(buffer, input.buffer_size1, &pos, &pix, 1, MPI_INT,
+			    MPI_COMM_WORLD );
+	comm_get_xy(pix, nx, yy, xx);
+	
+	len = input.nw_tot * input.ns * nPacked;
+	status = MPI_Unpack(buffer, input.buffer_size1, &pos, &obs(yy,xx,0,0), len,
+			    MPI_DOUBLE, MPI_COMM_WORLD );
+	
+	len = input.nw_tot * input.ns * input.ndep * 6 * nPacked;
+	status = MPI_Unpack(buffer, input.buffer_size1, &pos, &dsyn(yy,xx,0,0,0,0), len,
+			    MPI_DOUBLE, MPI_COMM_WORLD);
+	
+	irec += nPacked;
+
+	break;
+      }
     default:
       break;
     }
@@ -789,6 +849,20 @@ void comm_slave_pack_data(iput_t &input, mat<double> &obs, mat<double> &pars, ma
 	status = MPI_Pack(&dobs.d[0], len,  MPI_DOUBLE, &buffer[0], input.buffer_size1, &pos, MPI_COMM_WORLD);
       }
       break;
+
+    case 4:
+      {
+	status = MPI_Pack(&input.ipix, 1,   MPI_INT, &buffer[0], input.buffer_size1, &pos, MPI_COMM_WORLD);
+	// Synthetic profiles
+	len = input.nw_tot*input.ns*nPacked;
+	status = MPI_Pack(&obs.d[0], len,  MPI_DOUBLE, &buffer[0], input.buffer_size1, &pos, MPI_COMM_WORLD);
+	len = input.nw_tot*input.ns*input.ndep*6*nPacked;
+	status = MPI_Pack(&dobs.d[0], len,  MPI_DOUBLE, &buffer[0], input.buffer_size1, &pos, MPI_COMM_WORLD);
+
+	
+	break;
+      
+      }
     default:
       break;
     } // Switch case

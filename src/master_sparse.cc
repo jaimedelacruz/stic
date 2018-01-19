@@ -17,7 +17,7 @@ using namespace netCDF;
 using namespace std;
 //
 
-void slaveInversion(iput_t &iput, mdepthall_t &m, mat<double> &obs, mat<double> &x, mat<double> &chi2){
+void slaveInversion(iput_t &iput, mdepthall_t &m, mat<double> &obs, mat<double> &x, mat<double> &chi2, mat<double> &dsyn){
 
   /* --- Init dimensions --- */
   unsigned long ntot = (unsigned long)(x.size(0) * x.size(1));
@@ -28,7 +28,6 @@ void slaveInversion(iput_t &iput, mdepthall_t &m, mat<double> &obs, mat<double> 
   unsigned long ipix = 0;
   int tocom = ncom;
 
-  mat<double>  dsyn; // dummy 
   int compute_gradient = 0; // dummy parameter here
   chi2.set({x.size(0), x.size(1)});
   
@@ -149,7 +148,7 @@ void do_master_sparse(int myrank, int nprocs,  char hostname[]){
 
   /* --- Printout number of processes --- */
   cerr << "STIC: Initialized with "<<nprocs <<" process(es)"<<endl;
-  mat<double> model, obs, wav, w, syn, chi2;;
+  mat<double> model, obs, dobs, wav, w, syn, chi2;;
   mdepthall_t im;
 
   
@@ -237,13 +236,16 @@ void do_master_sparse(int myrank, int nprocs,  char hostname[]){
      type in memory
      --- */
   io opfile(input.oprof,  NcFile::replace);
-  opfile.initDim({"time","y", "x", "wav", "stokes"},{0,input.ny, input.nx, input.nw_tot, input.ns});
+  opfile.initDim({"time","ndep","vtype", "y", "x", "wav", "stokes"},{0, input.ndep, 6, input.ny, input.nx, input.nw_tot, input.ns});
   opfile.initVar<double>(string("profiles"), {"time","y", "x", "wav", "stokes"});
   opfile.initVar<double>(string("wav"), {"wav"});
   opfile.write_Tstep<double>(string("wav"), wav);
-
-
-  
+  if(input.mode == 4){
+    opfile.initVar<double>(string("derivatives") ,{"time","y", "x", "vtype", "ndep", "wav", "stokes"});
+    dobs.set({input.ny, input.nx, 6, input.ndep, input.nw_tot, input.ns});
+  }
+					     
+					     
   if(inversion){
     opfile.initVar<float>(string("weights"), {"wav", "stokes"});
     opfile.write_Tstep<double>(string("weights"), w);
@@ -358,11 +360,11 @@ void do_master_sparse(int myrank, int nprocs,  char hostname[]){
       if(nprocs == 1)
 	master_inverter(im, model, obs, w, input);
       else
-	slaveInversion(input, im, obs, model, chi2); // implemented above!
+	slaveInversion(input, im, obs, model, chi2, dobs); // implemented above!
       
-    }else if(input.mode == 2) slaveInversion(input, im, obs, model, chi2); // it won't invert if mode == 2
+    }else if(input.mode == 2) slaveInversion(input, im, obs, model, chi2, dobs); // it won't invert if mode == 2
     //else if(input.mode == 3) inv.SparseOptimization(obs, model, w, im, pweight);
-    
+    else if(input.mode == 4) slaveInversion(input, im, obs, model, chi2, dobs);
     
     if(inversion){
 
@@ -389,7 +391,8 @@ void do_master_sparse(int myrank, int nprocs,  char hostname[]){
     }
 
     opfile.write_Tstep(string("profiles"), obs, tt);
-
+    if(input.mode == 4) opfile.write_Tstep(string("derivatives"), dobs, tt);
+    
   }
 
   

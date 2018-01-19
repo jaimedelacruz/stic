@@ -269,7 +269,91 @@ void do_slave(int myrank, int nprocs, char hostname[]){
       dobs.set({0,0});
       m.clear();
       
-    } // case 3
+    }else if(input.mode == 4){
+      
+      
+      /* --- Allocate vars to store the response function --- */
+      
+      int nPacked = input.nPacked;
+      int ndata = input.nw_tot * input.ns;
+      vector<int> mydims = {nPacked, 6, input.ndep, input.nw_tot * input.ns};
+      
+      dobs.set(mydims);
+      dobs.zero();
+      
+      /* --- Loop pixels --- */
+      int pixel = 0;      
+      for(auto &it: m){
+
+	/* --- Log tau to tau --- */
+	
+	for(int kk = 0; kk < input.ndep; kk++)
+	  it.tau[kk] = pow(10.0, it.ltau[kk]); 
+	
+	
+	/* --- Optimize depth scale? --- */
+
+	//it.optimize_depth(atmos->eos, input.tcut, 5);
+	//if(input.tcut > 0)
+	//  it.optimize_depth_ltau(atmos->eos, input.tcut);
+
+	
+	/* --- Call equation of state or hydrostatic equilibrium ? --- */
+	
+	if(input.thydro) it.getPressureScale(input.nodes.depth_t, input.boundary, atmos->eos);
+	else it.fill_densities(atmos->eos, input.keep_nne, 0, it.ndep-1);
+
+
+	/* --- Get scales (depth_t has cmass and z switched compared to getScales) --- */
+	
+	if     (input.nodes.depth_t == 0) it.getScales(atmos->eos, 0); // LTAU500
+	else if(input.nodes.depth_t == 1) it.getScales(atmos->eos, 2); // CMASS
+	else if(input.nodes.depth_t == 2) it.getScales(atmos->eos, 1); // Z
+	
+	/* --- Update instrumental profile if needed --- */
+	
+	for(int kk = 0; kk<nreg; kk++) inst[kk]->update((size_t)(input.ipix + pixel));
+	
+	
+	/* --- Synthesize spectra --- */
+	
+	bool conv = atmos->synth(it, &obs(pixel,0,0), (cprof_solver)input.solver, true);
+	
+	/* --- If not converged, printout message --- */
+	if(!conv) {
+	  int x =0, y=0;
+	  comm_get_xy(input.ipix+pixel, input.nx, y, x);
+	  
+	  fprintf(stderr, "[%6d] slave: ERROR, atom populations did not converge for pixel (x,y) = [%4d,%4d]\n", myrank, x, y);
+	}
+
+	// --- Derivatives ---- //
+
+	for(int kk = 0;kk<6; kk++){
+	  atmos->responseFunctionFull(it, ndata, &dobs(pixel,kk,0,0), &obs(pixel,0,0), kk);
+	  
+	  for(int zz = 0; zz<it.ndep; zz++)
+	    atmos->spectralDegrade(input.ns, (int)1, ndata, &dobs(pixel, kk, zz, 0));
+	}
+	
+	atmos->cleanup();
+
+	
+	/* --- Degrade --- */
+
+	atmos->spectralDegrade(input.ns, (int)1, ndata, &obs(pixel, 0, 0));
+	pixel++;
+      }
+
+      
+      
+      /* --- Send back profiles --- */
+      
+      comm_slave_pack_data(input, obs, pars, dobs, compute_derivatives, m);
+      m.clear();
+      
+      
+    } // case 4
 
 
     m.clear();

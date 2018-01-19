@@ -17,7 +17,7 @@ extern "C" {
 using namespace std;
 using namespace phyc;
 //
-const double crh::pmax[7]  = {120000., 50.e5, 15e5, 5000.0, 5000., PI, 15.0};
+const double crh::pmax[7]  = {110000., 50.e5, 15e5, 5000.0, 5000., PI, 15.0};
 const double crh::pmin[7]  = {2700. ,-50.e5,  +0.0,-5000.0,  +0.0,  +0.0, 0.1};
 const double crh::pscal[7] = {1200. , 6.0e5, 6.0e5, 1000.0, 1000.0, PI, 10.0};
 const double crh::pstep[7] = {1.e-1 , 1.e-1, 1.0e-1, 2.0e-1, 2.0e-1, 1.0e-1, 1.0e-1};
@@ -28,7 +28,7 @@ vector<double> crh::get_max_limits(nodes_t &n){
 
   int nnodes = (int)n.nnodes;
   mmax.resize(nnodes);
-
+  
   for(int k = 0; k<nnodes; k++){
     if     (n.ntype[k] == temp_node ) mmax[k] = pmax[0];
     else if(n.ntype[k] == v_node    ) mmax[k] = pmax[1];
@@ -39,6 +39,13 @@ vector<double> crh::get_max_limits(nodes_t &n){
     else if(n.ntype[k] == pgas_node ) mmax[k] = pmax[6];
     else                              mmax[k] = 0;
   }
+
+  if(n.nnodes == 0){
+    mmax.resize(7);
+    for(int ii=0; ii<7; ii++)mmax[ii] = pmax[ii];
+  }
+  
+  
   return mmax;
 }
 
@@ -60,6 +67,13 @@ vector<double> crh::get_min_limits(nodes_t &n){
     else if(n.ntype[k] == pgas_node ) mmin[k] = pmin[6];
     else                              mmin[k] = 0;
   }
+
+  if(n.nnodes == 0){
+    mmin.resize(7);
+    for(int ii=0; ii<7; ii++)mmin[ii] = pmin[ii];
+  }
+  
+  
   return mmin;
 }
 
@@ -80,6 +94,13 @@ vector<double> crh::get_scaling(nodes_t &n){
     else if(n.ntype[k] == pgas_node ) scal[k] = pscal[6];
     else                              scal[k] = 1.0;
   }
+
+  if(n.nnodes == 0){
+    scal.resize(7);
+    for(int ii=0; ii<7; ii++)scal[ii] = pscal[ii];
+  }
+  cerr<<scal.size()<<endl;
+  
   return scal;
 }
 
@@ -167,13 +188,13 @@ crh::crh(iput_t &inpt, double grav): atmos(inpt, grav){
 
   /* --- Init limits for inversion if nodes are present --- */
 
-  if(input.nodes.nnodes > 0){
+  // if(input.nodes.nnodes > 0){
     vector<double> dummy;
     dummy = this->get_scaling(input.nodes);
     dummy = this->get_max_limits(input.nodes);
     dummy = this->get_min_limits(input.nodes);
     dummy = this->get_max_change(input.nodes);
-  }
+    //}
   
   
 
