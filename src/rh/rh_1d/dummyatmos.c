@@ -60,7 +60,7 @@ void DUMMYatmos(Atmosphere *atmos, Geometry *geometry, bool_t firsttime)
 
   geometry->vboundary[BOTTOM] = THERMALIZED;
   geometry->scale =  GEOMETRIC;
-  geometry->scale = COLUMN_MASS;
+  //geometry->scale = COLUMN_MASS;
   //geometry->scale = TAU500;
   
   // Nread = sscanf("dummyATM", "%s", atmos->ID);
