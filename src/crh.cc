@@ -99,7 +99,6 @@ vector<double> crh::get_scaling(nodes_t &n){
     scal.resize(7);
     for(int ii=0; ii<7; ii++)scal[ii] = pscal[ii];
   }
-  cerr<<scal.size()<<endl;
   
   return scal;
 }

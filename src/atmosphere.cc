@@ -419,8 +419,6 @@ void getDregul2(double *m, int npar, reg_t &dregul, nodes_t &n)
       break;
     case(3):
       roff += const_dregul(nn, ltau, &m[off], we, dregul.dreg, dregul.reg, 0.0, off, roff);
-
-      
       break;
     default:
       break;
@@ -436,7 +434,6 @@ void getDregul2(double *m, int npar, reg_t &dregul, nodes_t &n)
     off = (int)n.vturb_off;
     ltau =  &n.vturb[0];
     we = weights[2]*dregul.scl;
-
     switch(n.regul_type[2]){
     case(1):
       if(nn >= 2)
@@ -446,8 +443,8 @@ void getDregul2(double *m, int npar, reg_t &dregul, nodes_t &n)
       roff += mean_dregul(nn, ltau, &m[off], we, dregul.dreg, dregul.reg, off, roff);
       break;
     case(3):
-      roff = const_dregul(nn, ltau, &m[off], we, dregul.dreg, dregul.reg, 0.0, off, roff);
-
+      roff += const_dregul(nn, ltau, &m[off], we, dregul.dreg, dregul.reg, 0.0, off, roff);
+      break;
     case(4):
       if(nn >= 2){
 	roff += tikhonov1_dregul(nn, ltau, &m[off], we*0.5, dregul.dreg, dregul.reg, off, roff);
@@ -693,8 +690,8 @@ reg_t init_dregul(int npar, nodes_t &n, double scl)
 
   if(n.toinv[3] && (n.regul_type[3] > 0)){
     nn = n.bl.size();
-    if((n.regul_type[3] == 1) && (nn >= 2)) npen += nn-1;
-    else                     npen += nn;
+    if     ((n.regul_type[3] == 1) && (nn >= 2)) npen += nn-1;
+    else                                         npen += nn;
   }
 
   if(n.toinv[4] && (n.regul_type[4] > 0)){
