@@ -44,7 +44,7 @@ void del_mat(double **p){
 
 /* -------------------------------------------------------------------------------- */
 
-inline double sumarr(double *arr, int n){
+double sumarr(double *arr, int n){
 
   double sum = 0.0, c = 0.0, y = 0.0, t = 0.0;
   int kk = 0;
