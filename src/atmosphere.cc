@@ -567,6 +567,8 @@ int getChi2(int npar1, int nd, double *pars1, double *syn_in, double *dev, doubl
   atmos &atm = *((atmos*)tmp1); 
   double *ipars = new double [npar1]();
   mdepth &m = *atm.imodel;
+  double nd1 = 1.0 / sqrt((double)nd);
+
   
     /* --- Expand atmosphere ---*/
   
@@ -629,7 +631,7 @@ int getChi2(int npar1, int nd, double *pars1, double *syn_in, double *dev, doubl
 	   scaling factor and divide by the noise --- */
 		
 	for(int ii = 0; ii<nd; ii++)
-	  derivs[pp][ii] *= (atm.scal[pp] / atm.w[ii]);
+	  derivs[pp][ii] *= (atm.scal[pp] / atm.w[ii]) * nd1;
 	  //derivs[pp][ii]  /= atm.w[ii];
 	
       }
@@ -646,7 +648,7 @@ int getChi2(int npar1, int nd, double *pars1, double *syn_in, double *dev, doubl
   /* --- Compute residue --- */
 
   for(int ww = 0; ww < nd; ww++){
-    dev[ww] = (atm.obs[ww] - atm.isyn[ww]) / atm.w[ww];
+    dev[ww] = (atm.obs[ww] - atm.isyn[ww]) / atm.w[ww] * nd1;
   }
 
 

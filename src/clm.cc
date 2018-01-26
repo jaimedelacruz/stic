@@ -427,7 +427,7 @@ void clm::zero(double *res, double **rf)
 
 double clm::compute_chi2(double *res, double penalty)
 {
-  return (double)sumarr2_4(res,nd)/double(nd) + penalty;				 
+  return (double)sumarr2_4(res,nd) + penalty;				 
 }
 
 /* -------------------------------------------------------------------------------- */
