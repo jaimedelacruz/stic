@@ -151,6 +151,9 @@ void do_master_sparse(int myrank, int nprocs,  char hostname[]){
   mat<double> model, obs, dobs, wav, w, syn, chi2;;
   mdepthall_t im;
 
+  static const vector<string> vnames = {"temperature","vlos","vturb", "Blong", "Bhor", "azi","dens", "nne"};
+  
+  
   
   /* --- Read input files and fill in variables---*/
   iput_t input = read_input("input.cfg", true);
@@ -236,15 +239,35 @@ void do_master_sparse(int myrank, int nprocs,  char hostname[]){
      type in memory
      --- */
   io opfile(input.oprof,  NcFile::replace);
-  opfile.initDim({"time","ndep","vtype", "y", "x", "wav", "stokes"},{0, input.ndep, 6, input.ny, input.nx, input.nw_tot, input.ns});
+  opfile.initDim({"time","ndep","vtype", "y", "x", "wav", "stokes"},{0, input.ndep, input.nresp, input.ny, input.nx, input.nw_tot, input.ns});
   opfile.initVar<double>(string("profiles"), {"time","y", "x", "wav", "stokes"});
   opfile.initVar<double>(string("wav"), {"wav"});
+
   opfile.write_Tstep<double>(string("wav"), wav);
   if(input.mode == 4){
+
+    string vn;
+    vector<string> vnv;
+    mat<int> idx({input.nresp});
+    int k = 0;
+    
+    for(int ii=0;ii<8;ii++)
+      if(input.getResponse[ii]){
+	vn += vnames[ii]+string(" ");
+	vnv.push_back(vnames[ii]);
+	idx(k++) = ii;
+      }
+    
+    cerr<<"master: computing derivatives for ["<<vn<<"]"<<endl;
+    opfile.initVar<int>(string("vidx"), {"vtype"});
+    opfile.write_Tstep<int>(string("vidx"), idx);
+
+
     opfile.initVar<double>(string("derivatives") ,{"time","y", "x", "vtype", "ndep", "wav", "stokes"});
-    dobs.set({input.ny, input.nx, 6, input.ndep, input.nw_tot, input.ns});
+    opfile.varAttr("derivatives","units", vn);
+    dobs.set({input.ny, input.nx, input.nresp, input.ndep, input.nw_tot, input.ns});
   }
-					     
+  
 					     
   if(inversion){
     opfile.initVar<float>(string("weights"), {"wav", "stokes"});

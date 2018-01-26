@@ -276,7 +276,7 @@ void do_slave(int myrank, int nprocs, char hostname[]){
       
       int nPacked = input.nPacked;
       int ndata = input.nw_tot * input.ns;
-      vector<int> mydims = {nPacked, 6, input.ndep, input.nw_tot * input.ns};
+      vector<int> mydims = {nPacked, input.nresp, input.ndep, input.nw_tot * input.ns};
       
       dobs.set(mydims);
       dobs.zero();
@@ -328,12 +328,17 @@ void do_slave(int myrank, int nprocs, char hostname[]){
 	}
 
 	// --- Derivatives ---- //
-
-	for(int kk = 0;kk<6; kk++){
-	  atmos->responseFunctionFull(it, ndata, &dobs(pixel,kk,0,0), &obs(pixel,0,0), kk);
-	  
-	  for(int zz = 0; zz<it.ndep; zz++)
-	    atmos->spectralDegrade(input.ns, (int)1, ndata, &dobs(pixel, kk, zz, 0));
+	
+	int kkk = 0;
+	for(int kk = 0;kk<8; kk++){
+	  if(input.getResponse[kk] > 0){
+	    atmos->responseFunctionFull(it, ndata, &dobs(pixel,kkk,0,0), &obs(pixel,0,0), kk);
+	    
+	    for(int zz = 0; zz<it.ndep; zz++)
+	      atmos->spectralDegrade(input.ns, (int)1, ndata, &dobs(pixel, kkk, zz, 0));
+	    
+	    kkk++;
+	  }
 	}
 	
 	atmos->cleanup();

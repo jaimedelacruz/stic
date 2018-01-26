@@ -41,7 +41,7 @@ class atmos{
   virtual std::vector<double> get_steps(nodes_t &n){return mmin;};
   virtual std::vector<double> get_scaling(nodes_t &n){return scal;};
   virtual void responseFunction(int npar, mdepth_t &m, double *pars, int nd, double *out, int pp, double *syn);
-  virtual void responseFunctionFull(mdepth_t &m, int nd, double *out, double *syn, int pp);
+  virtual void responseFunctionFull(mdepth_t m, int nd, double *out, double *syn, int pp);
 
   
   //virtual void getArea(int npar, double *pars, int ndep, double *ltau, nodes_t &no, int pp);

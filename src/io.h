@@ -47,6 +47,8 @@ class io{
   void initRead(std::string filename, netCDF::NcFile::FileMode mode = netCDF::NcFile::write, bool verbose = true);
   void initDim(std::string vname, int size = 0);
   void initDim(std::vector<std::string> vname, std::vector<int> vsize);
+  void varAttr(std::string vname, std::string attr_n, std::string attr_v);
+
   std::vector<int> dimSize(std::string vname);
 
   //void initVar(std::string vname, std::vector<std::string> dnames){

@@ -55,7 +55,7 @@ void comm_get_buffer_size(iput_t &input){
 	(13 * input.ndep * sizeof(double)) * input.npack + // depth-stratified quantities
 	6*sizeof(int); // xx, yy, iproc, pix, action, npacked
       
-      input.buffer_size1 = (input.nw_tot*4*sizeof(double) * (input.ndep*6+1)) + 6*sizeof(int);
+      input.buffer_size1 = (input.nw_tot*4*sizeof(double) * (input.ndep*input.nresp+1)) + 6*sizeof(int);
       break;
     default:
       cout << input.myid<< inam <<"ERROR, work mode ("<<input.mode<<") not valid"<<endl;
@@ -79,7 +79,7 @@ void comm_send_parameters(iput_t &input){
   status = MPI_Bcast(&nregions,  1,    MPI_INT, 0, MPI_COMM_WORLD);  
   status = MPI_Bcast(&input.buffer_size,  2,    MPI_UNSIGNED_LONG, 0, MPI_COMM_WORLD);
 
-  status = MPI_Bcast(&input.nt, 24,    MPI_INT, 0, MPI_COMM_WORLD); // We are sending 11 ints from the struct!
+  status = MPI_Bcast(&input.nt, 33,    MPI_INT, 0, MPI_COMM_WORLD); // We are sending 11 ints from the struct!
   status = MPI_Bcast(&input.nodes.regul_type, 7,    MPI_INT, 0, MPI_COMM_WORLD); // We are getting 15 ints from the struct!
 
   status = MPI_Bcast(&input.mu,  9, MPI_DOUBLE, 0, MPI_COMM_WORLD); // We are sending 4 doubles from the struct!
@@ -182,7 +182,7 @@ void comm_recv_parameters(iput_t &input){
   status = MPI_Bcast(&nregions,  1,    MPI_INT, 0, MPI_COMM_WORLD);
   status = MPI_Bcast(&input.buffer_size,  2,    MPI_UNSIGNED_LONG, 0, MPI_COMM_WORLD);
 
-  status = MPI_Bcast(&input.nt, 24,    MPI_INT, 0, MPI_COMM_WORLD); // We are getting 15 ints from the struct!
+  status = MPI_Bcast(&input.nt, 33,    MPI_INT, 0, MPI_COMM_WORLD); // We are getting 15 ints from the struct!
   status = MPI_Bcast(&input.nodes.regul_type, 7,    MPI_INT, 0, MPI_COMM_WORLD); // We are getting 15 ints from the struct!
 
   status = MPI_Bcast(&input.mu,  9, MPI_DOUBLE, 0, MPI_COMM_WORLD); // We are getting 4 doubles from the struct!
@@ -756,7 +756,7 @@ void comm_master_unpack_data(int &iproc, iput_t input, mat<double> &obs, mat<dou
 	status = MPI_Unpack(buffer, input.buffer_size1, &pos, &obs(yy,xx,0,0), len,
 			    MPI_DOUBLE, MPI_COMM_WORLD );
 	
-	len = input.nw_tot * input.ns * input.ndep * 6 * nPacked;
+	len = input.nw_tot * input.ns * input.ndep * input.nresp * nPacked;
 	status = MPI_Unpack(buffer, input.buffer_size1, &pos, &dsyn(yy,xx,0,0,0,0), len,
 			    MPI_DOUBLE, MPI_COMM_WORLD);
 	
@@ -856,7 +856,7 @@ void comm_slave_pack_data(iput_t &input, mat<double> &obs, mat<double> &pars, ma
 	// Synthetic profiles
 	len = input.nw_tot*input.ns*nPacked;
 	status = MPI_Pack(&obs.d[0], len,  MPI_DOUBLE, &buffer[0], input.buffer_size1, &pos, MPI_COMM_WORLD);
-	len = input.nw_tot*input.ns*input.ndep*6*nPacked;
+	len = input.nw_tot*input.ns*input.ndep*input.nresp*nPacked;
 	status = MPI_Pack(&dobs.d[0], len,  MPI_DOUBLE, &buffer[0], input.buffer_size1, &pos, MPI_COMM_WORLD);
 
 	

@@ -104,7 +104,7 @@ iput_t read_input(std::string filename, bool verbose){
   input.depth_model = 0;
   input.tcut = 100000.0;
   input.use_geo_accel = 0;
-  
+  memset(input.getResponse, 8, sizeof(int));
   memset(input.nodes.regul_type, 0, 6*sizeof(int));
   
   // Open File and read
@@ -197,6 +197,16 @@ iput_t read_input(std::string filename, bool verbose){
 	int dum = (int)param.size();
 	if(dum > 7) dum = 7;
 	for(int ii = 0; ii<dum; ii++) input.nodes.regul_type[ii] = std::stoi(param[ii]);
+	set = true;
+      }
+      else if(key == "get_response"){
+	std::vector<std::string> param = strsplit(field,",");
+	int dum = (int)param.size();
+	if(dum > 8) dum = 8;
+	for(int ii = 0; ii<dum; ii++){
+	  input.getResponse[ii] = ((std::stoi(param[ii]) > 0)?1:0);
+	  input.nresp += input.getResponse[ii];
+	}
 	set = true;
       }
       else if(key == "mode"){

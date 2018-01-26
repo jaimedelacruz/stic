@@ -100,3 +100,20 @@ bool bfile_exists(const std::string& name) {
      return false;
     }
 }
+
+void io::varAttr(std::string vname, std::string attr_n, std::string attr_v)
+{
+  
+  netCDF::NcVar ivar;
+  //
+  bool exists = false;
+  for(auto &it: vars){
+    if(it.getName().compare(vname) == 0){
+      it.putAtt(attr_n.c_str(), attr_v.c_str());
+      exists = true;
+    }
+  }
+  
+  if(!exists)
+    std::cout<<"io::varAttr: Warning, ["<<vname<<"] does not exist. Cannot set attribute ["<<attr_n<<"]"<<std::endl;
+}

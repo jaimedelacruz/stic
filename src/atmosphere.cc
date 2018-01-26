@@ -921,9 +921,12 @@ void atmos::spectralDegrade(int ns, int npix, int ndata, double *obs){
 //-------------------------------------------------------------------------- //
 
 
-void atmos::responseFunctionFull(mdepth_t &m, int nd, double *out_in, double *syn, int pp)
+void atmos::responseFunctionFull(mdepth_t m, int nd, double *out_in, double *syn, int pp)
 {
-
+  if(pp >= 6){
+    pp++;
+  }
+  
   double dpar = ((input.dpar >= 1.e-3)?input.dpar : 0.01);
   double pertu = scal[pp] * dpar;
   int ndep = (int)m.ndep, centder = input.centder;
@@ -934,9 +937,15 @@ void atmos::responseFunctionFull(mdepth_t &m, int nd, double *out_in, double *sy
     vector<double> syup(nd, 0.0), sydow(nd,0.0);
 
     for(int kk=0;kk<ndep;kk++){
+      double  up=0, down=0;
       double pval = m.cub(pp, kk);
-      double up = pertu, down = -pertu;
 
+      if(pp<6){
+	up = pertu, down = -pertu;
+      }else{
+	up = pval * dpar, down = -up;
+      }
+	
       /* --- upper perturbation --- */
       
       if((pval + pertu) > mmax[kk]){
@@ -944,7 +953,14 @@ void atmos::responseFunctionFull(mdepth_t &m, int nd, double *out_in, double *sy
 	memcpy(&syup[0],syn, nd*sizeof(double));
       }else{
 	m.cub(pp,kk) = pval + up;
+	
+	if(pp == 7){
+	  eos.nne_from_T_rho_nne(m.temp[kk], m.pgas[kk],  m.rho[kk], m.nne[kk]);
+	  eos.store_partial_pressures(m.ndep, kk, eos.xna, m.nne[kk]);
+	}
+	  
 	synth(m, &syup[0], (cprof_solver)input.solver, store_pops);
+	
       }
 
 
@@ -955,6 +971,12 @@ void atmos::responseFunctionFull(mdepth_t &m, int nd, double *out_in, double *sy
 	memcpy(&sydow[0],syn, nd*sizeof(double));
       }else{
 	m.cub(pp,kk) = pval + down;
+
+	
+	if(pp == 7){
+	  eos.nne_from_T_rho_nne(m.temp[kk], m.pgas[kk],  m.rho[kk], m.nne[kk]);
+	  eos.store_partial_pressures(m.ndep, kk, eos.xna, m.nne[kk]);
+	}
 	synth(m, &sydow[0], (cprof_solver)input.solver, store_pops);
       }
 
@@ -962,7 +984,11 @@ void atmos::responseFunctionFull(mdepth_t &m, int nd, double *out_in, double *sy
       // --- restore value --- //
       
       m.cub(pp,kk) = pval;
-
+      
+      if(pp == 7){
+	eos.nne_from_T_rho_nne(m.temp[kk], m.pgas[kk],  m.rho[kk], m.nne[kk]);
+	eos.store_partial_pressures(m.ndep, kk, eos.xna, m.nne[kk]);
+      }
       
       // --- compute response ---//
 
@@ -980,13 +1006,31 @@ void atmos::responseFunctionFull(mdepth_t &m, int nd, double *out_in, double *sy
     
     for(int kk=0;kk<ndep;kk++){
       double pval = m.cub(pp, kk);
-      double per = (((pval+pertu) < mmax[pp])? pertu : -pertu);
-
+      double per=0;
+      
+      if(pp < 6){
+	per = (((pval+pertu) < mmax[pp])? pertu : -pertu);
+      }else{
+	per = (((pval*(1.0+dpar)) < mmax[pp])? dpar*pval : -dpar*pval);
+      }
       m.cub(pp,kk) += per;
+
+      
+      if(pp == 7){
+	eos.nne_from_T_rho_nne(m.temp[kk], m.pgas[kk],  m.rho[kk], m.nne[kk]);
+	eos.store_partial_pressures(m.ndep, kk, eos.xna, m.nne[kk]);
+      }
+	
       synth(m, &out[kk][0], (cprof_solver)input.solver, store_pops);
 
       m.cub(pp, kk) = pval;
-
+      
+      if(pp == 7){
+	eos.nne_from_T_rho_nne(m.temp[kk], m.pgas[kk],  m.rho[kk], m.nne[kk]);
+	eos.store_partial_pressures(m.ndep, kk, eos.xna, m.nne[kk]);
+      }
+      
+      
       per = 1.0/per;
       for(int ww=0;ww<nd;ww++) out[kk][ww] = (out[kk][ww]-syn[ww]) * per;
     } // kk

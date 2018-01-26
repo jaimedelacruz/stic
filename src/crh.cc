@@ -41,8 +41,9 @@ vector<double> crh::get_max_limits(nodes_t &n){
   }
 
   if(n.nnodes == 0){
-    mmax.resize(7);
-    for(int ii=0; ii<7; ii++)mmax[ii] = pmax[ii];
+    mmax.resize(8);
+    for(int ii=0; ii<6; ii++)mmax[ii] = pmax[ii];
+    mmax[6] = 1.e32, mmax[7] = 1.32;
   }
   
   
@@ -69,8 +70,10 @@ vector<double> crh::get_min_limits(nodes_t &n){
   }
 
   if(n.nnodes == 0){
-    mmin.resize(7);
-    for(int ii=0; ii<7; ii++)mmin[ii] = pmin[ii];
+    mmin.resize(8);
+    for(int ii=0; ii<6; ii++)mmin[ii] = pmin[ii];
+
+    mmin[6] = 0.0, mmin[7] = 0.0;
   }
   
   
@@ -96,9 +99,13 @@ vector<double> crh::get_scaling(nodes_t &n){
   }
 
   if(n.nnodes == 0){
-    scal.resize(7);
-    for(int ii=0; ii<7; ii++)scal[ii] = pscal[ii];
+    scal.resize(8);
+    for(int ii=0; ii<6; ii++)scal[ii] = pscal[ii];
+
+    scal[6] = 0.0, scal[7] = 0.0;
+
   }
+  
   
   return scal;
 }
