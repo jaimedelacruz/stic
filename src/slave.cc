@@ -146,12 +146,6 @@ void do_slave(int myrank, int nprocs, char hostname[]){
 	for(int kk = 0; kk < input.ndep; kk++)
 	  it.tau[kk] = pow(10.0, it.ltau[kk]); 
 	
-	
-	/* --- Optimize depth scale? --- */
-
-	//it.optimize_depth(atmos->eos, input.tcut, 5);
-	if(input.tcut > 0)
-	  it.optimize_depth_ltau(atmos->eos, input.tcut);
 
 	
 	/* --- Call equation of state or hydrostatic equilibrium ? --- */
@@ -160,6 +154,21 @@ void do_slave(int myrank, int nprocs, char hostname[]){
 	else it.fill_densities(atmos->eos, input.keep_nne, 0, it.ndep-1);
 
 
+	/* --- Optimize depth scale? --- */
+	
+	//it.optimize_depth(atmos->eos, input.tcut, 5);
+	if(input.tcut > 0)
+	  //it.optimize_depth(atmos->eos, input.tcut);
+	  it.optimize_depth_ltau(atmos->eos, input.tcut);
+
+
+		
+	/* --- Call equation of state or hydrostatic equilibrium ? --- */
+	
+	if(input.thydro) it.getPressureScale(input.nodes.depth_t, input.boundary, atmos->eos);
+	else it.fill_densities(atmos->eos, input.keep_nne, 0, it.ndep-1);
+	
+	
 	/* --- Get scales (depth_t has cmass and z switched compared to getScales) --- */
 	
 	if     (input.nodes.depth_t == 0) it.getScales(atmos->eos, 0); // LTAU500
