@@ -379,8 +379,11 @@ void PiecewiseStokesBezier3(int nspect, int mu, bool_t to_obs,
   
   /* --- upwind path_length (BEzier3 integration) --- */
 
-  c2 = max(chi1[k]    - (dsup/3.0) * dchi_c,  0.0);
-  c1 = max(chi1[k-dk] + (dsup/3.0) * dchi_up, 0.0);
+  //c2 = max(chi1[k]    - (dsup/3.0) * dchi_c,  0.0);
+  //c1 = max(chi1[k-dk] + (dsup/3.0) * dchi_up, 0.0);
+  c2 = chi1[k]    - (dsup/3.0) * dchi_c;
+  c1 = chi1[k-dk] + (dsup/3.0) * dchi_up;
+
   
   dtau_uw = 0.25 * dsup * (chi1[k] + chi1[k-dk] + c1 + c2);
 
@@ -424,9 +427,10 @@ void PiecewiseStokesBezier3(int nspect, int mu, bool_t to_obs,
       
     /* --- Make sure that c1 and c2 don't do below zero --- */
       
-      c1 = max(chi1[k+dk] - (dsdn/3.0) * dchi_dn, 0.0);
-      c2 = max(chi1[k]    + (dsdn/3.0) * dchi_c , 0.0);
-    
+      //c1 = max(chi1[k+dk] - (dsdn/3.0) * dchi_dn, 0.0);
+      //c2 = max(chi1[k]    + (dsdn/3.0) * dchi_c , 0.0);
+      c1 = (chi1[k+dk] - (dsdn/3.0) * dchi_dn);
+      c2 = (chi1[k]    + (dsdn/3.0) * dchi_c);
       
       /* --- Bezier3 integrated dtau --- */
       
@@ -643,8 +647,11 @@ void Piecewise_Bezier3(int nspect, int mu, bool_t to_obs,
   
   /* --- upwind path_length (Bezier3 integration) --- */
 
-  c1 = max(chi1[k] - (dsup/3.0) * dchi_c, 0.0);
-  c2 = max(chi1[k-dk] + (dsup/3.0) * dchi_up,  0.0);
+  //c1 = max(chi1[k] - (dsup/3.0) * dchi_c, 0.0);
+  //c2 = max(chi1[k-dk] + (dsup/3.0) * dchi_up,  0.0);
+  c1 = (chi1[k] - (dsup/3.0) * dchi_c);
+  c2 = (chi1[k-dk] + (dsup/3.0) * dchi_up);
+  
   dtau_uw =  dsup * (chi1[k] + chi1[k-dk] + c1 + c2) * 0.25;
 
   
@@ -673,9 +680,10 @@ void Piecewise_Bezier3(int nspect, int mu, bool_t to_obs,
       
       /* --- Make sure that c1 and c2 don't do below zero --- */
       
-      c1 = max(chi1[k]    + (dsdn/3.0) * dchi_c,  0.0);
-      c2 = max(chi1[k+dk] - (dsdn/3.0) * dchi_dn, 0.0);
-      
+      //c1 = max(chi1[k]    + (dsdn/3.0) * dchi_c,  0.0);
+      //c2 = max(chi1[k+dk] - (dsdn/3.0) * dchi_dn, 0.0);
+      c1 = (chi1[k]    + (dsdn/3.0) * dchi_c);
+      c2 = (chi1[k+dk] - (dsdn/3.0) * dchi_dn);
       
       /* downwind optical path length */
       
@@ -705,9 +713,10 @@ void Piecewise_Bezier3(int nspect, int mu, bool_t to_obs,
     
     /* --- Source function control points --- */
     
-    c1 = max(S[k]    - dt03 * dS_c , 0.0);
-    c2 = max(S[k-dk] + dt03 * dS_up, 0.0);       
-    
+    //c1 = max(S[k]    - dt03 * dS_c , 0.0);
+    //c2 = max(S[k-dk] + dt03 * dS_up, 0.0);       
+    c1 = (S[k]    - dt03 * dS_c);
+    c2 = (S[k-dk] + dt03 * dS_up);   
     
     /* --- Solve integral in this interval --- */
     
