@@ -260,8 +260,20 @@ namespace mth{
       
       
     }
-  
+  /* ------------------------------------------------------------------------------- */
+
+  template <class T> inline int sign(const T val)
+    {
+      // Not exactly the same as sign in fortran, as it can return zero if val is zero.
+      int res = (T(0) < val) - (val < T(0));
+      
+      if(res == 0) res = 1;
+      return res;
+    }
+
+  /* ------------------------------------------------------------------------------- */
   
 } // namespace
+
 
 #endif

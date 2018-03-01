@@ -10,6 +10,24 @@
 #include <algorithm>
 #include <cstdio>
 #include <vector>
+#include "math_tools.h"
+
+/* --------------------------------------------------------------------- */
+
+
+template <class T> T harmonic_derivative(const T odx, const T dx, const T ody, const T dy)
+{
+  // It follows Steffen (1990), A&A 239, 443-450.
+  
+  if((ody*dy) > 0.0){
+    T pi  = (dy * odx + ody * dx) / (dx + odx);
+    T der = (mth::sign(dy) + mth::sign(ody)) * std::min(std::min(fabs(ody), fabs(dy)), 0.5*fabs(pi));
+    return der;
+  }else{
+    return T(0);
+  }
+  
+}
 
 /* --------------------------------------------------------------------- */
 
@@ -132,9 +150,8 @@ template <class T1, class T2> void hermpol(size_t ni, T1 *x, T1 *y, size_t nni, 
 	dy = (y[k+1] - y[k]) / dx;
 
 	//if(dy*ody > 0) der = (dx * ody + odx * dy) / (dx + odx);
-	double lambda = (1.0 + dx / (dx + odx)) / 3.0;
-	if(dy*ody > 0) der = (dy*ody) / ((1.0-lambda)*ody + lambda * dy);
-	else der = 0;
+	//double lambda = (1.0 + dx / (dx + odx)) / 3.0;
+	der = harmonic_derivative(odx, dx, ody, dy);
       } else{
 	if(extrapolate) der = ody;
 	else der = 0.0;
@@ -171,9 +188,8 @@ template <class T1, class T2> void hermpol(size_t ni, T1 *x, T1 *y, size_t nni, 
 	dy = (y[k+1] - y[k]) / dx;
 
 	//if(dy*ody > 0) der = (dx * ody + odx * dy) / (dx + odx);
-	double lambda = (1.0 + dx / (dx + odx)) / 3.0;
-	if(dy*ody > 0) der = (dy*ody) / ((1.0-lambda)*ody + lambda * dy);
-	else der = 0;
+	der = harmonic_derivative(odx, dx, ody, dy);
+ 
       }  else{
 	if(extrapolate) der = ody;
 	else der = 0.0;
@@ -297,9 +313,8 @@ template <class T1, class T2> void bezpol2(size_t ni, T1 *x, T1 *y, size_t nni, 
 	dx =  x[k+1] - x[k];
 	dy = (y[k+1] - y[k]) / dx;
 
-	double lambda = (1.0 + dx / (dx + odx)) / 3.0;
-	if(dy*ody > 0) der = (dy*ody) / ((1.0-lambda)*ody + lambda * dy);
-	else der = 0;
+	der = harmonic_derivative(odx, dx, ody, dy);
+
 	//der = (dy*ody) / ((1.0-lambda)*ody + lambda * dy);
       } else der = ody;
       
@@ -343,9 +358,8 @@ template <class T1, class T2> void bezpol2(size_t ni, T1 *x, T1 *y, size_t nni, 
 	dx =  x[k+1] - x[k];
 	dy = (y[k+1] - y[k]) / dx;
 
-	double lambda = (1.0 + dx / (dx + odx)) / 3.0;
-	if(dy*ody > 0) der = (dy*ody) / ((1.0-lambda)*ody + lambda * dy);
-	else der = 0;
+	der = harmonic_derivative(odx, dx, ody, dy);
+
 	//der = (dy*ody) / ((1.0-lambda)*ody + lambda * dy);
       } else der = ody;
 

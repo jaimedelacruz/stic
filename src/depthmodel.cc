@@ -201,11 +201,21 @@ void mdepth::optimize_depth_ltau(ceos &eos, float tcut)
   if(ltau[0] == 0){
     double wav = 5000., kap= 0.0, scat=0., okap=0, itau=0.0;
     ltau[k0] = 1.e-9;
-    
-    eos.contOpacity_TPg(temp[k0], pgas[k0], 1, &wav, &kap, &scat, 1.e-4);
+
+    bool use_pgas = ((pgas[k0] > 1.e-8)? true : false);
+    if(use_pgas)
+      eos.contOpacity_TPg(temp[k0], pgas[k0], 1, &wav, &kap, &scat, 1.e-4);
+    else
+      eos.contOpacity_TRho(temp[k0], rho[k0], 1, &wav, &kap, &scat, nne[k0]*temp[k0]*eos.bk);
+
     for(int k=k0+1; k<=k1; k++){
       okap = kap;
-      eos.contOpacity_TPg(temp[k], pgas[k], 1, &wav, &kap, &scat, 1.e-4);
+      if(use_pgas)
+	eos.contOpacity_TPg(temp[k], pgas[k], 1, &wav, &kap, &scat, 1.e-4);
+      else
+	eos.contOpacity_TRho(temp[k], rho[k], 1, &wav, &kap, &scat, nne[k]*temp[k]*eos.bk);
+
+      
       
       double dz = fabs(z[k]-z[k-1]);
       ltau[k] = ltau[k-1] + 0.5 * dz * (kap + okap);

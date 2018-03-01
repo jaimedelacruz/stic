@@ -1446,6 +1446,7 @@ double ceos::nne_from_T_rho_nne(double iT, double &iPg, double irho, double nne)
   float Pg = 1.5*rho * bk * T / (avmol * mp); // Init approximate gas pressure
   float Pe = xne * bk * T;
   xne = (float)nne, xna = 0.0;
+  //fprintf(stderr,"%e %e %e %e\n", T, rho, Pg, xne);
   /*
   if(T > 8000) Pe *= 0.5 * Pg;
   else if(T > 4000) Pe *= 0.1 *Pg;
