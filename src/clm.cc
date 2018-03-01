@@ -455,6 +455,7 @@ double clm::getChi2Pars(double *res, double **rf, double lambda,
     if(verb)
       fprintf(stderr, "clm::fitdata: [p:%4d] ERROR in the evaluation of FX, aborting inversion\n", proc);
     error = true;
+    newchi2 = 1.e32;
   }else newchi2 = compute_chi2(new_res, new_dregul.getReg());
 
   delete [] new_res;
@@ -540,16 +541,16 @@ double clm::getChi2ParsLineSearch(double *res, double **rf, double &lambda,
   vector<double> ilamb, ichi, tmp(npar, 0.0), bx(npar, 0.0), bsyn(nd, 0.0);
   reg_t dregul = dregul_in, best_dregul = dregul_in;
   ilamb.push_back(lambda);
+  double bchi = rchi2, blambda = lambda;
   
-
   
   /* --- Init chi2 --- */
   
   ichi.push_back(getChi2Pars(res, rf, ilamb[0], x, &tmp[0], mydat, fx, dregul));
   bsyn = iSyn;
   bx = tmp;
+  if(error) return 1.e32;
   
-
   /* --- Can we take larger steps if Chi2 was ok? --- */
   
   if(ichi[0] < rchi2){ // Things improved compared to reference chi2, try to go further!
@@ -562,12 +563,27 @@ double clm::getChi2ParsLineSearch(double *res, double **rf, double &lambda,
       dregul = dregul_in;
       ichi.push_back(getChi2Pars(res, rf, ilamb[kk+1], x, &tmp[0], mydat, fx, dregul));
 
+      
       if(ichi[kk+1] < ichi[kk]){
 	best_dregul.copyReg(dregul.reg);
 	bsyn = iSyn;
 	bx = tmp;
+	bchi = ichi[kk+1];
+	blambda = ilamb[kk+1];
       }
 
+      if(error){
+	memcpy(xnew, &bx[0], npar*sizeof(double));
+	lambda = blambda;
+	
+	dregul_in.copyReg(best_dregul.reg);
+	iSyn = bsyn;
+	error = false;
+	
+	return bchi;
+      }
+
+      
       kk += 1;
     }
 
@@ -610,9 +626,20 @@ double clm::getChi2ParsLineSearch(double *res, double **rf, double &lambda,
 	best_dregul.copyReg(dregul.reg);
 	bsyn = iSyn;
 	bx = tmp;
+	bchi = ichi[0];
+	blambda = ilamb[0];
       }
       
-      
+      if(error){
+	memcpy(xnew, &bx[0], npar*sizeof(double));
+	lambda = blambda;
+	
+	dregul_in.copyReg(best_dregul.reg);
+	iSyn = bsyn;
+	error = false;
+	
+	return bchi;
+      }
       
       /* --- Check the index of the smallest chi2 after adding a new element --- */
       
@@ -657,7 +684,21 @@ double clm::getChi2ParsLineSearch(double *res, double **rf, double &lambda,
 	  best_dregul.copyReg(dregul.reg);
 	  bsyn = iSyn;
 	  bx = tmp;
+	  bchi = gchi;
+	  blambda = glamb;
+	  
 	  break; // if we already got a better value, then exit
+	}
+	
+	if(error){
+	  memcpy(xnew, &bx[0], npar*sizeof(double));
+	  lambda = blambda;
+	  
+	  dregul_in.copyReg(best_dregul.reg);
+	  iSyn = bsyn;
+	  error = false;
+	  
+	  return bchi;
 	}
 
 	
@@ -702,7 +743,7 @@ double clm::fitdata(clm_func fx, double *x, void *mydat, int maxiter, reg_t &dre
   /* --- Init variables --- */
 
   regul_scal = regul_scal_in;
-  int n_bracket = 0;
+  int n_bracket = delay_bracket;
   
   if(reset_par) memset(x, 0, npar*sizeof(double));
   
@@ -982,11 +1023,11 @@ void clm::geoAcceleration(double *x, double *dx, double h,
   
   /* --- Now we have to build up the acceleration term --- */
 
-  for(int ii=0;ii<nd;ii++) dresu[ii] = (dresu[ii] - 2.0*res[ii] + dresd[ii]) / hh;
+      for(int ii=0;ii<nd;ii++) dresu[ii] = (dresu[ii] - 2.0*res[ii] + dresd[ii]) / h;//or hh?
   
   if(regme )
     for(int ii=0;ii<npen;ii++)
-      dpen[ii] = (udregul.reg[ii] - 2.0 * dregul.reg[ii] + ddregul.reg[ii]) / hh;
+      dpen[ii] = (udregul.reg[ii] - 2.0 * dregul.reg[ii] + ddregul.reg[ii]) / h;//or hh?
 
   for(int yy=0;yy<npar;yy++){
 
@@ -1008,7 +1049,7 @@ void clm::geoAcceleration(double *x, double *dx, double h,
      --- */
   
   JacobiSVD<MatrixXd,ColPivHouseholderQRPreconditioner> svd(Ap, ComputeThinU | ComputeThinV);
-  svd.setThreshold(5.0e-4);
+  svd.setThreshold(1.0e-4);
 
   VectorXd RES = svd.solve(B);
   //scaleParameters(&RES[0]);

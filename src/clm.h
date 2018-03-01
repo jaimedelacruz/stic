@@ -107,7 +107,7 @@ class clm{
   std::vector<std::vector<unsigned>> pidx;
   bool verb, regularize, first;
   double xtol, chi2_thres, svd_thres, lfac, lmax, lmin, ilambda, regul_scal, regul_scal_in, reset_par;
-  int maxreject, proc, nvar, use_geo_accel;
+  int maxreject, proc, nvar, use_geo_accel, delay_bracket;
 
   
   /* --- Constructor / Destructor --- */
