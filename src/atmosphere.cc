@@ -23,6 +23,7 @@
 #include "physical_consts.h"
 #include "clm.h"
 #include "math_tools.h"
+#include "mmem.h"
 //
 using namespace std;
 //
@@ -78,8 +79,9 @@ void atmos::responseFunction(int npar, mdepth_t &m_in, double *pars, int nd, dou
     
   //
   if(input.depth_model == 0){
-    //if(input.nodes.ntype[pp] == temp_node) pertu = input.dpar * pval * 0.25;
-    //else
+    if((input.nodes.ntype[pp] == temp_node) && pval > 10000.){
+      pertu = input.dpar * pval * 0.25;
+    }else
       pertu = input.dpar * scal[pp];
   }else  pertu = input.dpar * scal[pp];
     
@@ -776,6 +778,8 @@ double atmos::fitModel2(mdepth_t &m, int npar, double *pars, int nobs, double *o
   lm.lmin = 1.e-4;
   lm.lfac = sqrt(10.0);
   lm.proc = input.myrank;
+  lm.delay_bracket = input.delay_bracket;
+  
   if(input.regularize >= 1.e-5){
     lm.regularize = true;
     lm.regul_scal_in = input.regularize;
@@ -893,6 +897,7 @@ double atmos::fitModel2(mdepth_t &m, int npar, double *pars, int nobs, double *o
   }
   fprintf(stderr,"Recomp chi2=%13.5f\n", sum/ndata);
   memcpy(&obs[0], &bestSyn[0], ndata*sizeof(double));
+  memcpy(&m.cub.d[0], &best_m.cub.d[0], m.ndep*14*sizeof(double));
   
   /* --- Clean-up --- */
   
@@ -931,7 +936,9 @@ void atmos::responseFunctionFull(mdepth_t m, int nd, double *out_in, double *syn
   double pertu = scal[pp] * dpar;
   int ndep = (int)m.ndep, centder = input.centder;
   bool store_pops = false;
-  double (&out)[ndep][nd] = *reinterpret_cast< double (*)[ndep][nd]>(out_in);
+  //double (&out)[ndep][nd] = *reinterpret_cast< double (*)[ndep][nd]>(out_in);
+  double **out = mmem::var2dim(out_in, ndep, nd);
+  
 
   if(centder){
     vector<double> syup(nd, 0.0), sydow(nd,0.0);
@@ -1036,6 +1043,9 @@ void atmos::responseFunctionFull(mdepth_t m, int nd, double *out_in, double *syn
     } // kk
 
   }//else
+
+
+  delete [] out;
   
 }
 

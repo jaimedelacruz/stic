@@ -73,7 +73,7 @@ bool_t rhf1d(float muz, int rhs_ndep, double *rhs_T, double *rhs_rho,
 {
   
   bool_t write_analyze_output, equilibria_only, quiet = ((iverbose == 0)? TRUE : FALSE);
-  int    niter, nact, i;
+  int    niter, nact, i, sNgperiod, sNgdelay;
   static int save_Nrays;
   static double save_muz, save_mux, save_muy, save_wmu;
   static enum StokesMode oldMode;
@@ -101,7 +101,6 @@ bool_t rhf1d(float muz, int rhs_ndep, double *rhs_T, double *rhs_rho,
   atmos.Nspace = rhs_ndep;
 
   
-  
   /* --- Read input data and initialize --             -------------- */
 
   
@@ -124,6 +123,11 @@ bool_t rhf1d(float muz, int rhs_ndep, double *rhs_T, double *rhs_rho,
   mpi.stop = false;
 
 
+  /* --- Store Ng values --- */
+
+  sNgperiod = input.Ngperiod;
+  sNgdelay = input.Ngdelay;
+  
   
   /* --- Allocate space for arrays that define structure -- --------- */
   
@@ -173,8 +177,8 @@ bool_t rhf1d(float muz, int rhs_ndep, double *rhs_T, double *rhs_rho,
   
   UpdateAtmosDep();
   Background_j(write_analyze_output=FALSE, equilibria_only=FALSE);
-  convertScales(&atmos, &geometry);
-
+  //convertScales(&atmos, &geometry);
+  
   //for(i=0;i<atmos.Nspace;i++) printf("[%3d] %e\n", i, geometry.tau_ref[i]);
   
   if(!mpi.stop){
@@ -183,7 +187,14 @@ bool_t rhf1d(float muz, int rhs_ndep, double *rhs_T, double *rhs_rho,
     
     getProfiles();
     initSolution_j( myrank );
-    read_populations(save_pop);
+
+    read_populations(save_pop,0);
+
+    if(savpop == 0){
+      input.Ngdelay = 5;
+      input.Ngperiod = 5;
+    }
+    
     initScatter();
     
     //getCPU(1, TIME_POLL, "Total Initialize");
@@ -195,7 +206,9 @@ bool_t rhf1d(float muz, int rhs_ndep, double *rhs_T, double *rhs_rho,
     if(isnan(dpopmax) || isinf(dpopmax) || dpopmax < 0){
       mpi.stop = true;
     }
-      
+
+    input.Ngdelay=sNgdelay, input.Ngperiod = sNgperiod;
+    
     
     /* --- Adjust stokes mode in case we are running POLARIZATION_FREE --- */
     
@@ -295,8 +308,11 @@ bool_t rhf1d(float muz, int rhs_ndep, double *rhs_T, double *rhs_rho,
 
   if(!quiet){
     fclose(commandline.logfile);
+    //if(!mpi.stop)
     remove(commandline.logfileName);
+    //else exit(0);
   }
+
   return converged;
 }
 
@@ -353,7 +369,8 @@ void save_populations(crhpop *save_pop){
   Atom *atom;
   int    niter, nact, save_Nrays, nactotal, ii, kr, nprd;
   AtomicLine *line;
-
+  register int k,j;
+  
   // fprintf(stderr,"save_pop: nactive=%d\n", save_pop->nactive);
   
   if(save_pop->nactive > 0) clean_saved_populations(save_pop);
@@ -399,11 +416,16 @@ void save_populations(crhpop *save_pop){
 
 
     /* --- copy populations and ntotal---*/
-    memcpy(&save_pop->pop[nact].n[0], &atom->n[0][0],
-	   atom->Nlevel*atmos.Nspace*sizeof(double));
+    // memcpy(&save_pop->pop[nact].n[0], &atom->n[0][0],
+    //atom->Nlevel*atmos.Nspace*sizeof(double));
     memcpy(&save_pop->pop[nact].ntotal[0], &atom->ntotal[0], atmos.Nspace*sizeof(double));
 
+    for(j=0;j<atom->Nlevel;j++)
+      for(k=0;k<atmos.Nspace;k++)
+	save_pop->pop[nact].n[j*atmos.Nspace+k] = atom->n[j][k] / atom->nstar[j][k];
+    
 
+    
     /* --- Check number of PRD lines in atom --- */
     
     nprd = 0;
@@ -444,12 +466,12 @@ void save_populations(crhpop *save_pop){
 
 }
 
-void read_populations(crhpop *save_pop){
+void read_populations(crhpop *save_pop, int flag){
   Atom *atom;
   int    niter, nact, save_Nrays, nactotal, ii, nprd, kr, kkr, copied = 0;
   AtomicLine *line;
   register int k, j;
-  double ratio;
+  double ratio, tmp;
   
   
   if(save_pop->pop == NULL || save_pop->nactive != atmos.Nactiveatom){
@@ -467,18 +489,35 @@ void read_populations(crhpop *save_pop){
     }
     copied += 1;
     
-    /* --- Copy populations and ntotal --- */
-    memcpy(&atom->n[0][0], &save_pop->pop[nact].n[0],
-	   atom->Nlevel * atmos.Nspace * sizeof(double));
-    
+    if(flag)
+      for(j= 0; j < atom->Nlevel; j++ )
+	for(k = 0; k < atmos.Nspace; k++){
+	  atom->n[j][k] = (save_pop->pop[nact].n[j*atmos.Nspace + k] * atom->nstar[j][k]) * 0.7 + atom->n[j][k] * 0.3;
+	}
+    else
+      for(j= 0; j < atom->Nlevel; j++ )
+	for(k = 0; k < atmos.Nspace; k++){
+	  
+	  tmp = save_pop->pop[nact].n[j*atmos.Nspace + k];
 
-    /* --- Scale populations to the ratio of ntotal --- */
+	  //if(tmp > 100.) tmp = 100.;
+	  //else if(tmp < 0.01) tmp = 0.01;
+	  
+	  atom->n[j][k] = tmp * atom->nstar[j][k];
+	  
+	}
+
+    /* --- Make sure that the populations do not exceed ntotal --- */
     
     for(k = 0; k < atmos.Nspace; k++){
-      ratio = atom->ntotal[k] / save_pop->pop[nact].ntotal[k];
-      for(j= 0; j < atom->Nlevel; j++ ) atom->n[j][k] *= ratio;
+      ratio = 0.0;
+      for(j= 0; j < atom->Nlevel; j++ )
+	ratio += atom->n[j][k];
+
+      ratio = atom->ntotal[k] / ratio;
+      for(j= 0; j < atom->Nlevel; j++ )
+	atom->n[j][k] *= ratio;
     }
-    
     
 
     /* --- Copy rho for PRD lines? --- */

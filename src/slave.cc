@@ -178,7 +178,7 @@ void do_slave(int myrank, int nprocs, char hostname[]){
 	
 	
 	/* --- Synthesize spectra --- */
-	
+	  
 	bool conv = atmos->synth(it, &obs(pixel,0,0), (cprof_solver)input.solver);
 	atmos->cleanup();
 	

@@ -102,8 +102,10 @@ iput_t read_input(std::string filename, bool verbose){
   input.regularize = 0.0;
   input.random_first = 0;
   input.depth_model = 0;
-  input.tcut = 100000.0;
+  input.tcut = -1.0;
   input.use_geo_accel = 0;
+  input.delay_bracket = 0;
+
   memset(input.getResponse, 8, sizeof(int));
   memset(input.nodes.regul_type, 0, 6*sizeof(int));
   
@@ -178,6 +180,10 @@ iput_t read_input(std::string filename, bool verbose){
       }
       else if(key == "recompute_hydro"){
 	input.thydro = atoi(field.c_str());
+	set = true;
+      }
+      else if(key == "delay_bracket_lambda"){
+	input.delay_bracket = atoi(field.c_str());
 	set = true;
       }
       else if(key == "depth_interpolation"){

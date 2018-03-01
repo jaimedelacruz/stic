@@ -13,6 +13,10 @@
 	                      instead we set the last derivative using the linear
 			      approximation. This ensures continuity and derivability
 			      in the upwind point of the last interval.
+	   2018-02-22, JdlCR: Stimulated emission can cause negative absortion, so removed the
+	                      cap imposed in the control points (to be possitive). Also
+			      introduced a better harmonic derivative implementation from 
+			      Steffen (1990).
 
    ----------------------------------------------------------------------- */
 
@@ -28,7 +32,6 @@
 #include "geometry.h"
 #include "spectrum.h"
 #include "bezier.h"
-//#include "scl_opac.h"
 
 /* --- Macros --                          -------------- */
 
@@ -53,18 +56,29 @@ static const double ident[4][4] =
 
 /* --------------------------------------------------------------- */
 
-inline double cent_deriv(double dsup,double dsdn, 
+inline int sign(const double val)
+{
+  int res = (0.0 < val) - (val < 0.0);
+  
+  if(res == 0) res = 1;
+  return res;
+}
+
+/* --------------------------------------------------------------- */
+
+inline double cent_deriv2(double dsup,double dsdn, 
 			 double chiup,double chic, double chidn)
 {
   /* --- Derivatives from Fritsch & Butland (1984) --- */
 
+  static const double onethird = 1.0 / 3.0;
   double fim1, fi, alpha, wprime;
   
   fim1=(chic-chiup)/dsup;
   fi=(chidn-chic)/dsdn;
 
   if (fim1*fi > 0) {
-    alpha = 0.333333333333333333333333 * ( 1.0 + dsdn/(dsdn+dsup) );
+    alpha = onethird * ( 1.0 + dsdn/(dsdn+dsup) );
     wprime = (fim1*fi) / ( (1.0-alpha) * fim1 + alpha*fi );
   } else {
     wprime=0.0;
@@ -74,6 +88,23 @@ inline double cent_deriv(double dsup,double dsdn,
 
 /* --------------------------------------------------------------- */
 
+inline double cent_deriv(double odx,double dx, 
+			 double chiup,double chic, double chidn)
+{
+  /* --- Derivatives from Steffen (1990) --- */
+
+  double ody=(chic-chiup)/odx, dy=(chidn-chic)/dx, wprime = 0.0, p;
+  
+  
+  if ((ody*dy) > 0) {
+    p = (dy * odx + ody * dx) / (dx + odx);
+    wprime = (sign(dy) + sign(ody)) * min(min(fabs(ody), fabs(dy)), 0.5*fabs(p));
+  } 
+  
+  return wprime;
+}
+
+/* --------------------------------------------------------------- */
 
 inline void cent_deriv_mat(double wprime[4][4], double dsup, double dsdn,
 			   double chiup[4][4], double chic[4][4], double chidn[4][4])
@@ -283,7 +314,7 @@ void PiecewiseStokesBezier3(int nspect, int mu, bool_t to_obs,
      
      --- */
   
-  const char routineName[] = "PiecewiseStokesBezier3";
+  static const char routineName[] = "PiecewiseStokesBezier3";
   register int k, n, m, i, j;
   
   int    Ndep = geometry.Ndep, k_start, k_end, dk, k_last, ref_index;
@@ -495,9 +526,10 @@ void PiecewiseStokesBezier3(int nspect, int mu, bool_t to_obs,
        right-hand term
        --- */
     
-    memset(V0, 0, 4*sizeof(double));
+    //memset(V0, 0, 4*sizeof(double));
     
     for(i = 0; i<4; i++){
+      V0[i] = 0.0;
       for(j = 0; j<4; j++){
 	V0[i] += Ma[i][j] * I[j][k-dk] + Mb[i][j] * Su[j] + Mc[i][j] * S0[j];
       }
@@ -508,6 +540,7 @@ void PiecewiseStokesBezier3(int nspect, int mu, bool_t to_obs,
     /* --- Solve linear system to get the intensity --- */
       
     SIMD_MatInv(Md[0]); // Invert Md
+    //m4inv(Md); // Invert Md
     m4v(Md,V0,V1);      // Multiply Md^-1 * V0
     
     
