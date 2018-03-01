@@ -46,7 +46,7 @@ extern "C" {
   } MPI_t;
   
   void save_populations(crhpop *save_pop);
-  void read_populations(crhpop *save_pop);
+  void read_populations(crhpop *save_pop, int flag);
   void clean_saved_populations(crhpop *save_pop_ref);
   void UpdateAtmosDep(void);
   void Initvarious();
@@ -59,6 +59,10 @@ extern "C" {
 	       double *rhs_cmass, double gravity, bool_t stokes, ospec *sp,
 	       crhpop *save_pop, int mynw, double *mylambda, int myrank, int savpop,
 	       int iverbose, int *hydrostat);
+
+  void   Redistribute_j(int NmaxIter, double iterLimit, double iprec);
+
+  
 #ifdef __cplusplus
 }
 # endif

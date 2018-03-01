@@ -122,7 +122,7 @@ void Iterate_j(int NmaxIter, double iterLimit, double *dpopmax_out)
       else
 	PRDiterlimit = input.PRDiterLimit;
 
-      Redistribute(input.PRD_NmaxIter, PRDiterlimit);
+      Redistribute_j(input.PRD_NmaxIter, PRDiterlimit, dpopsmax*0.5);
       if (mpi.stop) return;
 	  
     }
@@ -144,7 +144,7 @@ void Iterate_j(int NmaxIter, double iterLimit, double *dpopmax_out)
 	else
 	  PRDiterlimit = input.PRDiterLimit;
        
-	Redistribute(input.PRD_NmaxIter*2+1, PRDiterlimit);
+	Redistribute_j(input.PRD_NmaxIter*2+1, PRDiterlimit, dpopsmax*0.5);
 	if (mpi.stop) return;
       }
       break;

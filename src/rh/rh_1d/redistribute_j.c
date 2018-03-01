@@ -36,7 +36,7 @@ extern MPI_t mpi;
 
 /* ------- begin -------------------------- Redistribute.c ---------- */
 
-void Redistribute(int NmaxIter, double iterLimit)
+void Redistribute_j(int NmaxIter, double iterLimit, double iprec)
 {
   const char routineName[] = "Redistribute";
   register int kr, nact;
@@ -113,7 +113,7 @@ void Redistribute(int NmaxIter, double iterLimit)
 
     solveSpectrum(eval_operator=FALSE, redistribute=TRUE, 0);
 
-    if (drhomaxa < iterLimit) break;
+    if ((drhomaxa < iterLimit) || (drhomaxa < iprec)) break;
     niter++;
   }
 }

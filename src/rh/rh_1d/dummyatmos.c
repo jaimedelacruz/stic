@@ -59,7 +59,7 @@ void DUMMYatmos(Atmosphere *atmos, Geometry *geometry, bool_t firsttime)
   /* --- Boundary condition at BOTTOM of atmosphere --   ------------ */
 
   geometry->vboundary[BOTTOM] = THERMALIZED;
-  geometry->scale =  GEOMETRIC;
+  //geometry->scale =  GEOMETRIC;
   //geometry->scale = COLUMN_MASS;
   //geometry->scale = TAU500;
   
