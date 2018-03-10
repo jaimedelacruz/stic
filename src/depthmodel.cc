@@ -1052,14 +1052,14 @@ void mdepthall::convertBoundary(int bound, bool verbose){
 void mdepthall::expand(int n, double *x, double *y, int nn, double *xx, double *yy, int interpolation){
 
   if     (n == 1)                for(int kk=0;kk<nn;kk++) yy[kk] = y[0];
-  else if((n == 2))              linpol<double,double>(n, x, y, nn, xx, yy, true);
+  else if((n == 2))              linpol(n, x, y, nn, xx, yy, true);
   else if(n >= 3){
-    if(interpolation == 0)       linpol<double,double>(n, x, y, nn, xx, yy, true);
-    else if(interpolation == 1) bezpol2<double,double>(n, x, y, nn, xx, yy, true);
-    else if(interpolation == 2) hermpol<double,double>(n, x, y, nn, xx, yy, true);
+    if(interpolation == 0)       linpol(n, x, y, nn, xx, yy, true);
+    else if(interpolation == 1) bezpol2(n, x, y, nn, xx, yy, true);
+    else if(interpolation == 2) hermpol(n, x, y, nn, xx, yy, true);
     else if(interpolation == 3){
-      if(n >= 3) vlint<double,double>(n, x, y, nn, xx, yy);
-      else     linpol<double,double>(n, x, y, nn, xx, yy, true);
+      if(n >= 3) vlint(n, x, y, nn, xx, yy);
+      else     linpol(n, x, y, nn, xx, yy, true);
     }
   }
   else return;
