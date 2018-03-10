@@ -338,14 +338,14 @@ void mdepth::nodes2depth(int n, double *x, double *y, int nn, double *xx, double
 {
   if     (n <  1)           return;
   else if(n == 1)           for(int kk=0; kk<nn; kk++) yy[kk] = y[0];
-  else if(n == 2)            linpol<double,double>(n, x, y, nn, xx, yy, extrapolate);
+  else if(n == 2)            linpol(n, x, y, nn, xx, yy, extrapolate);
   else if(n >= 3){
-    if     (interpol == 0)   linpol<double,double>(n, x, y, nn, xx, yy, extrapolate);
-    else if(interpol == 1)  bezpol2<double,double>(n, x, y, nn, xx, yy, extrapolate);
-    else if(interpol == 2)  hermpol<double,double>(n, x, y, nn, xx, yy, extrapolate);
+    if     (interpol == 0)   linpol(n, x, y, nn, xx, yy, extrapolate);
+    else if(interpol == 1)  bezpol2(n, x, y, nn, xx, yy, extrapolate);
+    else if(interpol == 2)  hermpol(n, x, y, nn, xx, yy, extrapolate);
     else if(interpol == 3){
-      if(n > 3) vlint<double,double>(n, x, y, nn, xx, yy);
-      else      linpol<double,double>(n, x, y, nn, xx, yy, extrapolate);
+      if(n > 3) vlint(n, x, y, nn, xx, yy);
+      else      linpol(n, x, y, nn, xx, yy, extrapolate);
     }
   }
 }
