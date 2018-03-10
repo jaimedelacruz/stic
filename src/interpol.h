@@ -115,141 +115,232 @@ template <class T, class U> void linpol(size_t ni, T *x, T *y, size_t nni, U *xx
 /* --------------------------------------------------------------------- */
 
 
+  template <class U, class T, class V> void hermpol(const U n, const T *x, const T *y,
+						    const U nn, const V *xx, V *yy,
+						    const bool extrapolate = false)
+  {
+
+    // Third order Hermite interpolation
+    // It allows to set the detivatives to zero at the very last points
+    // or to extrapolate the last intervals using the keyword "extrapolate"
+    //
+    // It accepts any direction in the x, xx arrays as long as
+    // they monotonically increase or decrease.
+    // 
+    // Coded by J. de la Cruz Rodriguez (ISP-SU 2018)
+    //
+    
+    size_t n1 = (size_t)n, nn1 = (size_t)nn, off = 0,
+      istart = 1, iend = n1, di = 1;
+    bool dir = true;
+    
+    if((x[n-1]-x[0]) < 0.0){
+      istart = n1-2;
+      iend = -1;
+      di = -1;
+      dir = false;
+    }
+    
+    size_t is = 0, ie = nn, dd = 1;
+    if((xx[ie]-xx[is]) < 0.0){
+      is = nn1-1, ie = -1, dd = -1;
+    }
+    off = is;
+
+    
+    T odx = x[istart]-x[istart-di], ody = (y[istart]-y[istart-di]) / odx, dx = 0.0, dy = 0.0,
+      oder = ((extrapolate)? ody : 0.0), der = 0.0;
+    
+    // --- Interpolate in the domain --- //
+    
+    for(size_t ii = istart; ii != iend; ii += di){	
+
+      // Compute the derivative in the downwind interval.
+      // If we are in the last interval, check if we shoudl
+      // set the derivative to zero or not.
+      
+      if(ii != (iend-di)){
+	dx = x[ii+di]-x[ii], dy = ( y[ii+di] - y[ii]) / dx;
+	der  = harmonic_derivative(odx, dx, ody, dy);
+      }else
+	der = ((extrapolate)? dy : 0.0);
+
+      
+      // Now perform the interpolation for all points inside each interval
+ 
+      for(size_t kk=off; kk != ie; kk += dd){
+	if((xx[kk] > x[ii-di]) && (xx[kk] <= x[ii])){
+	  T u  = (xx[kk] - x[ii-di]) / odx, // Normalized units
+	    uu = u*u, uuu = uu*u;
+	  
+	  yy[kk] = y[ii-di] * (1.0 - 3*uu + 2*uuu) + (3*uu - 2*uuu) * y[ii] +
+	    (uuu - 2*uu + u) * odx * oder + (uuu - uu) * odx * der;
+	  
+	  off += dd;
+	} 
+      } // kk
+
+      odx = dx, ody = dy, oder = der;
+    } // ii
+
+    // --- Out of bound limits --- //
+
+    if(dir){
+      istart = 0, iend = n1-1, di = 1;
+    }else{
+      istart = n1-1, iend = 0, di = -1;
+    }
+    
+    V a0=0, a1=0, b0=y[istart], b1=y[iend];
+
+    if(extrapolate){
+      a0 = (y[istart]-y[istart+di])/(x[istart]-x[istart+di]), b0 = y[istart]-a0*x[istart];
+      a1 = (y[iend]-y[iend-di])/(x[iend]-x[iend-di]), b1 = y[iend]-a1*x[iend];
+    }
+    
+    for(size_t ii=is; ii != ie; ii += dd){
+      if(xx[ii] <= x[istart]) yy[ii] = a0 * xx[ii] + b0;
+      if(xx[ii] >= x[iend])   yy[ii] = a1 * xx[ii] + b1;
+    }
+    
+  }
+
 /*
   Piece-wise Hermitian interpolation, with optional 
   linear extrapolation outside the input range.
   
   Hermitian interpolant from Auer (2003), Formal Solution: Explicit answers.
 
- */ 
-template <class T1, class T2> void hermpol(size_t ni, T1 *x, T1 *y, size_t nni, T2 *xx, T2 *yy, bool extrapolate = false){
+ */
 
-  unsigned n = (unsigned)ni, nn = (unsigned)nni;
+/* template <class T1, class T2> void hermpol(size_t ni, T1 *x, T1 *y, size_t nni, T2 *xx, T2 *yy, bool extrapolate = false){ */
+
+/*   unsigned n = (unsigned)ni, nn = (unsigned)nni; */
   
-  // Increasing x?
-  bool sign = true;
-  if( (x[1] - x[0]) < 0 ) sign = false;
+/*   // Increasing x? */
+/*   bool sign = true; */
+/*   if( (x[1] - x[0]) < 0 ) sign = false; */
 
   
-  // Init derivatives
-  double odx = x[1] - x[0];
-  double oder = ((extrapolate)?((y[1] - y[0]) / odx):0.0);
-  double ody = oder;
-  double dy = 0;
-  double der = 0;
-  double dx = 0;
-  unsigned off = 0;
+/*   // Init derivatives */
+/*   double odx = x[1] - x[0]; */
+/*   double oder = ((extrapolate)?((y[1] - y[0]) / odx):0.0); */
+/*   double ody = oder; */
+/*   double dy = 0; */
+/*   double der = 0; */
+/*   double dx = 0; */
+/*   unsigned off = 0; */
   
-  if(sign){
+/*   if(sign){ */
 
-    for(unsigned k = 1; k<n; k++){
+/*     for(unsigned k = 1; k<n; k++){ */
       
-      // Derivatives
-      if(k<(n-1)){
-	dx =  x[k+1] - x[k];
-	dy = (y[k+1] - y[k]) / dx;
+/*       // Derivatives */
+/*       if(k<(n-1)){ */
+/* 	dx =  x[k+1] - x[k]; */
+/* 	dy = (y[k+1] - y[k]) / dx; */
 
-	//if(dy*ody > 0) der = (dx * ody + odx * dy) / (dx + odx);
-	//double lambda = (1.0 + dx / (dx + odx)) / 3.0;
-	der = harmonic_derivative(odx, dx, ody, dy);
-      } else{
-	if(extrapolate) der = ody;
-	else der = 0.0;
-      }
-      // Check if there are points to compute
-      for(unsigned j = off; j<nn; j++){      
+/* 	//if(dy*ody > 0) der = (dx * ody + odx * dy) / (dx + odx); */
+/* 	//double lambda = (1.0 + dx / (dx + odx)) / 3.0; */
+/* 	der = harmonic_derivative(odx, dx, ody, dy); */
+/*       } else{ */
+/* 	if(extrapolate) der = ody; */
+/* 	else der = 0.0; */
+/*       } */
+/*       // Check if there are points to compute */
+/*       for(unsigned j = off; j<nn; j++){       */
 	
-	if( (xx[j] >= x[k-1]) && (xx[j] < x[k]) ){
-	  // Normalize interval units
-	  double u  = (xx[j] - x[k-1]) / odx;
-	  double uu = u*u;
+/* 	if( (xx[j] >= x[k-1]) && (xx[j] < x[k]) ){ */
+/* 	  // Normalize interval units */
+/* 	  double u  = (xx[j] - x[k-1]) / odx; */
+/* 	  double uu = u*u; */
 
-	  // Hermitian interpolant
-	  yy[j] = y[k-1] * (1.0 - 3*uu + 2*uu*u) + (3*uu - 2*uu*u) * y[k] +
-	    (uu*u - 2*uu + u) * odx * oder + (uu*u - uu) * odx * der;
+/* 	  // Hermitian interpolant */
+/* 	  yy[j] = y[k-1] * (1.0 - 3*uu + 2*uu*u) + (3*uu - 2*uu*u) * y[k] + */
+/* 	    (uu*u - 2*uu + u) * odx * oder + (uu*u - uu) * odx * der; */
 	  
-	  off++;
-	}
+/* 	  off++; */
+/* 	} */
 	
-      } // j
+/*       } // j */
 
-      // Store values
-      odx = dx;
-      ody = dy;
-      oder = der;
+/*       // Store values */
+/*       odx = dx; */
+/*       ody = dy; */
+/*       oder = der; */
       
-    } // k
-  }else{
-    for(unsigned k = 1; k<n; k++){
+/*     } // k */
+/*   }else{ */
+/*     for(unsigned k = 1; k<n; k++){ */
       
-      // Derivatives
-      if(k<(n-1)){
-	dx =  x[k+1] - x[k];
-	dy = (y[k+1] - y[k]) / dx;
+/*       // Derivatives */
+/*       if(k<(n-1)){ */
+/* 	dx =  x[k+1] - x[k]; */
+/* 	dy = (y[k+1] - y[k]) / dx; */
 
-	//if(dy*ody > 0) der = (dx * ody + odx * dy) / (dx + odx);
-	der = harmonic_derivative(odx, dx, ody, dy);
+/* 	//if(dy*ody > 0) der = (dx * ody + odx * dy) / (dx + odx); */
+/* 	der = harmonic_derivative(odx, dx, ody, dy); */
  
-      }  else{
-	if(extrapolate) der = ody;
-	else der = 0.0;
-      }
+/*       }  else{ */
+/* 	if(extrapolate) der = ody; */
+/* 	else der = 0.0; */
+/*       } */
       
       
-      // Check if there are points to compute
-      for(unsigned j = off; j<nn; j++){      
+/*       // Check if there are points to compute */
+/*       for(unsigned j = off; j<nn; j++){       */
 	
-	if( (xx[j] <= x[k-1]) && (xx[j] > x[k]) ){
+/* 	if( (xx[j] <= x[k-1]) && (xx[j] > x[k]) ){ */
 
-	  double u  = (xx[j] - x[k-1]) / odx;
-	  double uu = u*u;
-	  double uuu = uu*u;
+/* 	  double u  = (xx[j] - x[k-1]) / odx; */
+/* 	  double uu = u*u; */
+/* 	  double uuu = uu*u; */
 	  
-	  yy[j] = y[k-1] * (1.0 - 3*uu + 2*uuu) + (3*uu - 2*uuu) * y[k] +
-	    (uuu - 2*uu + u) * odx * oder + (uuu - uu) * odx * der;
+/* 	  yy[j] = y[k-1] * (1.0 - 3*uu + 2*uuu) + (3*uu - 2*uuu) * y[k] + */
+/* 	    (uuu - 2*uu + u) * odx * oder + (uuu - uu) * odx * der; */
 	  
-	  off++;
-	}
+/* 	  off++; */
+/* 	} */
 	
-      } // j
+/*       } // j */
       
-      odx = dx;
-      ody = dy;
-      oder = der;
+/*       odx = dx; */
+/*       ody = dy; */
+/*       oder = der; */
       
-  } // k
-  }
+/*   } // k */
+/*   } */
 
 
-  //
-  // Points outside the x[0], x[n-1]?
-  //
-  double a0, a1, b0, b1;
-  if(extrapolate){
-    a0 = (y[1] - y[0]) / (x[1] - x[0]);
-    b0 = y[0] - a0 * x[0];
-    a1 = (y[n-1] - y[n-2]) / (x[n-1] - x[n-2]);
-    b1 = y[n-1] - a1 * x[n-1];
-  }else{
-    a0 = 0;
-    a1 = 0;
-    b0 = y[0];
-    b1 = y[n-1];
-  }
+/*   // */
+/*   // Points outside the x[0], x[n-1]? */
+/*   // */
+/*   double a0, a1, b0, b1; */
+/*   if(extrapolate){ */
+/*     a0 = (y[1] - y[0]) / (x[1] - x[0]); */
+/*     b0 = y[0] - a0 * x[0]; */
+/*     a1 = (y[n-1] - y[n-2]) / (x[n-1] - x[n-2]); */
+/*     b1 = y[n-1] - a1 * x[n-1]; */
+/*   }else{ */
+/*     a0 = 0; */
+/*     a1 = 0; */
+/*     b0 = y[0]; */
+/*     b1 = y[n-1]; */
+/*   } */
   
-  if(sign){
-    for(unsigned k = 0; k<nn; k++){
-      if(xx[k] <= (x[0]))   yy[k] = a0 * xx[k] + b0;
-      if(xx[k] >= (x[n-1])) yy[k] = a1 * xx[k] + b1;
-    }
-  } else {
-    for(unsigned k = 0; k<nn; k++){
-      if(xx[k] >= (x[0]))   yy[k] = a0 * xx[k] + b0;
-      if(xx[k] <= (x[n-1])) yy[k] = a1 * xx[k] + b1;
-    }
-  }
+/*   if(sign){ */
+/*     for(unsigned k = 0; k<nn; k++){ */
+/*       if(xx[k] <= (x[0]))   yy[k] = a0 * xx[k] + b0; */
+/*       if(xx[k] >= (x[n-1])) yy[k] = a1 * xx[k] + b1; */
+/*     } */
+/*   } else { */
+/*     for(unsigned k = 0; k<nn; k++){ */
+/*       if(xx[k] >= (x[0]))   yy[k] = a0 * xx[k] + b0; */
+/*       if(xx[k] <= (x[n-1])) yy[k] = a1 * xx[k] + b1; */
+/*     } */
+/*   } */
   
-} // hermpol
+/* } // hermpol */
 
 /* --------------------------------------------------------------------- */
 
