@@ -40,9 +40,9 @@ extern Spectrum spectrum;
 extern char messageStr[];
 
 /* --------------------------------------------------------------- */
-
+#define min(a,b) (((a)<(b))?(a):(b))
+#define max(a,b) (((a)>(b))?(a):(b))
 /* --------------------------------------------------------------- */
-
 
 void har_mean_deriv(double* wprime,double dsup,double dsdn, 
 		    double chiup,double chic,double chidn)
@@ -54,7 +54,7 @@ void har_mean_deriv(double* wprime,double dsup,double dsdn,
   fi=(chidn-chic)/dsdn;
 
   if (fim1*fi > 0) {
-    alpha = 0.33333333 * ( 1.0 + dsdn/(dsdn+dsup) );
+    alpha = 0.333333333333333 * ( 1.0 + dsdn/(dsdn+dsup) );
     *wprime = (fim1*fi) / ( (1.0-alpha) * fim1 + alpha*fi );
   } else {
     *wprime=0.0;
@@ -62,6 +62,46 @@ void har_mean_deriv(double* wprime,double dsup,double dsdn,
 
 }
 
+inline double cent_deriv2(double dsup,double dsdn, 
+			  double chiup,double chic,double chidn)
+{
+
+  double fim1, fi, alpha, wprime;
+
+  fim1=(chic-chiup)/dsup;
+  fi=(chidn-chic)/dsdn;
+
+  if (fim1*fi > 0) {
+    alpha = 0.3333333333333333333333 * ( 1.0 + dsdn/(dsdn+dsup) );
+    wprime = (fim1*fi) / ( (1.0-alpha) * fim1 + alpha*fi );
+  } else {
+    wprime=0.0;
+  }
+  return wprime;
+}
+inline int sign(const double val)
+{
+  int res = (0.0 < val) - (val < 0.0);
+  
+  if(res == 0) res = 1;
+  return res;
+}
+
+inline double cent_deriv(double odx,double dx, 
+			 double chiup,double chic, double chidn)
+{
+  /* --- Derivatives from Steffen (1990) --- */
+
+  double ody=(chic-chiup)/odx, dy=(chidn-chic)/dx, wprime = 0.0, p;
+  
+  
+  if ((ody*dy) > 0) {
+    p = (dy * odx + ody * dx) / (dx + odx);
+    wprime = (sign(dy) + sign(ody)) * min(min(fabs(ody), fabs(dy)), 0.5*fabs(p));
+  } 
+  
+  return wprime;
+}
 
 /* ------- begin -------------------------- Piecewise_1D.c ---------- */
 
@@ -449,7 +489,7 @@ void Piecewise_Hermite_1D(int nspect, int mu, bool_t to_obs,
 
       /* compute interpolation parameters */
       if (dt > 0.05) {
-	ex=exp(-dt);
+	ex=((dt<12.0)?exp(-dt):0.0);
 	alpha     =  ( 6.0*(dt-2.0)       + (-dt3+ 6.0*(dt+2.0))*ex  ) / dt3;
 	beta      =  ( (dt3-6.0*(dt-2.0)) - 6.0*(dt+2.0)*ex          ) / dt3;
 	alphaprim =  ( (2.0*dt-6.0)       + (dt2+4.0*dt+6.0)*ex      ) / dt2;
@@ -465,6 +505,9 @@ void Piecewise_Hermite_1D(int nspect, int mu, bool_t to_obs,
       /* dS/dt at central point */
       
       har_mean_deriv(&dS_c,dtau_uw,dtau_dw,S[k-dk],S[k],S[k+dk]);
+      
+      //   fprintf(stderr,"[%3d] %e %e %e %e %e %e\n", k, ex, alpha, beta,alphaprim,betaprim, ex+alpha+beta+alphaprim+betaprim);
+
       
       I[k]= I_upw*ex + alpha*S[k-dk] + beta*S[k] + alphaprim*dS_up + betaprim*dS_c;
     
@@ -493,7 +536,155 @@ void Piecewise_Hermite_1D(int nspect, int mu, bool_t to_obs,
   }
   if(chi1 != chi)
     free(chi1);
+
+  exit(0);
   
 }
 /* ------- end -------------------- Piecewise_Hermite_1D.c ---------- */
 
+void Piecewise_lbrHermite_1D(int nspect, int mu, bool_t to_obs,
+		  double *chi, double *S, double *I, double *Psi)
+{
+  register int k, i;
+
+  int    k_start, k_end, dk, Ndep = geometry.Ndep;
+  double dtau_uw, dtau_dw, dS_uw, I_upw, dS_dw, c1, c2, w[3],
+         zmu, Bnu[2];
+  double dsup,dsdn,dt,dt2,dt3,ex,alpha,beta,gamma,dsup2;
+  double dS_up,dS_c,dchi_up,dchi_c,dchi_dn,dsdn2,dtau_up2;
+  //double *z = geometry.cmass;
+  // double *chi1 = scl_opac(Ndep, chi);
+  double *z, *chi1, K0, K1, D, A, dir, E;
+  double k_up, k_0, j_up, j_0, D_up, D_0;  
+  
+  if(FALSE){
+    chi1 = (double*)malloc(Ndep * sizeof(double));//scl_opac(Ndep, chi);
+    for(i=0;i<Ndep;i++) chi1[i] = chi[i] / atmos.rho[i];
+    z = geometry.cmass;//
+  }else{
+    chi1 = chi;
+    z = geometry.height;
+  }
+  
+  zmu = 0.5 / geometry.muz[mu];
+
+  /* --- Distinguish between rays going from BOTTOM to TOP
+         (to_obs == TRUE), and vice versa --      -------------- */
+
+  if (to_obs) {
+    dk      = -1;
+    k_start = Ndep-1;
+    k_end   = 0;
+  } else {
+    dk      = 1;
+    k_start = 0;
+    k_end   = Ndep-1;
+  }
+  dtau_uw = zmu * (chi1[k_start] + chi1[k_start+dk]) *
+    fabs(z[k_start] - z[k_start+dk]);
+  dS_uw = (S[k_start] - S[k_start+dk]) / dtau_uw;
+
+  /* --- Boundary conditions --                        -------------- */
+
+  if (to_obs) {
+    switch (geometry.vboundary[BOTTOM]) {
+    case ZERO:
+      I_upw = 0.0;
+      break;
+    case THERMALIZED:
+      Planck(2, &atmos.T[Ndep-2], spectrum.lambda[nspect], Bnu);
+      I_upw = Bnu[1] - (Bnu[0] - Bnu[1]) / dtau_uw;
+      break;
+    case IRRADIATED:
+      I_upw = geometry.Ibottom[nspect][mu];
+    }
+  } else {
+    switch (geometry.vboundary[TOP]) {
+    case ZERO:
+      I_upw = 0.0;
+      break;
+    case THERMALIZED:
+      Planck(2, &atmos.T[0], spectrum.lambda[nspect], Bnu);
+      I_upw = Bnu[0] - (Bnu[1] - Bnu[0]) / dtau_uw;
+      break;
+    case IRRADIATED:
+      I_upw = geometry.Itop[nspect][mu];
+    }
+  }
+  I[k_start] = I_upw;
+  if (Psi) Psi[k_start] = 0.0;
+  
+  /* set variables for first iteration to allow simple 
+     shift for all next iterations */
+  k=k_start+dk;
+  dsup = -dk*(z[k] - z[k-dk]) / geometry.muz[mu];
+  dsdn = -dk*(z[k+dk] - z[k]) / geometry.muz[mu];
+
+  dchi_up = 0.0;
+  dchi_c  = cent_deriv2(dsup,dsdn,chi1[k-dk],chi1[k],chi1[k+dk]);
+
+  dtau_uw = 0.5 * dsup * (chi1[k-dk] + chi1[k])  +  dsup*dsup/12.0 * (dchi_up - dchi_c );
+  dS_up=0.0;
+  
+  /* --- Solve transfer along ray --                   -------------- */
+
+  for (k = k_start+dk;  k != k_end+dk;  k += dk) {
+    
+    if (k != k_end) {
+      
+      /* downwind path length */
+      dsdn = -dk*(z[k+dk] - z[k]   ) / geometry.muz[mu];
+      
+      /* dchi/ds at downwind point */
+      if (abs(k-k_end)>1){
+	dsdn2=-dk*(z[k+2*dk] - z[k+dk]) / geometry.muz[mu];
+	dchi_dn = cent_deriv2(dsdn,dsdn2,chi1[k],chi1[k+dk],chi1[k+2*dk]);       
+      } else {
+	dchi_dn = 0.0;
+      }
+      
+      /* downwind optical path length */
+      dtau_dw = 0.5 * dsdn * (chi1[k]+chi1[k+dk]) + dsdn *
+	dsdn/12.0 * (dchi_c  - dchi_dn) ;
+      dS_c    = cent_deriv2(dtau_uw,dtau_dw,S[k-dk],S[k],S[k+dk]);
+      
+    } else {
+      dsdn = fabs(z[k] - z[k-dk]   ) / geometry.muz[mu];
+      dchi_dn = 0.0, dS_c = 0.0;
+      dsdn = dsup;
+    }    
+    
+    dt = dtau_uw;
+    K0 = 0.5 * dt;
+    K1 = (dt*dt) / 12.0;
+    
+    
+    D     = 1.0 + K0 + K1;
+    A     = (1.0 - K0 + K1) / D;
+    alpha =      (K0 - K1)  / D;
+    beta  =      (K1 + K0)  / D;
+    gamma =              K1 / D;
+    
+    E = alpha*S[k-dk] + beta*S[k] + gamma*(dS_up - dS_c);
+    
+    I[k]= I[k-dk]*A  + E;
+
+    
+    if (Psi) Psi[k] = beta; 
+    // fprintf(stderr,"[%3d] %e %e %e %e %e\n", k, A, alpha, beta, gamma, dt);
+
+    I_upw = I[k];
+    
+    /* --- Re-use downwind quantities for next upwind position -- --- */
+    
+    dsup=dsdn;
+    dchi_up=dchi_c;
+    dchi_c=dchi_dn;
+    dtau_uw=dtau_dw;
+    dS_up = dS_c;
+  }
+  
+  if(chi1 != chi)
+    free(chi1);
+  //  exit(0);
+}

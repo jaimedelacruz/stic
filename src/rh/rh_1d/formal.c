@@ -313,7 +313,7 @@ double Formal(int nspect, bool_t eval_operator, bool_t redistribute, int iter)
 		for ( idx = idx0 ; idx <  spectrum.nc[lamuk] ; idx++ ) 
 		  spectrum.Jgas[ spectrum.iprdh[idx]][k] += wmu *  spectrum.cprdh[idx] * I[k];
 		
-	      } 
+	      }  
 	      
 	    } // prdh_limit_mem switch 
 	  } // Jgas accumulation endif 
@@ -323,7 +323,7 @@ double Formal(int nspect, bool_t eval_operator, bool_t redistribute, int iter)
 
 	}
       }
-
+      //exit(0);
       /* --- Save emergent intensity --              -------------- */
       
       spectrum.I[nspect][mu] = I[0];
@@ -333,6 +333,7 @@ double Formal(int nspect, bool_t eval_operator, bool_t redistribute, int iter)
 	spectrum.Stokes_V[nspect][mu] = Ipol[3][0];
       }
     }
+    // exit(0);
   } else {
 
     /* --- The angle-independent case --               -------------- */
@@ -407,7 +408,6 @@ double Formal(int nspect, bool_t eval_operator, bool_t redistribute, int iter)
     free(J20dag);
     if (input.limit_memory) free(J20);
   }
-
   return dJmax;
 }   
 /* ------- end ---------------------------- Formal.c ---------------- */
