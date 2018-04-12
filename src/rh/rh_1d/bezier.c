@@ -66,25 +66,25 @@ inline int sign(const double val)
 
 /* --------------------------------------------------------------- */
 
-inline double cent_deriv2(double dsup,double dsdn, 
-			 double chiup,double chic, double chidn)
-{
-  /* --- Derivatives from Fritsch & Butland (1984) --- */
+/* inline double cent_deriv2(double dsup,double dsdn,  */
+/* 			 double chiup,double chic, double chidn) */
+/* { */
+/*   /\* --- Derivatives from Fritsch & Butland (1984) --- *\/ */
 
-  static const double onethird = 1.0 / 3.0;
-  double fim1, fi, alpha, wprime;
+/*   static const double onethird = 1.0 / 3.0; */
+/*   double fim1, fi, alpha, wprime; */
   
-  fim1=(chic-chiup)/dsup;
-  fi=(chidn-chic)/dsdn;
+/*   fim1=(chic-chiup)/dsup; */
+/*   fi=(chidn-chic)/dsdn; */
 
-  if (fim1*fi > 0) {
-    alpha = onethird * ( 1.0 + dsdn/(dsdn+dsup) );
-    wprime = (fim1*fi) / ( (1.0-alpha) * fim1 + alpha*fi );
-  } else {
-    wprime=0.0;
-  }
-  return wprime;
-}
+/*   if (fim1*fi > 0) { */
+/*     alpha = onethird * ( 1.0 + dsdn/(dsdn+dsup) ); */
+/*     wprime = (fim1*fi) / ( (1.0-alpha) * fim1 + alpha*fi ); */
+/*   } else { */
+/*     wprime=0.0; */
+/*   } */
+/*   return wprime; */
+/* } */
 
 /* --------------------------------------------------------------- */
 

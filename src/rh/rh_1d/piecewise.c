@@ -62,23 +62,23 @@ void har_mean_deriv(double* wprime,double dsup,double dsdn,
 
 }
 
-inline double cent_deriv2(double dsup,double dsdn, 
-			  double chiup,double chic,double chidn)
-{
+/* inline double cent_deriv2(double dsup,double dsdn,  */
+/* 			  double chiup,double chic,double chidn) */
+/* { */
 
-  double fim1, fi, alpha, wprime;
+/*   double fim1, fi, alpha, wprime; */
 
-  fim1=(chic-chiup)/dsup;
-  fi=(chidn-chic)/dsdn;
+/*   fim1=(chic-chiup)/dsup; */
+/*   fi=(chidn-chic)/dsdn; */
 
-  if (fim1*fi > 0) {
-    alpha = 0.3333333333333333333333 * ( 1.0 + dsdn/(dsdn+dsup) );
-    wprime = (fim1*fi) / ( (1.0-alpha) * fim1 + alpha*fi );
-  } else {
-    wprime=0.0;
-  }
-  return wprime;
-}
+/*   if (fim1*fi > 0) { */
+/*     alpha = 0.3333333333333333333333 * ( 1.0 + dsdn/(dsdn+dsup) ); */
+/*     wprime = (fim1*fi) / ( (1.0-alpha) * fim1 + alpha*fi ); */
+/*   } else { */
+/*     wprime=0.0; */
+/*   } */
+/*   return wprime; */
+/* } */
 inline int sign(const double val)
 {
   int res = (0.0 < val) - (val < 0.0);
@@ -87,7 +87,7 @@ inline int sign(const double val)
   return res;
 }
 
-inline double cent_deriv(double odx,double dx, 
+inline double cent_deriv2(double odx,double dx, 
 			 double chiup,double chic, double chidn)
 {
   /* --- Derivatives from Steffen (1990) --- */

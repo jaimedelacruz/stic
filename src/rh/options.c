@@ -16,7 +16,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#define PROCLOGFILE "scratch/procLog_cpu-%06d_pid-%08d.txt"
+#define PROCLOGFILE "scratch/procLog_cpu-%06d_%s.txt"
 
 
 
@@ -56,7 +56,7 @@ void setOptions(int argc, char *argv[], int iproc, int quiet)
   Noption = sizeof(theOptions) / sizeof(Option);
 
   parse(argc, argv, Noption, theOptions);
-  sprintf(logfileName, PROCLOGFILE, iproc, (int)getpid());
+  sprintf(logfileName, PROCLOGFILE, iproc,getenv("USER"));
   strcpy(commandline.logfileName, logfileName);
   if(quiet) commandline.quiet = TRUE;
   
