@@ -79,7 +79,7 @@ void har_mean_deriv(double* wprime,double dsup,double dsdn,
 /*   } */
 /*   return wprime; */
 /* } */
-inline int sign(const double val)
+inline int sign2(const double val)
 {
   int res = (0.0 < val) - (val < 0.0);
   
@@ -97,7 +97,7 @@ inline double cent_deriv2(double odx,double dx,
   
   if ((ody*dy) > 0) {
     p = (dy * odx + ody * dx) / (dx + odx);
-    wprime = (sign(dy) + sign(ody)) * min(min(fabs(ody), fabs(dy)), 0.5*fabs(p));
+    wprime = (sign2(dy) + sign2(ody)) * min(min(fabs(ody), fabs(dy)), 0.5*fabs(p));
   } 
   
   return wprime;
