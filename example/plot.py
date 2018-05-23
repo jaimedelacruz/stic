@@ -58,7 +58,7 @@ elif(ss == 1 or ss == 2):
 else:
     ax1.set_ylim(-0.03, 0.03)
 
-dep = m.cmass[0,0,0]
+dep = m.ltau[0,0,0]
     
 ax2.plot(dep, m.temp.squeeze(), 'k-')
 ax2.set_ylim(3000,12000)
@@ -70,6 +70,6 @@ ax4.plot(dep, m.vlos.squeeze()*1.e-5, 'k-')
 ax4.set_ylim(-7,7)
 
 f.set_tight_layout(True)
+plt.ion()
 plt.show()
 
-#f.savefig('eb_vissers.pdf', dpi=300, format='pdf', bbox='standard')

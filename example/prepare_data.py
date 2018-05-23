@@ -230,21 +230,19 @@ if __name__ == "__main__":
 
     # First create a tau scale
     
-    taumin = -5.6
-    taumax= 0.9
-    dtau = 0.16
+    taumin = -7.8
+    taumax= 1.0
+    dtau = 0.2
     ntau = int((taumax-taumin)/dtau) + 1
     tau = np.arange(ntau, dtype='float64')/(ntau-1.0) * (taumax-taumin) + taumin
 
     # Now create a smooth temperature profile
-    temp = np.interp(tau, np.asarray([-8.6, -6.0, -4.0, -2.0 , 0.8]), np.asarray([20000., 8000., 4000., 4800., 7000.]))
+    temp = np.interp(tau, np.asarray([-8.0, -6.0, -4.0, -2.0 , 0.8]), np.asarray([70000., 8000., 4000., 4800., 7000.]))
     
-    temp = np.interp(tau, np.asarray([-5.2 , -4.59, -3.98, -3.37, -2.76, -2.15, -1.54, -0.93, -0.32, 0.29,  0.9 ]), np.asarray([102770., 7065., 6591., 6201., 5842., 5273., 4510., 4478., 4804., 5315., 9400. ]))
-
+  
     # Fill in the model
     m = sp.model(nx=1, ny=1, nt=1, ndep=ntau)
     m.ltau[0,0,0,:] = tau
-    m.cmass[0,0,0,:] = tau
     m.temp[0,0,0,:] = temp
     
      # The inversion only needs to know the gas pressure at the upper boundary. FALC has Pgas[top] ~ 0.3, but
