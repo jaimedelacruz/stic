@@ -1,5 +1,5 @@
 /* ------- file: -------------------------- initial_xdr.c -----------
-
+1;95;0c
        Version:       rh2.0
        Author:        Han Uitenbroek (huitenbroek@nso.edu)
        Last modified: Mon Jan 16 17:29:31 2012 --
@@ -43,7 +43,7 @@
 #include "inputs.h"
 #include "xdr.h"
 #include "initial_j.h"
-#include "mtime.h"
+//#include "mtime.h"
 
 #define IMU_FILE_TEMPLATE "scratch/Imu_p%d.dat"
 
