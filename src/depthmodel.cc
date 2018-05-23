@@ -48,10 +48,8 @@ void var_int(int n, double *x, double *y, double *xx, int k0, int k1, bool use_l
   double *tmp = new double [n];
   int nn = k1 - k0 + 1;
   
-  
   if(!use_log){
-    hermpol(nn, &x[k0], &y[k0], n, xx, tmp);
-    
+    hermpol(nn, &x[k0], &y[k0], n, xx, tmp, false);
   }else{
     int idmi = mth::argmin(n, y);
     double imi = y[idmi];
@@ -61,7 +59,7 @@ void var_int(int n, double *x, double *y, double *xx, int k0, int k1, bool use_l
     if(use_log)
       for(int ii=k0;ii<=k1;ii++) y[ii] = log(y[ii]);
     
-    hermpol(nn, &x[k0], &y[k0], n, xx, tmp);
+    hermpol(nn, &x[k0], &y[k0], n, xx, tmp, false);
     
     if(use_log)
       for(int ii=0; ii<n; ii++) tmp[ii] = exp(tmp[ii]);
@@ -94,7 +92,8 @@ void mdepth::optimize_depth(ceos &eos, float tcut, int smooth)
     }else break;
   }
 
-  for(int k=0; k<=k1; k++) xind[k] = (double)k;
+  double range = double(k1-k0)/(ndep-1.0);
+  for(int k=0; k<ndep; k++) xind[k] = double(k)*range +k0;
 
   this->fill_densities(eos, true, 0, k1);
   
@@ -136,18 +135,24 @@ void mdepth::optimize_depth(ceos &eos, float tcut, int smooth)
   for(int k=k0+1;k<=k1;k++){
     tdiv = fabs(log10(temp[k]) - log10(temp[k-1])) / lg11;
     rdiv = fabs(log10(rho[k])  - log10(rho[k-1]))  / lg11;
-    taudiv = fabs(dep[k] - dep[k-1]) / 0.1;
+    taudiv = fabs(dep[k] - dep[k-1]) * 10.;/// 0.1;
     aind[k] = aind[k-1] + std::max(std::max(tdiv,rdiv), taudiv);
   }
 
   /* --- Smooth gradients a bit --- */
   
-  float rat = double(ndep-1.0) / aind[k1];
-  for(int k=1; k<=k1; k++) aind[k] *= rat;
-  // if(smooth > 1) mth::smooth(k1-k0+1, &aind[k0], smooth);
+  float rat = double(k1-k0) / aind[k1];
+  for(int k=0; k<=k1; k++) aind[k] = aind[k] * rat + k0;
+  if(smooth) mth::smooth(k1-k0+1, &aind[k0], smooth);
   
   
+  /* --- Check that all points are separated --- */
 
+  for(int ii=k0+1; ii< k1; ii++)
+    if(fabs(aind[ii] - aind[ii-1]) < 1.e-3)
+      aind[ii] = 0.5 * (aind[ii-1] + aind[ii+1]);
+  
+  
   /* --- Get new grid --- */
 
   int ndep1 = k1 - k0 + 1;
@@ -170,8 +175,13 @@ void mdepth::optimize_depth(ceos &eos, float tcut, int smooth)
 
   if(reset_tau) memset(ltau, 0, ndep*sizeof(ndep));
 
+  // FILE *bla = fopen("bla.txt", "w");
+  // for(int ii=0; ii<ndep; ii++)
+  //   fprintf(bla, "%3d %8.4f %8.4f %e %e %f %e\n", ii, z[ii]*1.e-5, ltau[ii], temp[ii], rho[ii], xind[ii], aind[ii]);
+  // fclose(bla);
+  
   //cerr<<endl;
-  //exit(0);
+  // exit(0);
   
 }
 
@@ -631,7 +641,11 @@ void mdepth::getPressureScale(int depth_t, int boundary, ceos &eos){
   /* --- Solve hydrostatic eq. --- */
   
   hydrostatic(eos, depth_t);
-  
+
+
+
+  // --- testing --- //
+
 }
 
 

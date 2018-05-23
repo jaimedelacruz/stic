@@ -30,7 +30,6 @@
 #include "constant.h"
 #include "error.h"
 #include "statistics.h"
-//#include "parallel.h"
 #include "rhf1d.h"
 
 #define TENSION  8.0

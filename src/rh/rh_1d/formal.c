@@ -46,14 +46,14 @@ double Formal(int nspect, bool_t eval_operator, bool_t redistribute, int iter)
 {
   const char routineName[] = "Formal";
   register int k, mu, n;
-
+  static const double scl255 = 1./255.;
   bool_t   initialize, boundbound, polarized_as, polarized_c,
            PRD_angle_dep, to_obs, solveStokes, angle_dep;
   enum     FeautrierOrder F_order;     
-  int      Nrays = atmos.Nrays,lamuk, ref_index = 0;
+  int      Nrays = atmos.Nrays, ref_index = 0;
   long     Nspace = atmos.Nspace;
-  long int idx,idx0;
-  double  *I, *chi, *S, **Ipol, **Spol, *Psi, *Jdag, wmu, dJmax, dJ,
+  register long int idx,idx0, lamuk;
+  double  *I, *chi, *S, **Ipol, **Spol, *Psi, *Jdag, wmu, wmu255,dJmax, dJ,
           *J20dag, musq, threemu1, threemu2, *J, *J20, *lambda, sign,
     lambda_gas,lambda_prv,lambda_nxt,fac,dl,frac;
   ActiveSet *as;
@@ -149,8 +149,11 @@ double Formal(int nspect, bool_t eval_operator, bool_t redistribute, int iter)
   /* --- Case of angle-dependent opacity and source function -- ----- */
 
   if (angle_dep) {
+    // idx0 = 0;
+
     for (mu = 0;  mu < Nrays;  mu++) {
       wmu  = 0.5 * geometry.wmu[mu];
+      wmu255 = wmu / 255.;
       if (input.backgr_pol) {
 	musq = SQ(geometry.muz[mu]);
 	threemu1 = TWOSQRTTWO * (3.0*musq - 1.0);
@@ -215,7 +218,7 @@ double Formal(int nspect, bool_t eval_operator, bool_t redistribute, int iter)
 	  if (input.S_interpolation == BEZIER3)
 	    Piecewise_Bezier3(nspect, mu, to_obs, chi, S, I, Psi);
 	  else if(input.S_interpolation == S_CUBIC_HERMITE){
-	    Piecewise_Hermite_1D(nspect, mu, to_obs, chi, S, I, Psi);
+	    Piecewise_lbrHermite_1D(nspect, mu, to_obs, chi, S, I, Psi);
           }else
 	    Piecewise_1D(nspect, mu, to_obs, chi, S, I, Psi);
 	}
@@ -302,17 +305,19 @@ double Formal(int nspect, bool_t eval_operator, bool_t redistribute, int iter)
 	      } // spatial location
 
 	    } else {
-	      
 	      for (k = 0;  k < Nspace;  k++)  {
 			
 		lamuk = nspect * (atmos.Nrays*2*Nspace) 
 		  + mu * (2*Nspace) + to_obs * (Nspace) + k;
 		
-		idx0 = (lamuk==0) ? 0 : spectrum.nc[lamuk-1];
+	       	//idx0 = (lamuk==0) ? 0 : spectrum.nc[lamuk-1];
+		idx0 = spectrum.nc[lamuk-1]; // now nc has an element "-1" set to zero;
+
 		
 		for ( idx = idx0 ; idx <  spectrum.nc[lamuk] ; idx++ ) 
-		  spectrum.Jgas[ spectrum.iprdh[idx]][k] += wmu *  spectrum.cprdh[idx] * I[k];
-		
+		  spectrum.Jgas[ spectrum.iprdh[idx]][k] += wmu255 *  (double)(spectrum.cprdh[idx]) * I[k];
+		  //spectrum.Jgas[ spectrum.iprdh[idx]][k] += wmu *  (spectrum.cprdh[idx]) * I[k];
+		//	idx0 = spectrum.nc[lamuk];
 	      }  
 	      
 	    } // prdh_limit_mem switch 

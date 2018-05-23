@@ -14,11 +14,11 @@
 
 
 /* ----- Prototypes auxiliary functions --- */
-
+double sign(const double val);
 void SIMD_MatInv(float* src); // Matrix inversion Cramer method SSE instructions
 void m4inv(double MI[4][4]);  // Matrix inversion Shipley-Coleman (not used)
 
-void m4v(float a[4][4], double b[4], double c[4]);
+void m4v(double a[4][4], double b[4], double c[4]);
 void m4m(double a[4][4], double b[4][4], double c[4][4]);
 
 void cent_deriv_vec(double wprime[4], double dsup, double dsdn,

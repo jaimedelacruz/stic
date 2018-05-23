@@ -113,7 +113,7 @@ void Redistribute_j(int NmaxIter, double iterLimit, double iprec)
 
     solveSpectrum(eval_operator=FALSE, redistribute=TRUE, 0);
 
-    if ((drhomaxa < iterLimit) || (drhomaxa < iprec)) break;
+    if (((drhomaxa < iterLimit) || (drhomaxa < iprec)) && (niter >= 2)) break;
     niter++;
   }
 }

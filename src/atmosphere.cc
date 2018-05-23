@@ -369,12 +369,138 @@ int tikhonov1_dregul(int n, double *ltau, double *var, double weight, double **d
   }
   return n-1;
 }
+/* --------------------------------------------------------------------------------------------------- */
+
+int secDer_dregul(int n, double *ltau, double *var, double weight, double **dreg, double *reg, int off, int roff)
+{
+
+  
+  double c = weight / (double)(n);
+  double c_sqrt = sqrt(c);
+  
+  /* --- non-equidistant second derivative:
+     ypp = A*y[ii+1] + B*y[ii] + C*y[ii-1]
+
+     with:
+     A = 2  / (ddx*(ddx+udx))
+     B = -2 / (ddx*udx)
+     C = 2  / (udx*(ddx+udx))
+
+     The derivatives are trivially A,B and C
+     
+     --- */
+
+  
+  double ttau = 1.0;//fabs(ltau[n-1] - ltau[0]);
+  for(int yy = 1; yy<(n-1); yy++){
+
+    /* --- 3 terms around the diagonal of J --- */
+    
+    double dt0 = fabs(ltau[yy] - ltau[yy-1]) / ttau;
+    double dt1 = fabs(ltau[yy+1] - ltau[yy]) / ttau;
+    double tmp = 2.0/(dt0+dt1);
+    double A = tmp / dt1, C = tmp / dt0;
+    double B = -2.0 / (dt0*dt1);
+    
+    
+    reg[yy-1+roff] = c_sqrt * (B*var[yy] + C*var[yy-1] + A*var[yy+1]);
+    dreg[yy-1+roff][yy-1+off] = c_sqrt * C;
+    dreg[yy-1+roff][yy+off]   = c_sqrt * B;
+    dreg[yy-1+roff][yy+1+off] = c_sqrt * A;
+
+  }
+  return n-2;
+}
+
+/* --------------------------------------------------------------------------------------------------- */
+int line3dregul(int nn, double *ltau, double *var, double weight, double **dreg, double *reg, int off, int roff)
+{
+  
+  
+  double c = weight;// / (double)(nn);
+  double c_sqrt = sqrt(c);
+  static const double n = 3.0, in = 1/n;
+  int nn1 = nn-1;
+  
+  /* --- Deviations from a local linear fit:
+     pen = (y_i - a*x_i - b)
+     The trick is to express the derivative of a and b
+     in terms of y_i, y_i-1 and y_i+1.
+     
+     a = n*xysum - xsum * ysum / (n*x2sum - (xsum)**2)
+     b = 1/n * (ysum - a * xsum)
+     
+     dpen_dyi = 1 - x_i * da_dy_i - db_dy_i
+     dpen_dyj = 0 - x_i * da_dy_j - db_dy_j
+     
+     where:
+     da_dy_i/j = (n*x_i/j - xsum) / (n*x2sum - (xsum)**2) 
+     db_dy_i/j = (1 - xsum * da_dy_i/j) / n
+     
+     --- */
+  
+  for(int yy = 1; yy<nn1; yy++){
+    
+    double xsum = ltau[yy-1] + ltau[yy] + ltau[yy+1];
+    double ysum = var[yy-1]  + var[yy]  + var[yy+1];
+    double x2sum = ltau[yy-1]*ltau[yy-1] + ltau[yy]*ltau[yy] + ltau[yy+1]*ltau[yy+1];
+    double xysum = ltau[yy-1]*var[yy-1]  + ltau[yy]*var[yy]  + ltau[yy+1]*var[yy+1];
+    
+    double tmp = (n*x2sum - (xsum*xsum));
+    double a = (n*xysum - xsum*ysum) / tmp;
+    double b = (ysum - a*xsum) * in;
+    
+    double y0 = a*ltau[yy-1] + b;
+    double y1 = a*ltau[yy]   + b;
+    double y2 = a*ltau[yy+1] + b;
+    
+    double p0 = (var[yy-1]-y0);
+    double p1 = (var[yy  ]-y1);
+    double p2 = (var[yy+1]-y2);
+
+    double s0 = mth::sign(p0), s1 = mth::sign(p1), s2 = mth::sign(p2);
+    
+    reg[yy-1+roff] =  c_sqrt * (fabs(p0) + fabs(p1) + fabs(p2));
+    //    fprintf(stderr,"[%d] a=%e, b=%e, c=%e -> %e \n", yy-1-roff, y0, y1, y2, reg[yy-1+roff]);
+
+    // --- Central Upwind point term derivatives of the 3 penalty functions  --- //
+    
+    double da_dy = (n*ltau[yy-1] - xsum)/tmp;
+    double db_dy = in*(1.0 - xsum * da_dy);
+    dreg[yy-1+roff][yy-1+off] = s0*c_sqrt * (1.0-ltau[yy-1]*da_dy - db_dy);
+    dreg[yy-1+roff][yy+off]   = s1*c_sqrt * (0.0-ltau[yy  ]*da_dy - db_dy);
+    dreg[yy-1+roff][yy+1+off] = s2*c_sqrt * (0.0-ltau[yy+1]*da_dy - db_dy);
+
+    
+    
+    // --- Central point --- //
+    
+    da_dy = (n*ltau[yy] - xsum)/tmp;
+    db_dy = in*(1.0 - xsum * da_dy);
+    dreg[yy-1+roff][yy-1+off]+= s0*c_sqrt * (0.0-ltau[yy-1]*da_dy - db_dy);
+    dreg[yy-1+roff][yy+off]  += s1*c_sqrt * (1.0-ltau[yy  ]*da_dy - db_dy);
+    dreg[yy-1+roff][yy+1+off]+= s2*c_sqrt * (0.0-ltau[yy+1]*da_dy - db_dy);
+
+    
+    // --- Downwind point --- //
+    
+    da_dy = (n*ltau[yy+1] - xsum)/tmp;
+    db_dy = in*(1.0 - xsum * da_dy);
+    dreg[yy-1+roff][yy-1+off]+= s0*c_sqrt * (0.0-ltau[yy-1]*da_dy - db_dy);
+    dreg[yy-1+roff][yy+off]  += s1*c_sqrt * (0.0-ltau[yy  ]*da_dy - db_dy);
+    dreg[yy-1+roff][yy+1+off]+= s2*c_sqrt * (1.0-ltau[yy+1]*da_dy - db_dy);
+    
+  }
+  
+  return nn-2;
+}
 
 /* --------------------------------------------------------------------------------------------------- */
 
 void getDregul2(double *m, int npar, reg_t &dregul, nodes_t &n)
 {
-  const double weights[7] = {0.0002, 0.6, 0.6, 0.1, 0.1, 0.1,20.0};
+  static const double weights[7] = {0.002, 0.06, 0.1, 0.1, 0.1, 0.1,20.0};
+  //  const double weights[7] = {0.0002, 0.6, 0.6, 0.1, 0.1, 0.1,20.0};
 
   double  *ltau = NULL, we = 0.0;
   nodes_type_t ntype = none_node;
@@ -395,6 +521,12 @@ void getDregul2(double *m, int npar, reg_t &dregul, nodes_t &n)
     case(1):
       if((nn-1) >= 2){
 	roff += tikhonov1_dregul(nn-1, &ltau[1], &m[off+1], we, dregul.dreg, dregul.reg, off+1, roff);
+      }
+      break;
+    case(5):
+      if((nn-1) >= 2){
+	//	roff += tikhonov1_dregul(nn-1, &ltau[1], &m[off+1], we*0.6, dregul.dreg, dregul.reg, off+1, roff);
+	roff +=    line3dregul(nn, ltau, &m[off], we, dregul.dreg, dregul.reg, off, roff);
       }
       break;
     default:
@@ -675,7 +807,8 @@ reg_t init_dregul(int npar, nodes_t &n, double scl)
   int npen = 0, nn = 0;
   if(n.toinv[0] && (n.regul_type[0] > 0)){
     nn = n.temp.size();
-    if((n.regul_type[0] == 1) && (nn >= 3)) npen += nn-2; 
+    if     ((n.regul_type[0] == 1) && (nn >= 3)) npen += nn-2;
+    else if((n.regul_type[0] == 5) && (nn >= 3)) npen += nn-2;
   }
 
   if(n.toinv[1] && (n.regul_type[1] > 0)){
@@ -776,7 +909,7 @@ double atmos::fitModel2(mdepth_t &m, int npar, double *pars, int nobs, double *o
   lm.chi2_thres = input.chi2_thres;
   lm.lmax = 1.e5;
   lm.lmin = 1.e-4;
-  lm.lfac = sqrt(10.0);
+  lm.lfac = 2.0;
   lm.proc = input.myrank;
   lm.delay_bracket = input.delay_bracket;
   

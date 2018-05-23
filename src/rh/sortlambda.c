@@ -149,8 +149,10 @@ void SortLambda()
   /* --- Fill the wavelength array --                  -------------- */
 
   nspect = 0;
-  spectrum.lambda = (double *) malloc(Nspectrum * sizeof(double));
-
+  spectrum.lambda = (double *) malloc((Nspectrum + 2)* sizeof(double)) + 1; // JdlCR, this allows adding two points at +/- "infinity"
+  spectrum.lambda[-1] = -1.e-44, spectrum.lambda[Nspectrum] = 1.e44;
+  fprintf(stderr,"l0=%e, ln=%e\n", spectrum.lambda[-1], spectrum.lambda[Nspectrum]);
+  
   /* --- First the referenece wavelength if specified -- ------------ */
 
   if (atmos.lambda_ref > 0.0)

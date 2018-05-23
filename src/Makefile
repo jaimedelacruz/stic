@@ -7,9 +7,10 @@ RHFOLD = rh/
 
 INCLUDE = $(shell ncxx4-config --cflags) -I$(GSLPATH)/include -I./ -I$(RHFOLD) -I$(RHFOLD)/rh_1d
 LIBS_FDENS = $(shell ncxx4-config --libs) -lstdc++ -L$(GSLPATH)/lib/
-LIBS = $(LIBS_FDENS) -L./ -L$(RHFOLD)/rh_1d/ -lrhf1d -L$(GSLPATH) -lblas  -lgslcblas -lfftw3 -llapack #-lgsl
+LIBS = $(LIBS_FDENS) -L./ -L$(RHFOLD)/rh_1d/ -lrhf1d -L$(GSLPATH) -lfftw3 -llapack  -lblas  -lgslcblas
 
-
+MNAME = $(shell uname -n)
+STMAC = STiC_$(MNAME).x
 
 FFILES = eos_math_special.o eos_eqns.o eos.o 
 OFILES_SPARSE = input.o clm.o cop.o ceos.o comm.o depthmodel.o  spectral.o fpigen.o fpi.o atmosphere.o clte.o crh.o io.o slave.o master_sparse.o main_sparse.o 
@@ -27,6 +28,9 @@ FDENS = cop.o ceos.o io.o depthmodel.o fillDensities.o
 
 STiC: $(FFILES) $(OFILES_SPARSE)
 	$(LINKER) $(LINKEROPTS) -o STiC.x  $(OPTS) $(OPENMP) $(FFILES) $(OFILES_SPARSE) $(INCLUDE) $(LIBS) $(LINKEROPTS)
+
+machine: $(FFILES) $(OFILES_SPARSE)
+	$(LINKER) $(LINKEROPTS) -o $(STMAC)  $(OPTS) $(OPENMP) $(FFILES) $(OFILES_SPARSE) $(INCLUDE) $(LIBS) $(LINKEROPTS)
 
 clean:
 	rm -f *.o *.mod

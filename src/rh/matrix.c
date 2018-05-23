@@ -52,9 +52,9 @@ char **matrix_char(int Nrow, int Ncol)
 int **matrix_int(int Nrow, int Ncol)
 {
   register int i;
+  static const int     typeSize = sizeof(double), pointerSize = sizeof(double *);
 
-  int *theMatrix, **Matrix, typeSize = sizeof(int),
-       pointerSize = sizeof(int *);
+  int *theMatrix, **Matrix;
 
   theMatrix = (int *)  calloc(Nrow * Ncol, typeSize);
   Matrix    = (int **) malloc(Nrow * pointerSize);
@@ -71,7 +71,7 @@ double **matrix_double(int Nrow, int Ncol)
 {
   register int i;
 
-  int     typeSize = sizeof(double), pointerSize = sizeof(double *);
+  static const int     typeSize = sizeof(double), pointerSize = sizeof(double *);
   double *theMatrix, **Matrix;
 
   theMatrix = (double *)  calloc(Nrow * Ncol, typeSize);
@@ -82,7 +82,20 @@ double **matrix_double(int Nrow, int Ncol)
   return Matrix;
 }
 /* ------- end ---------------------------- matrix_double.c --------- */
+float **matrix_float(int Nrow, int Ncol)
+{
+  register int i;
 
+  static const int     typeSize = sizeof(float), pointerSize = sizeof(float *);
+  float *theMatrix, **Matrix;
+
+  theMatrix = (float *)  calloc(Nrow * Ncol, typeSize);
+  Matrix    = (float **) malloc(Nrow * pointerSize);
+  for (i = 0;  i < Nrow;  i++, theMatrix += Ncol)
+    Matrix[i] = theMatrix;
+
+  return Matrix;
+}
 /* ------- begin -------------------------- freeMatrix.c ------------ */
 
 void freeMatrix(void **matrix)
@@ -100,3 +113,34 @@ void freeMatrix(void **matrix)
   }
 }
 /* ------- end ---------------------------- freeMatrix.c ------------ */
+
+short **matrix_short(int Nrow, int Ncol)
+{
+  register int i;
+  static const unsigned  typeSize = sizeof(short),  pointerSize = sizeof(short *);
+ 
+  short *theMatrix, **Matrix;
+
+  theMatrix = (short *)  calloc(Nrow * Ncol, typeSize);
+  Matrix    = (short **) malloc(Nrow * pointerSize);
+  for (i = 0;  i < Nrow;  i++, theMatrix += Ncol)
+    Matrix[i] = theMatrix;
+
+  return Matrix;
+}
+/* ------- end ---------------------------- freeMatrix.c ------------ */
+
+unsigned char **matrix_uchar(int Nrow, int Ncol)
+{
+  register int i;
+  static const unsigned  typeSize = sizeof(short),  pointerSize = sizeof(short *);
+  
+  unsigned char *theMatrix, **Matrix;
+
+  theMatrix = (unsigned char *)  calloc(Nrow * Ncol, typeSize);
+  Matrix    = (unsigned char **) malloc(Nrow * pointerSize);
+  for (i = 0;  i < Nrow;  i++, theMatrix += Ncol)
+    Matrix[i] = theMatrix;
+
+  return Matrix;
+}

@@ -23,7 +23,7 @@ LINKER = $(MPCXX)
 #
 OPTS = -O0 -g 
 CXXFLAGS = $(OPTS) -fPIC -std=c++11 -Wno-literal-suffix
-CFLAGS = $(OPTS) -DHAVE_F90 -fPIC
+CFLAGS = -O0 -g -march=native -DHAVE_F90 -fPIC
 FFLAGS = $(OPT)
 AR = gcc-ar-4.9
 OPENMP = -fopenmp 

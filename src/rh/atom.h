@@ -56,9 +56,9 @@ struct AtomicLine {
            Aji, Bji, Bij, *Rij, *Rji, **phi, **phi_Q, **phi_U, **phi_V,
          **psi_Q, **psi_U, **psi_V, *wphi, *Qelast, Grad, cvdWaals[4],
     cStark, qcore, qwing, **rho_prd, *c_shift, *c_fraction, **gII;
-    int    **id0, **id1;
+  int    **id0, **id1;
   FILE    *fp_GII;
-  double **frac;
+  float  **frac;
 
   struct Ng *Ng_prd;
   Atom *atom;

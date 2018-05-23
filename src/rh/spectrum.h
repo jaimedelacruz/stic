@@ -44,7 +44,9 @@ typedef struct {
     **Jgas, **Ilast, **v_los;
   ActiveSet *as;
   int    *nc, *iprdh;
-  double *cprdh;
+  unsigned char *cprdh;
+  //double *cprdh;
+
 } Spectrum;
 
 

@@ -659,7 +659,7 @@ double clm::getChi2ParsLineSearch(double *res, double **rf, double &lambda,
        --- */
     
     if(idx != 0){
-      for(int ii=0; ii<2; ii++){
+      for(int ii=0; ii<1; ii++){
 	
 	int idxu = idx-1, idx0 = idx, idxd = idx+1;
 	if(idx0 == 0) idxd+=1, idx0 += 1, idxu += 1;
@@ -936,6 +936,8 @@ double clm::fitdata(clm_func fx, double *x, void *mydat, int maxiter, reg_t &dre
     
 
     /* --- prepare Jacobian for the next iteration --- */
+
+    if((iter+1)>maxiter) break;
     
     t0 = t1;
     zero(res, rf);
@@ -1003,7 +1005,7 @@ void clm::geoAcceleration(double *x, double *dx, double h,
   Map<VectorXd> V(dx, npar);
   
   VectorXd acu(npar), acd(npar), dresu(nd), dresd(nd), B(npar), dpen(npen), dum(nd); B.Zero(npar);
-  bool regme = dregul.to_reg;
+  bool regme = false;//dregul.to_reg;
   double mdx = sqrt(mth::ksum2((size_t)npar, dx));
   double mx = sqrt(mth::ksum2((size_t)npar, dx)), hh = mth::sqr(h*mdx);// * (mx*mx);
   
@@ -1042,7 +1044,6 @@ void clm::geoAcceleration(double *x, double *dx, double h,
     if(regme) for(int xx =0; xx<npar; xx++) Ap(yy,xx) += LL(yy,xx);
     Ap(yy,yy) += Ap(yy,yy)*lam;//std::max(lam,10.0);
   }
-  
    /* --- 
      Solve linear system with SVD decomposition and singular value thresholding.
      The SVD is computed with Eigen3 instead of LaPack.
@@ -1135,7 +1136,7 @@ void clm::compute_trial3(double *res, double **rf, double lambda,
       for(int jj=0;jj<npen; jj++)
 	tmp1[jj] =  dregul.dreg[jj][yy] * dregul.reg[jj]; // L.t # gamm
       
-      B[yy]  =  -sumarr(tmp1, npen);    
+      B[yy]  = -sumarr(tmp1, npen);//*2.0;//*(1.+lambda);    
     }//yy
   }
   
@@ -1152,13 +1153,6 @@ void clm::compute_trial3(double *res, double **rf, double lambda,
     } // xx
 
 
-
-
-    if(dregul.to_reg){
-      for(int xx=0;xx<npar;xx++)
-	A(yy,xx) += LL(yy,xx);
-    } 
-    
     
     
     /* --- There are claims that it works better to store the 
@@ -1169,11 +1163,16 @@ void clm::compute_trial3(double *res, double **rf, double lambda,
     diag[yy] = std::max(A(yy,yy), diag[yy]*0.6);
     double idia = diag[yy];
 
+    if(dregul.to_reg){
+       for(int xx=0;xx<npar;xx++) A(yy,xx) += LL(yy,xx);
+       //A(yy,yy) += lambda * LL(yy,yy);
+    }
 
     
     /* --- Damp the diagonal of A --- */
     
     A(yy,yy) += lambda * A(yy,yy);
+    // A(yy,yy) += lambda * idia;
 
 
     
@@ -1185,6 +1184,8 @@ void clm::compute_trial3(double *res, double **rf, double lambda,
     
   } // yy
 
+  //if(dregul.to_reg) A += LL*(1.0+lambda); 
+  
   delete [] tmp1;
   
   /* --- 

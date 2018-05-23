@@ -158,10 +158,10 @@ void do_slave(int myrank, int nprocs, char hostname[]){
 	
 	//it.optimize_depth(atmos->eos, input.tcut, 5);
 	if(input.tcut > 0)
-	  //it.optimize_depth(atmos->eos, input.tcut);
-	  it.optimize_depth_ltau(atmos->eos, input.tcut);
-
-
+	  it.optimize_depth(atmos->eos, input.tcut, 11);
+	  //it.optimize_depth_ltau(atmos->eos, input.tcut);
+	
+	
 		
 	/* --- Call equation of state or hydrostatic equilibrium ? --- */
 	

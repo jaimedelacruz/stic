@@ -22,14 +22,14 @@ LINKER = $(MPFC)
 #
 # OPTIMIZATION
 #
-OPTS =  -Ofast -m64 -mkl=sequential -xhost
+OPTS =  -Ofast -m64 -mkl=sequential -axSSE3,CORE-AVX2
 CXXFLAGS = $(OPTS) -std=c++11 -gxx-name=g++-4.9 -fPIC
 CFLAGS = $(OPTS) -DHAVE_F90 -fPIC
-FFLAGS = -Ofast -xCORE-AVX-I -m64 -mkl
+FFLAGS = -O3 -axSSE3,CORE-AVX-I -m64 -mkl
 AR = xiar
 OPENMP = -fopenmp
 
-LINKEROPTS =  -nofor-main
+LINKEROPTS =  -nofor-main -static-intel -lgfortran
 
 #
 # GSL, FFTW3 libs.

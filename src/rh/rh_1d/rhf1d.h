@@ -34,7 +34,7 @@ extern "C" {
   
   typedef struct{
     int nactive, ndep, nw;
-    double *J, *J20, *lambda;
+    double *J, *J20, *lambda, *tau_ref;
     crhatom *pop;
   } crhpop;
   
@@ -61,6 +61,7 @@ extern "C" {
 	       int iverbose, int *hydrostat);
 
   void   Redistribute_j(int NmaxIter, double iterLimit, double iprec);
+  void hermitian_interpolation(int n, double *x, double *y, int nn, double *xp, double *yp, int lo);
 
   
 #ifdef __cplusplus

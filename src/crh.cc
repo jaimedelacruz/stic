@@ -224,7 +224,12 @@ bool crh::synth(mdepth_t &m_in, double *syn, cprof_solver sol, bool save_pops){
   //m.cub.d = m_in.cub.d;
   //memcpy(&m.cub.d[0], &m_in.cub.d[0], m.ndep*14*sizeof(double));
   mdepth m = m_in;
+
   
+  // --- Testing --- //
+  
+  //m.optimize_depth(eos, 150000., 5);
+
   /* --- Init vectors --- */
   
   float xa=0.0, xe=0.0;
@@ -340,7 +345,7 @@ bool crh::synth(mdepth_t &m_in, double *syn, cprof_solver sol, bool save_pops){
   
   /* --- convert nHtot to Pgas using the electron density, the H abundance and temperature --- */
   
-  if(hydrostat > 0){
+  if(hydrostat > 0 && 0){
     for(int kk = 0; kk < m.ndep; kk++){
       
       m.pgas[kk] = (nhtot[kk] * eos.totalAbund / eos.ABUND[0] + m.nne[kk]) *

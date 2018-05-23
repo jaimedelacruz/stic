@@ -12,7 +12,7 @@ OBS = abundance.o accelerate.o background.o backgropac_xdr.o barklem.o broad.o b
 	$(CC) $(CFLAGS) -c  $< -o $@
 
 %.o: %.f90
-	$(FC) $(FFLAGS) -c  $< -o $@
+	$(FC) $(CFLAGS) -c  $< -o $@
 
 objects: $(OBS)
 

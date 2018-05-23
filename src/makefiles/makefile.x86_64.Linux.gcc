@@ -12,10 +12,11 @@ FC  = gfortran
 OMPI_FC = $(FC)
 OMPI_CXX = $(CXX)
 OMPI_CC = $(CC)
-MPCXX = mpicxx
-MPFC = mpif90
+MPCXX = mpicxx.openmpi
+MPFC = mpif90.openmpi
+MPCC = mpicc.openmpi
 
-LINKER = $(MPCXX)
+LINKER = $(MPCC)
 
 
 #
@@ -24,11 +25,11 @@ LINKER = $(MPCXX)
 OPTS = -Ofast -march=native
 CXXFLAGS = $(OPTS) -fPIC -std=c++11
 CFLAGS = $(OPTS) -DHAVE_F90 -fPIC
-FFLAGS = -O3 -march=native
+FFLAGS =  -O3 -march=native
 AR = gcc-ar
 OPENMP = -fopenmp 
 
-LINKEROPTS = -lgfortran -lm -lpthread -llapack
+LINKEROPTS = -lgfortran -lm -lpthread -llapack -lmpi_cxx
 
 #
 # GSL, FFTW3 libs.

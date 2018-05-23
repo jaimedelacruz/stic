@@ -79,15 +79,13 @@ void har_mean_deriv(double* wprime,double dsup,double dsdn,
 /*   } */
 /*   return wprime; */
 /* } */
-inline int sign2(const double val)
+int sign2(const double val)
 {
-  int res = (0.0 < val) - (val < 0.0);
-  
-  if(res == 0) res = 1;
-  return res;
+  if(val >= 0.0) return 1.0;
+  else           return -1.0;
 }
 
-inline double cent_deriv2(double odx,double dx, 
+double cent_deriv2(double odx,double dx, 
 			 double chiup,double chic, double chidn)
 {
   /* --- Derivatives from Steffen (1990) --- */
@@ -97,7 +95,7 @@ inline double cent_deriv2(double odx,double dx,
   
   if ((ody*dy) > 0) {
     p = (dy * odx + ody * dx) / (dx + odx);
-    wprime = (sign2(dy) + sign2(ody)) * min(min(fabs(ody), fabs(dy)), 0.5*fabs(p));
+    wprime = (2.0*sign2(dy)) * min(min(fabs(ody), fabs(dy)), 0.5*fabs(p));
   } 
   
   return wprime;
@@ -537,7 +535,7 @@ void Piecewise_Hermite_1D(int nspect, int mu, bool_t to_obs,
   if(chi1 != chi)
     free(chi1);
 
-  exit(0);
+  //exit(0);
   
 }
 /* ------- end -------------------- Piecewise_Hermite_1D.c ---------- */
@@ -550,7 +548,7 @@ void Piecewise_lbrHermite_1D(int nspect, int mu, bool_t to_obs,
   int    k_start, k_end, dk, Ndep = geometry.Ndep;
   double dtau_uw, dtau_dw, dS_uw, I_upw, dS_dw, c1, c2, w[3],
          zmu, Bnu[2];
-  double dsup,dsdn,dt,dt2,dt3,ex,alpha,beta,gamma,dsup2;
+  double dsup,dsdn,dt,dt2,dt3,ex,alpha,beta,gamma,dsup2, obeta=0.0;
   double dS_up,dS_c,dchi_up,dchi_c,dchi_dn,dsdn2,dtau_up2;
   //double *z = geometry.cmass;
   // double *chi1 = scl_opac(Ndep, chi);
@@ -656,10 +654,10 @@ void Piecewise_lbrHermite_1D(int nspect, int mu, bool_t to_obs,
     
     dt = dtau_uw;
     K0 = 0.5 * dt;
-    K1 = (dt*dt) / 12.0;
+    K1 = (dt*dt) * 0.08333333333333333333333333333333;
     
     
-    D     = 1.0 + K0 + K1;
+    D     =  1.0 + K0 + K1;
     A     = (1.0 - K0 + K1) / D;
     alpha =      (K0 - K1)  / D;
     beta  =      (K1 + K0)  / D;
@@ -670,8 +668,7 @@ void Piecewise_lbrHermite_1D(int nspect, int mu, bool_t to_obs,
     I[k]= I[k-dk]*A  + E;
 
     
-    if (Psi) Psi[k] = beta; 
-    // fprintf(stderr,"[%3d] %e %e %e %e %e\n", k, A, alpha, beta, gamma, dt);
+    if (Psi) Psi[k] = beta + A*obeta; 
 
     I_upw = I[k];
     
@@ -682,6 +679,7 @@ void Piecewise_lbrHermite_1D(int nspect, int mu, bool_t to_obs,
     dchi_c=dchi_dn;
     dtau_uw=dtau_dw;
     dS_up = dS_c;
+    obeta = beta;
   }
   
   if(chi1 != chi)

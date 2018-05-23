@@ -25,7 +25,6 @@
 #include "statistics.h"
 #include "xdr.h"
 
-
 /* --- Function prototypes --                          -------------- */
 
 
@@ -185,7 +184,7 @@ void SortLambda_j(int mynw, double *mylambda)
   /* --- Fill the wavelength array --                  -------------- */
 
   nspect = 0;
-  spectrum.lambda = (double *) malloc(Nspectrum * sizeof(double));
+  spectrum.lambda = (double *) malloc(Nspectrum  * sizeof(double));
 
   /* --- First the referenece wavelength if specified -- ------------ */
 
@@ -251,9 +250,17 @@ void SortLambda_j(int mynw, double *mylambda)
     Error(MESSAGE, routineName, messageStr);
   }
   /* --- Allocate space for wavelength array and active sets -- ----- */
-
+  wavetable = malloc((spectrum.Nspect)*sizeof(double));
+  memcpy(wavetable,spectrum.lambda, spectrum.Nspect*sizeof(double));
+  
   spectrum.lambda = (double *) realloc(spectrum.lambda,
-				       spectrum.Nspect*sizeof(double));
+				       (spectrum.Nspect+2)*sizeof(double))+1;
+
+  memcpy(&spectrum.lambda[0],wavetable, spectrum.Nspect*sizeof(double) );
+  free(wavetable);
+  
+  spectrum.lambda[-1] = -1.e44, spectrum.lambda[spectrum.Nspect] = 1.e44;
+
   spectrum.as = (ActiveSet *) malloc(spectrum.Nspect * sizeof(ActiveSet));
     
   /* --- Go through each established wavelength and gather active

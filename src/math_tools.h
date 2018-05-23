@@ -230,7 +230,7 @@ namespace mth{
 
       /* --- get init point --- */
 
-      bool even = ((((n/2)*2) == n)?true:false);
+      bool even = ((((win/2)*2) == win)?true:false);
       
       
       

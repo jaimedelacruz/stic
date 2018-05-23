@@ -28,8 +28,8 @@
 # j   i       f     type  Nlambda symmetr  qcore  qwing  vdWapprx           vdWaals          radiative    Starck
 #                                                                        H          He
 #  Multiplet UV 1     3S - 3P
-  1   0  3.00E-01   PRD  250    ASYMM     20.0 2250.0   BARKLEM    246.  0.357  1.0  0.0    2.550E+08   1.0E+00
-  2   0  6.01E-01   PRD  250    ASYMM     20.0 2250.0   BARKLEM    246.  0.357  1.0  0.0    2.560E+08   1.0E+00
+  1   0  3.00E-01   PRD  300    ASYMM     20.0 2250.0   BARKLEM    246.  0.357  1.0  0.0    2.550E+08   1.0E+00
+  2   0  6.01E-01   PRD  300    ASYMM     20.0 2250.0   BARKLEM    246.  0.357  1.0  0.0    2.560E+08   1.0E+00
 
 #                     3S - 4P
   6   0  9.88E-04   VOIGT   20     SYMM      0.3   10.0    UNSOLD    1.0   0.0   1.0  0.0    5.490E+00   1.0E+00

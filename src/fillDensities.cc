@@ -196,7 +196,7 @@ int main(int narg, char *argv[])
 	  /* --- Do hydrostatic eq. --- */
 	  for(int kk=0; kk<m.ndep; kk++) mm.tau[kk] = pow(10.0, tau[kk]);
 	  mm.fixBoundary(touse+1, m.eos);
-	  mm.getPressureScale(bound, m.eos);
+	  mm.getPressureScale(0, bound, m.eos);
 	  for(int kk=0; kk<m.ndep; kk++) mm.tau[kk] = log10( tau[kk]);
 
 
