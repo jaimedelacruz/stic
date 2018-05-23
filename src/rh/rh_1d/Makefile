@@ -12,7 +12,7 @@ RH_OBS = ../hui_.o ../humlicek_.o ../abundance.o ../accelerate.o ../background.o
 ONE_D_OBJS = initial_j.o redistribute_j.o scatter_j.o sortlambda_j.o anglequad.o feautrier.o  formal.o  hydrostat.o  \
              piecestokes.o  piecewise.o bezier.o project.o  riiplane.o \
              writeflux_xdr.o  writegeom_xdr.o dummyatmos.o  \
-	     background_j.o iterate_j.o calculateRay.o updateatmos.o interpol.o mtime.o rhf1d.o
+	     background_j.o iterate_j.o calculateRay.o updateatmos.o interpol.o  rhf1d.o
 
 
 .SUFFIXES: .o .f90 .cc
