@@ -689,6 +689,10 @@ void getDregul2(double *m, int npar, reg_t &dregul, nodes_t &n)
     for(int ii=0; ii<dregul.nreg; ii++) fprintf(stderr,"%e ",dregul.reg[ii]);
     cerr<<endl;
   }
+
+
+  //memset(&dregul.reg[0], 0,dregul.nreg*sizeof(double));
+  
 }
 
 /* --------------------------------------------------------------------------------------------------- */
@@ -904,12 +908,12 @@ double atmos::fitModel2(mdepth_t &m, int npar, double *pars, int nobs, double *o
   
   if(input.marquardt_damping > 0.0) lm.ilambda = input.marquardt_damping;
   else                              lm.ilambda = 1.0;
-  lm.maxreject = 10;
+  lm.maxreject = 8;
   lm.svd_thres = max(input.svd_thres, 1.e-16);
   lm.chi2_thres = input.chi2_thres;
   lm.lmax = 1.e5;
   lm.lmin = 1.e-4;
-  lm.lfac = 2.0;
+  lm.lfac = sqrt(10.);
   lm.proc = input.myrank;
   lm.delay_bracket = input.delay_bracket;
   
