@@ -499,7 +499,7 @@ int line3dregul(int nn, double *ltau, double *var, double weight, double **dreg,
 
 void getDregul2(double *m, int npar, reg_t &dregul, nodes_t &n)
 {
-  static const double weights[7] = {0.002, 0.06, 0.1, 0.1, 0.1, 0.1,20.0};
+  static const double weights[7] = {0.01, 0.06, 0.1, 0.1, 0.1, 0.1,20.0};
   //  const double weights[7] = {0.0002, 0.6, 0.6, 0.1, 0.1, 0.1,20.0};
 
   double  *ltau = NULL, we = 0.0;
@@ -1040,6 +1040,8 @@ double atmos::fitModel2(mdepth_t &m, int npar, double *pars, int nobs, double *o
   
   isyn.clear();
   bestSyn.clear();
+
+  return bestChi;
 }
 
 

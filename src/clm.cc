@@ -1171,7 +1171,7 @@ void clm::compute_trial3(double *res, double **rf, double lambda,
     
     /* --- Damp the diagonal of A --- */
     
-    //A(yy,yy) += lambda * A(yy,yy);
+     //A(yy,yy) += lambda * A(yy,yy);
      A(yy,yy) += lambda * idia;
 
 
@@ -1184,7 +1184,7 @@ void clm::compute_trial3(double *res, double **rf, double lambda,
     
   } // yy
 
-  // if(dregul.to_reg) A += LL*(1.0+lambda); 
+  //if(dregul.to_reg) A += LL*(1.0+lambda); 
   
   delete [] tmp1;
   
