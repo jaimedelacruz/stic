@@ -42,7 +42,7 @@
 # Maximum number of iterations to initialize scattering radiation
 # field in the background (KEYWORD_OPTIONAL).
 
-  N_MAX_SCATTER = 1
+  N_MAX_SCATTER = 3
 
 # Row of statistical equilibrium equation that is to be eliminated
 # to enforce particle conservation (KEYWORD_REQUIRED). If set to -1
@@ -60,9 +60,9 @@
 # Parameters for Ng convergence acceleration (all are KEYWORD_OPTIONAL)
 # (default for NG_ORDER = 0 --> no acceleration)
 
-  NG_DELAY  = 800
+  NG_DELAY  = 15
   NG_ORDER  = 2
-  NG_PERIOD = 800
+  NG_PERIOD = 7
 
 # PRD specific parameters. PRD_N_MAX_ITER is the maximum number of
 # PRD iterations per main iteration. PRD_ITER_LIMIT is the convergence
@@ -71,7 +71,7 @@
 # PRD convergence limit. Both are KEYWORD_OPTIONAL. If PRD_N_MAX_ITER
 # all lines will be treated in CRD.
 
-  PRD_N_MAX_ITER = 0
+  PRD_N_MAX_ITER = 2
   PRD_ITER_LIMIT = 1.0E-4
 
 # PRD_NG_?? are the Ng accelleration parameters for PRD iterations
@@ -178,7 +178,7 @@
 # Input Stokes mode (KEYWORD_OPTIONAL). 
 # Options are: NO_STOKES, FIELD_FREE, POLARIZATION_FREE, and FULL_STOKES.
 
-  STOKES_MODE = NO_STOKES
+  STOKES_MODE = POLARIZATION_FREE
   
 # Include magneto-optical effects (KEYWORD_DEFAULT). Default is TRUE.
 
@@ -215,7 +215,6 @@
 #
 S_INTERPOLATION = BEZIER3
 S_INTERPOLATION_STOKES = DELO_BEZIER3
-
 
 #
 # Number of lambda iterations in the beginning
