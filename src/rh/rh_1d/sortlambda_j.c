@@ -36,6 +36,167 @@ extern InputData input;
 extern CommandLine commandline;
 extern char messageStr[];
 
+void check_PRD_line(AtomicLine **all, AtomicLine *line, int *nprd1)
+{
+  register int ii, exists = 0;
+  if(line == NULL) return;
+  
+  for(ii=0; ii<*nprd1; ii++){
+    if(all[ii] == line){
+      return;
+    }
+  }
+  //fprintf(stderr,"myline %p \n", line);
+
+  all[*nprd1] = &(*line);
+  *nprd1 += 1;
+}
+
+
+void get_unique_PRD_XRD_lines()
+{
+  register unsigned int ww, ll, nact, kr, nlines;
+  int nprd=0, nprd1 = 0;
+  Atom *atom;
+  AtomicLine *line, *XRDline, **all_lines;
+
+  if(atmos.NPRDactive > 0){
+    for (nact = 0;  nact < atmos.Nactiveatom;  nact++) {
+      atom = atmos.activeatoms[nact];
+      
+      // Loop lines
+      for (kr = 0;  kr < atom->Nline;  kr++) {
+	line = &atom->line[kr];
+
+	if (line->PRD) {
+	  nprd += 1;
+	  if(input.XRD && (line->Nxrd > 0))
+	    nprd += line->Nxrd;
+	  //fprintf(stderr,"nXRD=%d\n",line->Nxrd );
+	}
+      }
+    }
+  }
+  
+  all_lines = calloc(nprd, sizeof(AtomicLine*));
+
+
+  
+  // second pass, check for repeated lines
+  
+  if(atmos.NPRDactive > 0){
+    for (nact = 0;  nact < atmos.Nactiveatom;  nact++) {
+      atom = atmos.activeatoms[nact];
+      
+      // Loop lines
+      for (kr = 0;  kr < atom->Nline;  kr++) {
+	line = &atom->line[kr];
+	
+	if (line->PRD) {
+	  check_PRD_line(all_lines, line, &nprd1);
+	  
+	  if(input.XRD && (line->Nxrd > 0))
+	    for(nlines=0; nlines<line->Nxrd; nlines++){
+	      XRDline = line->xrd[nlines];
+	      check_PRD_line(all_lines, XRDline, &nprd1);
+	    } 
+	}
+      }
+    }
+  }
+
+  // Now copy all unique lines to spectrum.PRDlines
+
+  spectrum.PRDlines = calloc(nprd1, sizeof(AtomicLine*));
+  spectrum.nPRDlines = (int)nprd1;
+
+  //fprintf(stderr,"Found %d PRD/XRD lines of %d\n", nprd1, nprd);
+  for(nlines=0; nlines<nprd1; nlines++){
+    spectrum.PRDlines[nlines] = all_lines[nlines];
+  }
+
+  // cleanup
+
+  free(all_lines);
+  
+}
+
+
+void init_info_lambda( )
+{
+  register int nlines, nwav=0, off=0, ww,ll;
+  double *lam;
+  AtomicLine *lin;
+  
+  // --- allocate wavelengths info array ---//
+
+  unsigned int Nspect = spectrum.Nspect;
+  spectrum.linfo = calloc(Nspect, sizeof(linf*));
+
+  if(atmos.NPRDactive > 0){
+    for(nlines=0; nlines<spectrum.nPRDlines; nlines++){
+      // fix_lambda_info(   spectrum.PRDlines[nlines]  );
+      nwav += spectrum.PRDlines[nlines]->Nlambda;
+    }
+
+    // --- Now make array of unique lambdas --- //
+
+    lam = calloc(nwav, sizeof(double));
+    for(nlines=0; nlines<spectrum.nPRDlines; nlines++){
+      memcpy(&lam[off], spectrum.PRDlines[nlines]->lambda, spectrum.PRDlines[nlines]->Nlambda*sizeof(double));
+      off+= spectrum.PRDlines[nlines]->Nlambda;
+    }
+    
+    qsort(lam, nwav, sizeof(double), qsascend);
+
+    // --- Now check Unique ones ---//
+
+    off = 1;
+    for(ww=1; ww<nwav; ww++)
+      if(lam[ww] > lam[ww-1]){
+	lam[off++] = lam[ww];
+      }
+
+    //fprintf(stderr,"Found %d unique wav of %d\n", off, nwav);
+
+    // --- Assign position in Jgas --- //
+    
+    spectrum.Jgas = matrix_double(nwav, atmos.Nspace);
+    
+    for(nlines=0; nlines<spectrum.nPRDlines; nlines++){
+      lin = spectrum.PRDlines[nlines];
+      for(ww=0; ww<off; ww++){
+	if(lam[ww] == lin->lambda[0]){
+	  lin->Jgas = &spectrum.Jgas[ww];
+	  //fprintf(stderr,"Found Jgas line -> %f\n", lin->lambda0);
+	  break;
+	 
+	}
+      }
+    }
+    
+    // -- Cleanup
+
+    spectrum.Jlam = malloc((off+2)*sizeof(double))+1;
+    spectrum.nJlam = off;
+    memcpy(&spectrum.Jlam[0], lam, off*sizeof(double));
+    free(lam);
+    
+    spectrum.Jlam[-1] = spectrum.Jlam[0]-1.e3;
+    spectrum.Jlam[off] = spectrum.Jlam[off-1] + 1.0e3;
+    
+    // Check mapping to total wavelength array //
+    for(ww=0; ww<spectrum.Nspect; ww++){
+      for(ll=0; ll<off; ll++)
+	if(spectrum.lambda[ww] == spectrum.Jlam[ll]){
+	  spectrum.linfo[ww].is = 1;
+	  spectrum.linfo[ww].idx = ll;
+	}
+    }
+    
+  }
+}
+
 
 /* ------- begin -------------------------- SortLambda.c ------------ */
 
@@ -214,7 +375,6 @@ void SortLambda_j(int mynw, double *mylambda)
       line = &atom->line[kr];
       for (la = 0;  la < line->Nlambda;  la++)
 	spectrum.lambda[nspect++] = line->lambda[la];
-      
       if (line->PRD) atmos.NPRDactive++;
     }
   }
@@ -577,6 +737,13 @@ void SortLambda_j(int mynw, double *mylambda)
     }
   }
 
+  // Init lambda info
+  
+  //fprintf(stderr,"bla %d\n", input.XRD );
+  get_unique_PRD_XRD_lines();
+  init_info_lambda();
+
+  
   getCPU(2, TIME_POLL, "SortLambda");
 
 }

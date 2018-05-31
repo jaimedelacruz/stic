@@ -45,19 +45,20 @@ extern char messageStr[];
 double Formal(int nspect, bool_t eval_operator, bool_t redistribute, int iter)
 {
   const char routineName[] = "Formal";
-  register int k, mu, n;
+  register int k, mu, n,  ww, ww1;
   static const double scl255 = 1./255.;
   bool_t   initialize, boundbound, polarized_as, polarized_c,
            PRD_angle_dep, to_obs, solveStokes, angle_dep;
   enum     FeautrierOrder F_order;     
   int      Nrays = atmos.Nrays, ref_index = 0;
   long     Nspace = atmos.Nspace;
-  register long int idx,idx0, lamuk;
+  register long int idx,idx0,idx1, lamuk;
   double  *I, *chi, *S, **Ipol, **Spol, *Psi, *Jdag, wmu, wmu255,dJmax, dJ,
           *J20dag, musq, threemu1, threemu2, *J, *J20, *lambda, sign,
-    lambda_gas,lambda_prv,lambda_nxt,fac,dl,frac;
+    lambda_gas,lambda_prv,lambda_nxt,fac,dl,frac, **Jg;
   ActiveSet *as;
- 
+  unsigned int *iprdh, *nc;
+  unsigned short *cprdh;
 
   
   /* --- Retrieve active set as of transitions at wavelength nspect - */
@@ -153,7 +154,7 @@ double Formal(int nspect, bool_t eval_operator, bool_t redistribute, int iter)
 
     for (mu = 0;  mu < Nrays;  mu++) {
       wmu  = 0.5 * geometry.wmu[mu];
-      wmu255 = wmu / 255.;
+      // wmu255 = wmu / 65535.;
       if (input.backgr_pol) {
 	musq = SQ(geometry.muz[mu]);
 	threemu1 = TWOSQRTTWO * (3.0*musq - 1.0);
@@ -218,7 +219,7 @@ double Formal(int nspect, bool_t eval_operator, bool_t redistribute, int iter)
 	  if (input.S_interpolation == BEZIER3)
 	    Piecewise_Bezier3(nspect, mu, to_obs, chi, S, I, Psi);
 	  else if(input.S_interpolation == S_CUBIC_HERMITE){
-	    Piecewise_lbrHermite_1D(nspect, mu, to_obs, chi, S, I, Psi);
+	    Piecewise_Hermite_1D(nspect, mu, to_obs, chi, S, I, Psi);
           }else
 	    Piecewise_1D(nspect, mu, to_obs, chi, S, I, Psi);
 	}
@@ -305,24 +306,37 @@ double Formal(int nspect, bool_t eval_operator, bool_t redistribute, int iter)
 	      } // spatial location
 
 	    } else {
-	      for (k = 0;  k < Nspace;  k++)  {
+	      /* for (k = 0;  k < Nspace;  k++)  { */
 			
-		lamuk = nspect * (atmos.Nrays*2*Nspace) 
-		  + mu * (2*Nspace) + to_obs * (Nspace) + k;
+	      /* 	lamuk = nspect * (atmos.Nrays*2*Nspace)  */
+	      /* 	  + mu * (2*Nspace) + to_obs * (Nspace) + k; */
 		
-	       	//idx0 = (lamuk==0) ? 0 : spectrum.nc[lamuk-1];
-		idx0 = spectrum.nc[lamuk-1]; // now nc has an element "-1" set to zero;
+	      /*  	//idx0 = (lamuk==0) ? 0 : spectrum.nc[lamuk-1]; */
+	      /* 	idx0 = spectrum.nc[lamuk-1]; // now nc has an element "-1" set to zero; */
 
 		
-		for ( idx = idx0 ; idx <  spectrum.nc[lamuk] ; idx++ ) 
-		  spectrum.Jgas[ spectrum.iprdh[idx]][k] += wmu255 *  (double)(spectrum.cprdh[idx]) * I[k];
-		  //spectrum.Jgas[ spectrum.iprdh[idx]][k] += wmu *  (spectrum.cprdh[idx]) * I[k];
-		//	idx0 = spectrum.nc[lamuk];
-	      }  
+	      /* 	for ( idx = idx0 ; idx <  spectrum.nc[lamuk] ; idx++ )  */
+	      /* 	  spectrum.Jgas[ spectrum.iprdh[idx]][k] += wmu255 *  (double)(spectrum.cprdh[idx]) * I[k]; */
+	      /* 	  //spectrum.Jgas[ spectrum.iprdh[idx]][k] += wmu *  (spectrum.cprdh[idx]) * I[k]; */
+	      /* 	//	idx0 = spectrum.nc[lamuk]; */
+	      /* }   */
+
+
+	      if(spectrum.linfo[nspect].is){
+		ww = spectrum.linfo[nspect].idx;
+		
+		for (k = 0;  k < Nspace;  k++)  {
+		  lamuk = ww * (atmos.Nrays*2*Nspace) + mu * (2*Nspace) + to_obs * (Nspace) + k;
+		  idx0 = (long int)spectrum.nc[lamuk-1]; idx1 = (long int)spectrum.nc[lamuk];
+
+		  for ( idx = idx0 ; idx <  idx1 ; idx++ ){
+		    spectrum.Jgas[ spectrum.iprdh[idx] ][k] += wmu * I[k] * (((double)spectrum.cprdh[idx])/65535.);
+		  }
+		}
+	      }
 	      
 	    } // prdh_limit_mem switch 
 	  } // Jgas accumulation endif 
-		
 	  if (containsPRDline(as) && input.PRD_angle_dep == PRD_ANGLE_DEP) 
 	    writeImu(nspect, mu, to_obs, I);
 
@@ -370,10 +384,12 @@ double Formal(int nspect, bool_t eval_operator, bool_t redistribute, int iter)
 	/* --- Accumulate gas-frame mean intensity, which is the same
 	   as J in the angle-independent case ------------- */
 	if (atmos.NPRDactive >0 && input.PRD_angle_dep == PRD_ANGLE_APPROX) {
-	  for (k = 0;  k < Nspace;  k++) 
-	    spectrum.Jgas[nspect][k] += I[k] * geometry.wmu[mu];
+	  if(spectrum.linfo[nspect].is){
+	    idx0 = (long int)spectrum.linfo[nspect].idx;
+	    for (k = 0;  k < Nspace;  k++)
+	      spectrum.Jgas[idx0][k] += I[k] * geometry.wmu[mu];
+	  }
 	}
-	
       }
     }
   }

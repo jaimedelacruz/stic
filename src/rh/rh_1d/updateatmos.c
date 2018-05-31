@@ -23,6 +23,9 @@ extern char messageStr[];
 extern Spectrum spectrum;
 extern rhinfo io;
 
+extern void distribute_nH();
+
+
 void Initvarious(){
   int    nact;
   Atom  *atom;
@@ -239,7 +242,7 @@ void UpdateAtmosDep(void) {
 
 	// reset interpolation weights 
 	if (input.PRD_angle_dep == PRD_ANGLE_APPROX) {
-	  Nlamu = 2*atmos.Nrays * line->Nlambda;	  
+	  //Nlamu = 2*atmos.Nrays * line->Nlambda;	  
 	  if (line->frac != NULL) {
 	    freeMatrix((void **) line->frac);
 	    line->frac = NULL;

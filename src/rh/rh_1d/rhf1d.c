@@ -200,6 +200,9 @@ bool_t rhf1d(float muz, int rhs_ndep, double *rhs_T, double *rhs_rho,
       input.Ngperiod = min(11,input.Ngperiod) ;
       input.PRD_NmaxIter = min(3,input.PRD_NmaxIter) ;
     }
+
+    // for(niter=0; niter<spectrum.nPRDlines; niter++)
+    // fprintf(stderr,"prdline->frac[0][0]=%e\n", spectrum.PRDlines[niter]->frac[0][0]);
     
     initScatter();
     
@@ -230,13 +233,12 @@ bool_t rhf1d(float muz, int rhs_ndep, double *rhs_T, double *rhs_rho,
   } else dpopmax = 1.0e13;
   
   bool_t converged = dpopmax < 1.e-3;//input.iterLimit;
-  
 
   /* --- Store populations if needed --- */
 
   if(savpop > 0 && converged)
     save_populations(save_pop);
-  
+  // exit(0);
 
   /* --- Compute output ray --- */
   if(converged){

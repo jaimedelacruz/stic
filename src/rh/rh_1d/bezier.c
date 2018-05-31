@@ -275,7 +275,7 @@ inline void Bezier3_coeffs(double dt, double *alpha, double *beta,
     *theta = 0.25 * dt - 0.10 * dt2 + dt3 * 0.025;// - dt4 / 84.0;
     return;
   }else{
-    if((dt>30.)){
+    if((dt > 30.)){
       *eps = 0.0;
       *alpha = 6.0 / dt3;
       *beta = 1.0 - (*alpha)*(1.0-dt) - 3.0/dt;
@@ -321,12 +321,7 @@ void PiecewiseStokesBezier3(int nspect, int mu, bool_t to_obs,
   double A[4][4], Ma[4][4], Mb[4][4], Mc[4][4], V0[4];//, V1[4];
   double imu = 1.0 / geometry.muz[mu];
   double Md[4][4];
-  //double *z = geometry.tau_ref;
-  //double *z = geometry.height;//geometry.tau_ref;//geometry.height;
-  //double *z = geometry.cmass;//
-
   ActiveSet *as;
-
   double *z, *chi1;
   
   if(FALSE){
@@ -404,8 +399,8 @@ void PiecewiseStokesBezier3(int nspect, int mu, bool_t to_obs,
   
   /* --- upwind path_length (BEzier3 integration) --- */
 
-  c2 = chi1[k]    - (dsup/3.0) * dchi_c;
-  c1 = chi1[k-dk] + (dsup/3.0) * dchi_up;
+  c2 = chi1[k]    - (dsup*0.3333333333333333333333333) * dchi_c;
+  c1 = chi1[k-dk] + (dsup*0.3333333333333333333333333) * dchi_up;
 
   
   dtau_uw = 0.25 * dsup * (chi1[k] + chi1[k-dk] + c1 + c2);
@@ -450,8 +445,8 @@ void PiecewiseStokesBezier3(int nspect, int mu, bool_t to_obs,
       
     /* --- Make sure that c1 and c2 don't do below zero --- */
 
-      c1 = (chi1[k+dk] - (dsdn/3.0) * dchi_dn);
-      c2 = (chi1[k]    + (dsdn/3.0) * dchi_c);
+      c1 = (chi1[k+dk] - (dsdn*0.333333333333333333333333333) * dchi_dn);
+      c2 = (chi1[k]    + (dsdn*0.333333333333333333333333333) * dchi_c);
       
       /* --- Bezier3 integrated dtau --- */
       
@@ -515,9 +510,7 @@ void PiecewiseStokesBezier3(int nspect, int mu, bool_t to_obs,
        (gam * dS0 - theta * dSu) * dtau / 3.0 to compute the 
        right-hand term
        --- */
-    
-    //memset(V0, 0, 4*sizeof(double));
-    
+        
     for(i = 0; i<4; i++){
       V0[i] = 0.0;
       for(j = 0; j<4; j++){
@@ -698,8 +691,8 @@ void Piecewise_Bezier3(int nspect, int mu, bool_t to_obs,
 
       /* --- Do not clip control points, it fails if there is much estimulated emission --- */
       
-      c1 = (chi1[k]    + (dsdn*0.33333333333333333) * dchi_c);
-      c2 = (chi1[k+dk] - (dsdn*0.33333333333333333) * dchi_dn);
+      c1 = (chi1[k]    + (dsdn*0.3333333333333333333) * dchi_c);
+      c2 = (chi1[k+dk] - (dsdn*0.3333333333333333333) * dchi_dn);
       
       /* downwind optical path length */
       

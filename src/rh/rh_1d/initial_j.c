@@ -71,7 +71,7 @@ void initSolution_alloc2(int myrank) {
   Molecule   *molecule;
   Atom       *atom;
   AtomicLine *line;
-  long int idx, lc, lak, onc, omin, lamuk;
+  long int idx, lc, lak, onc, omin, lamuk, Nlam;
   double *lambda,fac,lambda_prv,lambda_gas,lambda_nxt,dl,dl1,frac,lag;
   double q0,q_emit,qN, waveratio=1.0, t0=0, t1=0;
   static bool_t firsttime = true, firstl, lastl;
@@ -98,8 +98,8 @@ void initSolution_alloc2(int myrank) {
      the gas frame,                                   -------- */
   if (input.PRD_angle_dep == PRD_ANGLE_APPROX &&  atmos.NPRDactive > 0) {
     
-    if (spectrum.Jgas != NULL) freeMatrix((void **) spectrum.Jgas);
-    spectrum.Jgas  = matrix_double(spectrum.Nspect, atmos.Nspace);
+    //if (spectrum.Jgas != NULL) freeMatrix((void **) spectrum.Jgas);
+    //spectrum.Jgas  = matrix_double(spectrum.Nspect, atmos.Nspace);
     if (spectrum.v_los != NULL) freeMatrix((void **) spectrum.v_los);
     spectrum.v_los = matrix_double(    atmos.Nrays, atmos.Nspace);     
     
@@ -169,7 +169,7 @@ void initSolution_alloc2(int myrank) {
       }
     }
 
-    
+  
    /* precompute prd_rho interpolation coefficients if requested */
     
     if (!input.prdh_limit_mem) {
@@ -184,17 +184,21 @@ void initSolution_alloc2(int myrank) {
 	  
 	  if (line->PRD) {
 	      
-	    Nlamu = 2*atmos.Nrays * line->Nlambda;
+	    Nlam = 2*atmos.Nrays * line->Nlambda;
 
 	    if (line->frac != NULL) freeMatrix((void **) line->frac);
-	    line->frac = matrix_float(Nlamu, atmos.Nspace);
+	    line->frac = matrix_float(Nlam, atmos.Nspace);
 
 	    if (line->id0 != NULL) freeMatrix((void **) line->id0);
-	    line->id0  = matrix_int(Nlamu, atmos.Nspace);
+	    line->id0  = matrix_int(Nlam, atmos.Nspace);
 
 	    if (line->id1 != NULL) freeMatrix((void **) line->id1);
-	    line->id1  = matrix_int(Nlamu, atmos.Nspace);
-	      
+	    line->id1  = matrix_int(Nlam, atmos.Nspace);
+
+	    //if(line->Jgas != NULL) del_d2dim(line->Jgas, 0, 0);
+	    //line->Jgas = d2dim(0, line->Nlambda-1, 0, atmos.Nspace-1);
+	    
+	    
 	    for (la = 0;  la < line->Nlambda;  la++) {
 	      for (mu = 0;  mu < atmos.Nrays;  mu++) {
 		for (to_obs = 0;  to_obs <= 1;  to_obs++) {
@@ -227,51 +231,37 @@ void initSolution_alloc2(int myrank) {
 		}
 	      }
 	    }
-	  }
-	}
-      }
-    }
-    
-    /* precompute Jgas interpolation coefficients if requested */
-    if (!input.prdh_limit_mem) {
-
-      lambda = spectrum.lambda;
-      idx=5*atmos.Nrays*(spectrum.Nspect+2)*atmos.Nspace;
+	  } // PRD line
+	} // kr
+      } // atoms
       
-      /* --- keeps track of where to get indices and interpolation
-             coefficients in spectrum.iprhh and spectrum.cprdh --- */
+      // --- allocate coefficients for Jgas --- //
+      
+      Nlamu=2*2*atmos.Nrays*(spectrum.nJlam)*atmos.Nspace;
+      
+      if(spectrum.iprdh != NULL) free((void*)spectrum.iprdh);
+      spectrum.iprdh =  ((unsigned int *)calloc( Nlamu , sizeof(unsigned int   )));
+      
+      if(spectrum.cprdh != NULL) free((void*)spectrum.cprdh);
+      spectrum.cprdh =  ((unsigned short *)calloc( Nlamu , sizeof(unsigned short)));
+
+      Nlamu=2*2*atmos.Nrays*(spectrum.nJlam+2)*atmos.Nspace;
       if (spectrum.nc != NULL) free((void*)(spectrum.nc-1));
-      spectrum.nc=  ((int*)calloc(idx, sizeof(int)))+1;
-
-      /* --- now we know the number of interpolation coefficients,
-	 it's stored in the last element of spectrum.nc,
-	 so allocate space                                     --- */
+      spectrum.nc=  ((unsigned int*)calloc(Nlamu, sizeof(unsigned int)))+1;
       
-      //  idx=spectrum.nc[2*atmos.Nrays*spectrum.Nspect*atmos.Nspace-1];
-      // On average the total number of coeffs must be 2 per wavelength
-
-      // --- we do this trick to have two points at infinity at the extremes --- //
-      
-      if (spectrum.iprdh != NULL) free((void*)(spectrum.iprdh-1));
-      spectrum.iprdh= ((int *)calloc( idx , sizeof(int   )))+1; 
-
-      if (spectrum.cprdh != NULL) free((void*)(spectrum.cprdh-1));
-      spectrum.cprdh= ((unsigned char*)calloc( idx, sizeof(unsigned char)))+1;
-      
-
-      //t0 = gettime();
-
       lc = 0, onc = 0, omin = 0;
-      for (la = 0;  la < spectrum.Nspect;  la++) {
+      lambda = spectrum.Jlam;
+      
+      for (la = 0;  la < spectrum.nJlam;  la++) {
 	for (mu = 0;  mu < atmos.Nrays;  mu++) {
 	  firstl = true;
-
+	  
 	  for (to_obs = 0;  to_obs <= 1;  to_obs++) {
 	    sign = (to_obs) ? 1.0 : -1.0;
+	    //lamu = 2*(atmos.Nrays*la + mu) + to_obs;
+	    
 	    for (k = 0;  k < atmos.Nspace;  k++) {
 	      lastl = true;
-
-	      
 	      lamuk = la * (atmos.Nrays*2*atmos.Nspace) 
 		+ mu     * (2*atmos.Nspace)
 		+ to_obs * (atmos.Nspace)
@@ -285,18 +275,17 @@ void initSolution_alloc2(int myrank) {
 	      lambda_gas = lambda[ la                   ]*fac;
 	      lambda_nxt = lambda[ la+1                 ]*fac;
 	      
-	      dl = 255./(lambda_gas - lambda_prv); // It contains the conversion factor to ushort (65535)
-	      dl1= 255./(lambda_nxt - lambda_gas); // It contains the conversion factor to ushort (65535)
-	      
-	      for (idx = omin; idx < spectrum.Nspect ; idx++) {
+	      //omin = 0;
+	      for (idx = omin; idx < spectrum.nJlam ; idx++) {
 		
 		
 		// do lambda_prv and lambda_gas bracket lambda points?
 		if ((lambda[idx] > lambda_prv) && (lambda[idx] <= lambda_gas)){
+		  dl = 65535./(lambda_gas - lambda_prv); // It contains the conversion factor to ushort (65535)
+		  
 		  ncoef += 1;
 		  spectrum.iprdh[lc]=idx;
-		  spectrum.cprdh[lc++]=(unsigned char)(round((lambda[idx]-lambda_prv)*dl));
-		  
+		  spectrum.cprdh[lc++]=(unsigned short)(round((lambda[idx]-lambda_prv)*dl));
 		  if(firstl){
 		    omin = min(idx, omin);
 		    firstl = false;
@@ -308,78 +297,191 @@ void initSolution_alloc2(int myrank) {
 		  //lc++;
 		}else if ((lambda[idx] > lambda_gas) && (lambda[idx] < lambda_nxt)){
 		  ncoef += 1;
+		  dl1= 65535./(lambda_nxt - lambda_gas); // It contains the conversion factor to ushort (65535)
 		  spectrum.iprdh[lc]=idx;
-		  spectrum.cprdh[lc++]=(unsigned char)(round(255. - (lambda[idx]-lambda_gas)*dl1)); // The 255 must be 1.0 if using floats
+		  spectrum.cprdh[lc++]=(unsigned short)(round(65535. - (lambda[idx]-lambda_gas)*dl1)); // The 255 must be 1.0 if using floats
+		  
 		  if(firstl){
 		    omin = min(idx, omin);
 		    firstl = false;
 		  }
 		  lastl = false;
-
+		  
 		  
 		  continue;
 		  //lc++;
 		}
-
+		
 		if(!lastl) break;
 		
 	      } // idx
-
-	      
-	      /* // do lambda_prv and lambda_gas bracket lambda points? */
-	      /* if (lambda_prv !=  lambda_gas) { */
-	      /* 	dl= lambda_gas - lambda_prv; */
-	      /* 	for (idx = 0; idx < spectrum.Nspect ; idx++) {      */
-	      /* 	  if (lambda[idx] > lambda_prv && lambda[idx] <= lambda_gas) ncoef=ncoef+1; */
-	      /* 	} */
-	      /* } else { */
-	      /* 	// edge case, use constant extrapolation for lambda[idx]<lambda gas */
-	      /* 	for (idx = 0; idx < spectrum.Nspect ; idx++) { */
-	      /* 	  if (lambda[idx] <=  lambda_gas) ncoef=ncoef+1; */
-	      /* 	} */
-	      /* }  */
-	      
-	      /* // do lambda_gas and lambda_nxt bracket lambda points? */
-	      /* if (lambda_gas != lambda_nxt) { */
-	      /* 	dl= lambda_nxt - lambda_gas; */
-	      /* 	for (idx = 0; idx < spectrum.Nspect ; idx++) {      */
-	      /* 	  if (lambda[idx] > lambda_gas && lambda[idx] < lambda_nxt) ncoef=ncoef+1; */
-	      /* 	} */
-	      /* } else { */
-	      /* 	// edge case, use constant extrapolation for lambda[idx]>lambda gas */
-	      /* 	for (idx = 0; idx < spectrum.Nspect ; idx++) { */
-	      /* 	  if (lambda[idx] >=  lambda_gas) ncoef=ncoef+1; */
-	      /* 	} */
-	      /* }  */
-
-	      /* --- number of point this lambda contributes to is
-	 	 computed as a difference --- */
-	      //fprintf(stderr,"lamuc=%ld\n", lamuk);
-	      //      if (lamuk == 0) {
-	      //	spectrum.nc[lamuk] = ncoef;
-		//} else {
-	      //	      spectrum.nc[lamuk]=spectrum.nc[lamuk-1]+ncoef;
 	      spectrum.nc[lamuk]=onc+ncoef;
 	      onc = spectrum.nc[lamuk];
-		//      }
+	      //      }
 	      
 	      lc = spectrum.nc[lamuk-1];
-
+	      
 	    } // k
 	  } // to_obs
 	} // mu
 	omin = max(omin-1, 0);
-	//	fprintf(stderr, "la=%ld, omin=%ld, max=%ld\n", la, omin,spectrum.Nspect );
-      } // la
+	
+      }// la
+      
+      
+    }
+    
+    /* /\* precompute Jgas interpolation coefficients if requested *\/ */
+    /* if (!input.prdh_limit_mem) { */
+
+    /*   lambda = spectrum.lambda; */
+    /*   idx=5*atmos.Nrays*(spectrum.Nspect+2)*atmos.Nspace; */
+      
+    /*   /\* --- keeps track of where to get indices and interpolation */
+    /*          coefficients in spectrum.iprhh and spectrum.cprdh --- *\/ */
+    /*   if (spectrum.nc != NULL) free((void*)(spectrum.nc-1)); */
+    /*   spectrum.nc=  ((int*)calloc(idx, sizeof(int)))+1; */
+
+    /*   /\* --- now we know the number of interpolation coefficients, */
+    /* 	 it's stored in the last element of spectrum.nc, */
+    /* 	 so allocate space                                     --- *\/ */
+      
+    /*   //  idx=spectrum.nc[2*atmos.Nrays*spectrum.Nspect*atmos.Nspace-1]; */
+    /*   // On average the total number of coeffs must be 2 per wavelength */
+
+    /*   // --- we do this trick to have two points at infinity at the extremes --- // */
+
+      
+      
+      
+    /*   if (spectrum.iprdh != NULL) free((void*)(spectrum.iprdh-1)); */
+    /*   spectrum.iprdh= ((int *)calloc( idx , sizeof(int   )))+1;  */
+
+    /*   if (spectrum.cprdh != NULL) free((void*)(spectrum.cprdh-1)); */
+    /*   spectrum.cprdh= ((unsigned char*)calloc( idx, sizeof(unsigned char)))+1; */
+      
+
+    /*   //t0 = gettime(); */
+
+    /*   lc = 0, onc = 0, omin = 0; */
+    /*   for (la = 0;  la < spectrum.Nspect;  la++) { */
+    /* 	for (mu = 0;  mu < atmos.Nrays;  mu++) { */
+    /* 	  firstl = true; */
+
+    /* 	  for (to_obs = 0;  to_obs <= 1;  to_obs++) { */
+    /* 	    sign = (to_obs) ? 1.0 : -1.0; */
+    /* 	    for (k = 0;  k < atmos.Nspace;  k++) { */
+    /* 	      lastl = true; */
+
+	      
+    /* 	      lamuk = la * (atmos.Nrays*2*atmos.Nspace)  */
+    /* 		+ mu     * (2*atmos.Nspace) */
+    /* 		+ to_obs * (atmos.Nspace) */
+    /* 		+ k ; */
+	      
+    /* 	      ncoef=0; */
+	      
+    /* 	      // previous, current and next wavelength shifted to gas rest frame  */
+    /* 	      fac = (1.+spectrum.v_los[mu][k]*sign/CLIGHT); */
+    /* 	      lambda_prv = lambda[ la-1                 ]*fac; */
+    /* 	      lambda_gas = lambda[ la                   ]*fac; */
+    /* 	      lambda_nxt = lambda[ la+1                 ]*fac; */
+	      
+    /* 	      dl = 255./(lambda_gas - lambda_prv); // It contains the conversion factor to ushort (65535) */
+    /* 	      dl1= 255./(lambda_nxt - lambda_gas); // It contains the conversion factor to ushort (65535) */
+	      
+    /* 	      for (idx = omin; idx < spectrum.Nspect ; idx++) { */
+		
+		
+    /* 		// do lambda_prv and lambda_gas bracket lambda points? */
+    /* 		if ((lambda[idx] > lambda_prv) && (lambda[idx] <= lambda_gas)){ */
+    /* 		  ncoef += 1; */
+    /* 		  spectrum.iprdh[lc]=idx; */
+    /* 		  spectrum.cprdh[lc++]=(unsigned char)(round((lambda[idx]-lambda_prv)*dl)); */
+		  
+    /* 		  if(firstl){ */
+    /* 		    omin = min(idx, omin); */
+    /* 		    firstl = false; */
+    /* 		  } */
+    /* 		  lastl = false; */
+		  
+    /* 		  continue; */
+    /* 		  //omin = min(omin,idx); */
+    /* 		  //lc++; */
+    /* 		}else if ((lambda[idx] > lambda_gas) && (lambda[idx] < lambda_nxt)){ */
+    /* 		  ncoef += 1; */
+    /* 		  spectrum.iprdh[lc]=idx; */
+    /* 		  spectrum.cprdh[lc++]=(unsigned char)(round(255. - (lambda[idx]-lambda_gas)*dl1)); // The 255 must be 1.0 if using floats */
+    /* 		  if(firstl){ */
+    /* 		    omin = min(idx, omin); */
+    /* 		    firstl = false; */
+    /* 		  } */
+    /* 		  lastl = false; */
+
+		  
+    /* 		  continue; */
+    /* 		  //lc++; */
+    /* 		} */
+
+    /* 		if(!lastl) break; */
+		
+    /* 	      } // idx */
+
+	      
+      /* 	      /\* // do lambda_prv and lambda_gas bracket lambda points? *\/ */
+      /* 	      /\* if (lambda_prv !=  lambda_gas) { *\/ */
+      /* 	      /\* 	dl= lambda_gas - lambda_prv; *\/ */
+      /* 	      /\* 	for (idx = 0; idx < spectrum.Nspect ; idx++) {      *\/ */
+      /* 	      /\* 	  if (lambda[idx] > lambda_prv && lambda[idx] <= lambda_gas) ncoef=ncoef+1; *\/ */
+      /* 	      /\* 	} *\/ */
+      /* 	      /\* } else { *\/ */
+      /* 	      /\* 	// edge case, use constant extrapolation for lambda[idx]<lambda gas *\/ */
+      /* 	      /\* 	for (idx = 0; idx < spectrum.Nspect ; idx++) { *\/ */
+      /* 	      /\* 	  if (lambda[idx] <=  lambda_gas) ncoef=ncoef+1; *\/ */
+      /* 	      /\* 	} *\/ */
+      /* 	      /\* }  *\/ */
+	      
+      /* 	      /\* // do lambda_gas and lambda_nxt bracket lambda points? *\/ */
+      /* 	      /\* if (lambda_gas != lambda_nxt) { *\/ */
+      /* 	      /\* 	dl= lambda_nxt - lambda_gas; *\/ */
+      /* 	      /\* 	for (idx = 0; idx < spectrum.Nspect ; idx++) {      *\/ */
+      /* 	      /\* 	  if (lambda[idx] > lambda_gas && lambda[idx] < lambda_nxt) ncoef=ncoef+1; *\/ */
+      /* 	      /\* 	} *\/ */
+      /* 	      /\* } else { *\/ */
+      /* 	      /\* 	// edge case, use constant extrapolation for lambda[idx]>lambda gas *\/ */
+      /* 	      /\* 	for (idx = 0; idx < spectrum.Nspect ; idx++) { *\/ */
+      /* 	      /\* 	  if (lambda[idx] >=  lambda_gas) ncoef=ncoef+1; *\/ */
+      /* 	      /\* 	} *\/ */
+      /* 	      /\* }  *\/ */
+
+      /* 	      /\* --- number of point this lambda contributes to is */
+      /* 	 	 computed as a difference --- *\/ */
+      /* 	      //fprintf(stderr,"lamuc=%ld\n", lamuk); */
+      /* 	      //      if (lamuk == 0) { */
+      /* 	      //	spectrum.nc[lamuk] = ncoef; */
+      /* 		//} else { */
+      /* 	      //	      spectrum.nc[lamuk]=spectrum.nc[lamuk-1]+ncoef; */
+      /* 	      spectrum.nc[lamuk]=onc+ncoef; */
+      /* 	      onc = spectrum.nc[lamuk]; */
+      /* 		//      } */
+	      
+      /* 	      lc = spectrum.nc[lamuk-1]; */
+
+      /* 	    } // k */
+      /* 	  } // to_obs */
+      /* 	} // mu */
+      /* 	omin = max(omin-1, 0); */
+      /* 	//	fprintf(stderr, "la=%ld, omin=%ld, max=%ld\n", la, omin,spectrum.Nspect ); */
+      /* } // la */
       //t1 = gettime();
       //fprintf(stderr,"DT third loop=%fs\n", t1-t0);
       //t0=t1;
-       idx =  5*atmos.Nrays*(spectrum.Nspect+2)*atmos.Nspace;
-       if((idx-spectrum.nc[2*atmos.Nrays*spectrum.Nspect*atmos.Nspace-1])<0){
+    //  idx =  5*atmos.Nrays*(spectrum.Nspect+2)*atmos.Nspace;
+    //   if((idx-spectrum.nc[2*atmos.Nrays*spectrum.Nspect*atmos.Nspace-1])<0){
        
-	 fprintf(stderr,"allocated=%ld, needed=%ld, difference=%ld\n",idx, spectrum.nc[2*atmos.Nrays*spectrum.Nspect*atmos.Nspace-1], idx-spectrum.nc[2*atmos.Nrays*spectrum.Nspect*atmos.Nspace-1]);
-	 exit(0);
-       }
+    //	 fprintf(stderr,"allocated=%ld, needed=%ld, difference=%ld\n",idx, spectrum.nc[2*atmos.Nrays*spectrum.Nspect*atmos.Nspace-1], idx-spectrum.nc[2*atmos.Nrays*spectrum.Nspect*atmos.Nspace-1]);
+    //	 exit(0);
+       
 
      /* --- Run through all lamuk points again, and now store indices
             to lambda array and the corresponding interpolation
@@ -455,7 +557,7 @@ void initSolution_alloc2(int myrank) {
       /* 	} // mu */
       /* } // la */
 
-    }  //input.prdh_limit_mem if switch      
+    //  }  //input.prdh_limit_mem if switch      
   } // PRD_ANGLE_APPROX if switch
 
   // t1 = gettime();

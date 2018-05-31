@@ -392,7 +392,9 @@ void PRDAngleApproxScatter(AtomicLine *PRDline,
       /* --- Get local mean intensity and wavelength in Doppler units */
 
       for (la = 0;  la < XRDline->Nlambda;  la++) {
-	J_k[la]   = spectrum.Jgas[XRDline->Nblue + la][k];
+	//J_k[la]   = spectrum.Jgas[XRDline->Nblue + la][k];
+	J_k[la]   = XRDline->Jgas[la][k];//spectrum.linfo[nspect]->line->Jgas[la][k];
+
 	q_abs[la] = (XRDline->lambda[la] - XRDline->lambda0) * CLIGHT /
 	  (XRDline->lambda0 * atom->vbroad[k]);
       }
