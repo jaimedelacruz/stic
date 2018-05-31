@@ -59,7 +59,10 @@ struct AtomicLine {
   int    **id0, **id1;
   FILE    *fp_GII;
   float  **frac;
-
+  //double dum;
+  double **Jgas;
+  //unsigned int    *nc, *iprdh;
+  //unsigned short *cprdh;
   struct Ng *Ng_prd;
   Atom *atom;
   AtomicLine **xrd;

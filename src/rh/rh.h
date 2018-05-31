@@ -80,6 +80,19 @@ double **matrix_double(int Nrow, int Ncol);
 short  **matrix_short(int Nrow, int Ncol);
 unsigned char **matrix_uchar(int Nrow, int Ncol);
 float **matrix_float(int Nrow, int Ncol);
+double **d2dim(int x1l,int x1h,int x2l,int x2h);
+float **f2dim(int x1l,int x1h,int x2l,int x2h);
+void del_d2dim(double **p,int x1l, int x2l);
+void del_f2dim(float **p,int x1l, int x2l);
+float *f1dim(int x1l,int x1h);
+double *d1dim(int x1l,int x1h);
+int *i1dim(int x1l,int x1h);
+void del_f1dim(float *p,int x1l);
+void del_d1dim(double *p,int x1l);
+void del_i1dim(int *p,int x1l);
+
+
+
 
 void   freeMatrix(void **Matrix);
 void   SolveLinearEq(int N, double **A, double *b, bool_t improve);

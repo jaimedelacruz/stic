@@ -9,6 +9,7 @@
 #ifndef __SPECTRUM_H__
 #define __SPECTRUM_H__
 
+#include "atom.h"
 
 /* --- Defines structure containing the overall set of wavelengths,
        and the transitions that are active at each of the wavelengths.
@@ -37,16 +38,25 @@ typedef struct{
 
 /* --- Stores emergent intensities and array of active sets -- ------ */
 
+typedef struct{
+  unsigned char is;
+  unsigned int idx;
+}linf;
+
+
+
 typedef struct {
   bool_t   vacuum_to_air, updateJ;
   int      Nspect, *PRDindex, fd_J, fd_J20, fd_Imu;
   double  *lambda, **J, **I, **Stokes_Q, **Stokes_U, **Stokes_V, **J20,
     **Jgas, **Ilast, **v_los;
   ActiveSet *as;
-  int    *nc, *iprdh;
-  unsigned char *cprdh;
-  //double *cprdh;
-
+  unsigned int    *nc, *iprdh, nJlam;
+  unsigned short *cprdh;
+  double *Jlam;
+  linf *linfo;
+  AtomicLine **PRDlines;
+  int nPRDlines;
 } Spectrum;
 
 

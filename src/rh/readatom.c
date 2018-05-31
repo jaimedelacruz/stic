@@ -71,6 +71,7 @@ void readAtom(Atom *atom, char *atom_file, bool_t active)
   int     i, j, Nlevel, Nrad, Nline, Ncont, Nfixed, 
           Nspace = atmos.Nspace,
           Nread, Nrequired, checkPoint, L, nq, status;
+  unsigned int Nlamu;
   double  f, C, lambda0, lambdamin, vtherm, S, Ju, Jl,
     c_sum, waveratio, lambda_air;
 
@@ -213,7 +214,7 @@ void readAtom(Atom *atom, char *atom_file, bool_t active)
     line->j = MAX(i, j);  line->i = MIN(i, j);
     i = line->i;
     j = line->j;
-
+    
     lambda0 = (HPLANCK * CLIGHT) / (atom->E[j] - atom->E[i]);
     line->Aji = C / SQ(lambda0) * (atom->g[i] / atom->g[j]) * f;
     line->Bji = CUBE(lambda0) / (2.0 * HPLANCK * CLIGHT) * line->Aji;
@@ -233,7 +234,7 @@ void readAtom(Atom *atom, char *atom_file, bool_t active)
     if (strstr(shapeStr, "PRD") && input.PRD_NmaxIter > 0) {
       atom->Nprd++;
       line->PRD = TRUE;
-
+      
       if (input.limit_memory && atom->active) {
         sprintf(messageStr,
                 "Cannot limit memory with PRD lines present in active atom");
@@ -513,7 +514,6 @@ void readAtom(Atom *atom, char *atom_file, bool_t active)
 		  line->i != atom->line[krp].i) {
 		line->xrd[line->Nxrd] = &atom->line[krp];
 		line->Nxrd++;
-
                 /* --- Make sure wavelength quadratures match in
 		       case of cross-redistribution -- -------------- */
 
@@ -655,6 +655,10 @@ void initAtomicLine(AtomicLine *line)
   line->id0 = NULL;
   line->id1 = NULL;
   line->gII = NULL;
+  line->Jgas = NULL;
+  // line->iprdh = NULL;
+  //line->cprdh = NULL;
+  //line->nc = NULL;
 }
 /* ------- end ---------------------------- initAtomicLine.c -------- */
 

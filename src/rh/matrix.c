@@ -144,3 +144,61 @@ unsigned char **matrix_uchar(int Nrow, int Ncol)
 
   return Matrix;
 }
+
+float **f2dimt(int x1l,int x1h,int x2l,int x2h)
+{
+  int nx1=x1h-x1l+1,nx2=x2h-x2l+1;
+  float **p;
+  p= malloc(nx1*sizeof(float*))- x1l;
+  p[x1l]=calloc(nx1*nx2, sizeof(float)) - x2l;
+  for(int x1=x1l+1;x1<=x1h;++x1) p[x1]=p[x1-1]+nx2;
+  return p;
+}
+void del_f2dim(float **p,int x1l, int x2l)
+{
+  free(p[x1l]+x2l);
+  free(p+x1l);
+}
+
+double **d2dim(int x1l,int x1h,int x2l,int x2h)
+{
+  int nx1=x1h-x1l+1,nx2=x2h-x2l+1;
+  double **p;
+  p= malloc(nx1*sizeof(double*))- x1l;
+  p[x1l]=calloc(nx1*nx2, sizeof(double)) - x2l;
+  for(int x1=x1l+1;x1<=x1h;++x1) p[x1]=p[x1-1]+nx2;
+  return p;
+}
+
+void del_d2dim(double **p,int x1l, int x2l)
+{
+   free(p[x1l]+x2l);
+   free(p+x1l);
+}
+float *f1dim(int x1l,int x1h)
+{
+  return  calloc(x1h-x1l+1, sizeof(float)) - x1l;
+}
+
+void del_f1dim(float *p,int x1l)
+{
+  free(p+x1l);
+}
+double *d1dim(int x1l,int x1h)
+{
+  return calloc(x1h-x1l+1,sizeof(double)) - x1l;
+}
+
+void del_d1dim(double *p,int x1l)
+{
+  free(p+x1l);
+}
+int *i1dim(int x1l,int x1h)
+{
+  return  calloc(x1h-x1l+1, sizeof(float)) - x1l;
+}
+
+void del_i1dim(int *p,int x1l)
+{
+  free(p+x1l);
+}
