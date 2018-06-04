@@ -75,8 +75,12 @@ void initSolution_alloc2(int myrank) {
   double *lambda,fac,lambda_prv,lambda_gas,lambda_nxt,dl,dl1,frac,lag;
   double q0,q_emit,qN, waveratio=1.0, t0=0, t1=0;
   static bool_t firsttime = true, firstl, lastl;
-  
-  
+
+  for (nact = 0;  nact < atmos.Nactiveatom;  nact++) {
+    atom = atmos.activeatoms[nact];
+    atom->converged = FALSE;
+    atom->mxchange = 1.e44;
+  }
    
 
   /* --- Allocate space for angle-averaged mean intensity -- -------- */

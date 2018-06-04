@@ -104,7 +104,7 @@ void Iterate_j(int NmaxIter, double iterLimit, double *dpopmax_out)
 
     /* --- Formal solution for all wavelengths --      -------------- */
 
-    solveSpectrum(eval_operator=TRUE, FALSE, niter);
+    solveSpectrum(eval_operator=TRUE, FALSE, niter, FALSE);
 
     /* --- Solve statistical equilibrium equations --  -------------- */
 
@@ -144,7 +144,7 @@ void Iterate_j(int NmaxIter, double iterLimit, double *dpopmax_out)
 	else
 	  PRDiterlimit = input.PRDiterLimit;
        
-	Redistribute_j(input.PRD_NmaxIter*2+1, PRDiterlimit, dpopsmax*0.1);
+	Redistribute_j(input.PRD_NmaxIter*2+1, PRDiterlimit, dpopsmax);
 	if (mpi.stop) return;
       }
       break;
@@ -193,7 +193,7 @@ void Iterate_j(int NmaxIter, double iterLimit, double *dpopmax_out)
 
 /* ------- begin -------------------------- solveSpectrum.c --------- */
 
-double solveSpectrum(bool_t eval_operator, bool_t redistribute, int iter)
+double solveSpectrum(bool_t eval_operator, bool_t redistribute, int iter, bool_t synth_all)
 {
   register int nspect, n, nt, k;
 
@@ -241,72 +241,76 @@ double solveSpectrum(bool_t eval_operator, bool_t redistribute, int iter)
     
   }
 
-
   
-  if (input.Nthreads > 1) {
+  
+  /* if (input.Nthreads > 1) { */
 
-    /* --- If input.Nthreads positive then solve Nthreads wavelengths
-           concurrently in separate threads --         -------------- */
+  /*   /\* --- If input.Nthreads positive then solve Nthreads wavelengths */
+  /*          concurrently in separate threads --         -------------- *\/ */
 
-    ti = (threadinfo *) malloc(input.Nthreads * sizeof(threadinfo));
-    for (nt = 0;  nt < input.Nthreads;  nt++) {
-      ti[nt].eval_operator = eval_operator;
-      ti[nt].redistribute  = redistribute;
-      ti[nt].iter = iter;
-    }
-    thread_id = (pthread_t *) malloc(input.Nthreads * sizeof(pthread_t));
+  /*   ti = (threadinfo *) malloc(input.Nthreads * sizeof(threadinfo)); */
+  /*   for (nt = 0;  nt < input.Nthreads;  nt++) { */
+  /*     ti[nt].eval_operator = eval_operator; */
+  /*     ti[nt].redistribute  = redistribute; */
+  /*     ti[nt].iter = iter; */
+  /*   } */
+  /*   thread_id = (pthread_t *) malloc(input.Nthreads * sizeof(pthread_t)); */
 
-    /* --- Thread management is very simple. Submit a batch of as many
-           as input.Nthreads at the same time, then wait till all of
-           these have finished. There is no check on successful
-           submission nor completion. --               -------------- */
+  /*   /\* --- Thread management is very simple. Submit a batch of as many */
+  /*          as input.Nthreads at the same time, then wait till all of */
+  /*          these have finished. There is no check on successful */
+  /*          submission nor completion. --               -------------- *\/ */
 
-    for (nspect = 0;  nspect < spectrum.Nspect;  nspect += input.Nthreads) {
-      if (nspect + input.Nthreads <= spectrum.Nspect)
-	Nthreads = input.Nthreads;
-      else
-	Nthreads = (spectrum.Nspect % input.Nthreads);
+  /*   for (nspect = 0;  nspect < spectrum.Nspect;  nspect += input.Nthreads) { */
+  /*     if (nspect + input.Nthreads <= spectrum.Nspect) */
+  /* 	Nthreads = input.Nthreads; */
+  /*     else */
+  /* 	Nthreads = (spectrum.Nspect % input.Nthreads); */
 
-      /* --- Start batch of concurrent threads --      -------------- */
+  /*     /\* --- Start batch of concurrent threads --      -------------- *\/ */
 
-      for (nt = 0;  nt < Nthreads;  nt++) {
-	ti[nt].nspect = nspect + nt;
-	if (!redistribute ||
-	    (redistribute && containsPRDline(&spectrum.as[nspect+nt]))) {
-	  pthread_create(&thread_id[nt], &input.thread_attr,
-			 Formal_pthread, &ti[nt]);
-	} else
-	  thread_id[nt] = 0;
-      }
-      /* --- Let the finished threads of the batch join again -- ---- */
+  /*     for (nt = 0;  nt < Nthreads;  nt++) { */
+  /* 	ti[nt].nspect = nspect + nt; */
+  /* 	if (!redistribute || */
+  /* 	    (redistribute && containsPRDline(&spectrum.as[nspect+nt]))) { */
+  /* 	  pthread_create(&thread_id[nt], &input.thread_attr, */
+  /* 			 Formal_pthread, &ti[nt]); */
+  /* 	} else */
+  /* 	  thread_id[nt] = 0; */
+  /*     } */
+  /*     /\* --- Let the finished threads of the batch join again -- ---- *\/ */
 
-      for (nt = 0;  nt < Nthreads;  nt++) {
-	if (thread_id[nt]) {
-	  pthread_join(thread_id[nt], NULL);
-	  if (ti[nt].dJ > dJmax) {
-	    dJmax = ti[nt].dJ;
-	    lambda_max = nspect + nt;
-	  }
-	}
-      }
-    }
-    free(thread_id);
-    free(ti);
-  } else {
+  /*     for (nt = 0;  nt < Nthreads;  nt++) { */
+  /* 	if (thread_id[nt]) { */
+  /* 	  pthread_join(thread_id[nt], NULL); */
+  /* 	  if (ti[nt].dJ > dJmax) { */
+  /* 	    dJmax = ti[nt].dJ; */
+  /* 	    lambda_max = nspect + nt; */
+  /* 	  } */
+  /* 	} */
+  /*     } */
+  /*   } */
+  /*   free(thread_id); */
+  /*   free(ti); */
+  /* } else { */
       
     /* --- Else call the solution for wavelengths sequentially -- --- */
       
     for (nspect = 0;  nspect < spectrum.Nspect;  nspect++) {
       if (!redistribute ||
-	  (redistribute && containsPRDline(&spectrum.as[nspect]))) {
-	dJ = Formal(nspect, eval_operator, redistribute, iter);
+	  //(redistribute && containsPRDline(&spectrum.as[nspect]))) {
+	  (redistribute && spectrum.linfo[nspect].is)) {
+
+	if(synth_all || containsUnconvergedAtom(&spectrum.as[nspect]))
+	  dJ = Formal(nspect, eval_operator, redistribute, iter);
+	//else fprintf(stderr,"skipping lambda=%f\n", spectrum.lambda[nspect]);
 	if (dJ > dJmax) {
 	  dJmax = dJ;
 	  lambda_max = nspect;
 	}
       }
     }
-  }
+  
 
   sprintf(messageStr, " Spectrum max delta J = %6.4E (lambda#: %d)\n",
 	  dJmax, lambda_max);

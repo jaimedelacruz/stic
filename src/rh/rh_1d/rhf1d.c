@@ -226,7 +226,7 @@ bool_t rhf1d(float muz, int rhs_ndep, double *rhs_T, double *rhs_rho,
       niter = 0;
       
       while ((niter < input.NmaxScatter)) {
-	if (solveSpectrum(FALSE, FALSE, 0) <= input.iterLimit) break;
+	if (solveSpectrum(FALSE, FALSE, 0, TRUE) <= input.iterLimit) break;
 	niter++;
       }
     } else dpopmax = 1.0e13;

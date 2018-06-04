@@ -76,7 +76,8 @@ void Redistribute_j(int NmaxIter, double iterLimit, double iprec)
     drhomaxa = 0.0;
     for (nact = 0;  nact < atmos.Nactiveatom;  nact++) {
       atom = atmos.activeatoms[nact];
-
+      if(atom->converged) continue;
+      
       drhomax = 0.0;
       for (kr = 0;  kr < atom->Nline;  kr++) {
 	line = &atom->line[kr];
@@ -111,7 +112,7 @@ void Redistribute_j(int NmaxIter, double iterLimit, double iprec)
 
     /* --- Solve transfer equation with fixed populations -- -------- */
 
-    solveSpectrum(eval_operator=FALSE, redistribute=TRUE, 0);
+    solveSpectrum(eval_operator=FALSE, redistribute=TRUE, 0, FALSE);
 
     if (((drhomaxa < iterLimit) || (drhomaxa < iprec)) && (niter >= 2)) break;
     niter++;

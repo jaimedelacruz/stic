@@ -25,7 +25,7 @@
 #include "error.h"
 #include "xdr.h"
 #include "bezier.h"
-
+#include <string.h>
 
 /* --- Function prototypes --                          -------------- */
 
@@ -131,8 +131,9 @@ double Formal(int nspect, bool_t eval_operator, bool_t redistribute, int iter)
     for (k = 0;  k < Nspace;  k++) Jdag[k] = J[k];
   }
 
-  if (spectrum.updateJ) for (k = 0;  k < Nspace;  k++) J[k] = 0.0;
-
+  if (spectrum.updateJ) //for (k = 0;  k < Nspace;  k++) J[k] = 0.0;
+    memset(J, 0,Nspace*sizeof(double));
+  
   /* --- Store current anisotropy, initialize new one to zero ---- -- */
 
   if (input.backgr_pol) {
@@ -145,7 +146,9 @@ double Formal(int nspect, bool_t eval_operator, bool_t redistribute, int iter)
       for (k = 0;  k < Nspace;  k++)
 	J20dag[k] = J20[k];
     }
-    if (spectrum.updateJ) for (k = 0;  k < Nspace;  k++) J20[k] = 0.0;
+    if (spectrum.updateJ) //for (k = 0;  k < Nspace;  k++) J20[k] = 0.0;
+      memset(J20, 0, Nspace*sizeof(double));
+
   }
   /* --- Case of angle-dependent opacity and source function -- ----- */
 
