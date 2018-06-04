@@ -76,7 +76,7 @@ void initScatter()
 
     niter = 0;
     while (input.NmaxIter  &&  niter < input.NmaxScatter) {
-      dJmax = solveSpectrum(FALSE, FALSE, 0);
+      dJmax = solveSpectrum(FALSE, FALSE, 0, TRUE);
       if (dJmax < input.iterLimit) break;
       niter++;
     }

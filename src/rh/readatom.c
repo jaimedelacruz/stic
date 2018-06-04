@@ -616,6 +616,8 @@ void initAtom(Atom *atom)
   atom->ft = NULL;
   atom->Ng_n = NULL;
   atom->fp_input = NULL;
+  atom->converged = FALSE;
+  atom->mxchange = 0.0;
 }
 /* ------- end ---------------------------- initAtom.c -------------- */
 

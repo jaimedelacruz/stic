@@ -25,6 +25,7 @@
 #include "statistics.h"
 #include "error.h"
 #include "rh_1d/rhf1d.h"
+#include "inputs.h"
 
 /* --- Function prototypes --                          -------------- */
 
@@ -35,6 +36,7 @@ extern Atmosphere atmos;
 extern InputData input;
 extern char messageStr[];
 extern MPI_t mpi;
+extern InputData input;
 
 /* ------- begin -------------------------- statEquil.c ------------- */
 
@@ -190,26 +192,32 @@ double updatePopulations(int niter)
 {
   register int nact;
 
-  bool_t accel, quiet;
+  bool_t accel, quiet, hydrogen = FALSE;
   double dpops, dpopsmax = 0.0;
   Atom *atom;
   Molecule *molecule;
 
+  if(atmos.atoms[0].active && !atmos.atoms[0].converged) hydrogen = TRUE;
+  
   /* --- Update active atoms --                        -------------- */
 
   for (nact = 0;  nact < atmos.Nactiveatom;  nact++) {
     atom = atmos.activeatoms[nact];
-
-    statEquil(atom, input.isum);
-    if(mpi.stop) return 1.;
     
-    accel = Accelerate(atom->Ng_n, atom->n[0]);
-    if(mpi.stop) return 1.;
-
-    sprintf(messageStr, " %s,", atom->ID);
-    dpops = MaxChange(atom->Ng_n, messageStr, quiet=FALSE);
-    Error(MESSAGE, NULL, (accel) ? " (accelerated)\n" : "\n");
-
+    if(!atom->converged || hydrogen){
+      
+      statEquil(atom, input.isum);
+      if(mpi.stop) return 1.;
+      
+      accel = Accelerate(atom->Ng_n, atom->n[0]);
+      if(mpi.stop) return 1.;
+      
+      sprintf(messageStr, " %s,", atom->ID);
+      dpops = MaxChange(atom->Ng_n, messageStr, quiet=FALSE);
+      Error(MESSAGE, NULL, (accel) ? " (accelerated)\n" : "\n");
+      atom->mxchange = dpops;
+      if(dpops <= input.iterLimit) atom->converged = TRUE;
+    } else dpops = atom->mxchange;
     dpopsmax = MAX(dpops, dpopsmax);
   }
   /* --- Update active molecules --                    -------------- */

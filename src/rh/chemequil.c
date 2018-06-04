@@ -114,7 +114,7 @@ void ChemicalEquilibrium(int NmaxIter, double iterLimit)
   bool_t  quiet;
   int     Nequation, **nucl_index, niter, Nnuclei, Ngdelay, Ngperiod,
           Ngorder, Nmaxstage;
-  double *f, *a, *n, **df, *Phi, PhiHmin, fHmin, CI, dnmax = 0.0,
+  double *f, *a, *n, **df, *Phi, PhiHmin, fHmin, dnmax = 0.0,
          *fn0, fraction, saha, *fjk, *dfjk;
   struct  Ng *Ngn;
   Atom *atom;
@@ -125,7 +125,7 @@ void ChemicalEquilibrium(int NmaxIter, double iterLimit)
 
   /* --- Constant for Saha equation Hminus --          -------------- */
 
-  CI = (HPLANCK/(2.0*PI*M_ELECTRON)) * (HPLANCK/KBOLTZMANN);
+  static const double CI = (HPLANCK/(2.0*PI*M_ELECTRON)) * (HPLANCK/KBOLTZMANN);
 
 
   /* --- Solve the chemical equilibrium equations. First,

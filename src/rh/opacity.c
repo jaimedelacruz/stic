@@ -695,6 +695,22 @@ bool_t containsPRDline(ActiveSet *as)
   }
   return FALSE;
 }
+
+bool_t containsUnconvergedAtom(ActiveSet *as)
+{
+  register int n, nact;
+  
+ for (nact = 0;  nact < atmos.Nactiveatom;  nact++) {
+    for (n = 0;  n < as->Nactiveatomrt[nact];  n++) {
+      if (as->art[nact][n].type == ATOMIC_LINE &&
+	  !as->art[nact][n].ptype.line->atom->converged) return TRUE;
+      else if(as->art[nact][n].type == ATOMIC_CONTINUUM &&
+	      !as->art[nact][n].ptype.continuum->atom->converged) return TRUE;
+    }
+ }
+ return FALSE;
+}
+
 /* ------- end ---------------------------- containsPRDline.c ------- */
 
 /* ------- begin -------------------------- mrt_locate.c ------------ */

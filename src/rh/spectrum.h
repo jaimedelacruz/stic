@@ -63,7 +63,7 @@ typedef struct {
 /* --- Associated function prototypes --               -------------- */
 
 double Formal(int nspect, bool_t eval_operator, bool_t redistribute, int iter);
-double solveSpectrum(bool_t eval_operator, bool_t redistribute, int iter);
+double solveSpectrum(bool_t eval_operator, bool_t redistribute, int iter, bool_t synth_all);
 
 void   addtoGamma(int nspect, double wmu, double *P, double *Psi);
 void   addtoRates(int nspect, int mu, bool_t to_obs, double wmu,
@@ -80,6 +80,7 @@ bool_t containsPolarized(ActiveSet *as);
 bool_t containsBoundBound(ActiveSet *as);
 bool_t containsPRDline(ActiveSet *as);
 bool_t containsActive(ActiveSet *as);
+bool_t containsUnconvergedAtom(ActiveSet *as);
 
 void init_as(ActiveSet *as);
 void alloc_as(int nspect, bool_t crosscoupling);

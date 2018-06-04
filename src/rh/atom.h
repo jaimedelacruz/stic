@@ -121,13 +121,13 @@ struct rhthread {
 
 struct Atom {
   char    ID[ATOM_ID_WIDTH+1], **label, *popsinFile, *popsoutFile;
-  bool_t  active, NLTEpops;
+  bool_t  active, NLTEpops, converged;
   enum solution initial_solution;
   int     Nlevel, Nline, Ncont, Nfixed, Nprd, *stage, periodic_table,
           activeindex;
   long    offset_coll;
   double  abundance, weight, *g, *E, **C, *vbroad, **n, **nstar,
-         *ntotal, **Gamma;  
+    *ntotal, **Gamma, mxchange;  
   AtomicLine *line;
   AtomicContinuum *continuum;
   FixedTransition *ft;
