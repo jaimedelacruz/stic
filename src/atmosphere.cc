@@ -691,7 +691,7 @@ void getDregul2(double *m, int npar, reg_t &dregul, nodes_t &n)
   }
 
 
-  //memset(&dregul.reg[0], 0,dregul.nreg*sizeof(double));
+  memset(&dregul.reg[0], 0,dregul.nreg*sizeof(double));
   
 }
 

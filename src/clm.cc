@@ -1163,10 +1163,10 @@ void clm::compute_trial3(double *res, double **rf, double lambda,
     diag[yy] = std::max(A(yy,yy), diag[yy]*0.6);
     double idia = diag[yy];
 
-     if(dregul.to_reg){
-       for(int xx=0;xx<npar;xx++) A(yy,xx) += LL(yy,xx);
-       A(yy,yy) += lambda * LL(yy,yy);
-     }
+    // if(dregul.to_reg){
+    //   for(int xx=0;xx<npar;xx++) A(yy,xx) += LL(yy,xx);
+    //  A(yy,yy) += lambda * LL(yy,yy);
+    // }
 
     
     /* --- Damp the diagonal of A --- */
@@ -1184,7 +1184,7 @@ void clm::compute_trial3(double *res, double **rf, double lambda,
     
   } // yy
 
-  //if(dregul.to_reg) A += LL*(1.0+lambda); 
+  if(dregul.to_reg) A += LL*(1.0+lambda); 
   
   delete [] tmp1;
   
