@@ -24,7 +24,7 @@ enum Topology       {ONE_D_PLANE, TWO_D_PLANE, SPHERICAL_SYMMETRIC,
 enum FeautrierOrder {STANDARD, HERMITE};
 enum Interpolation  {LINEAR, SPLINE, EXP_SPLINE};
 enum solution       {UNKNOWN=-1, LTE_POPULATIONS, ZERO_RADIATION,
-                     OLD_POPULATIONS, NEW_J, OLD_J};
+                     OLD_POPULATIONS, PESC, NEW_J, OLD_J};
 enum StokesMode     {NO_STOKES, FIELD_FREE, POLARIZATION_FREE, FULL_STOKES};
 enum PRDangle       {PRD_ANGLE_INDEP, PRD_ANGLE_APPROX, PRD_ANGLE_DEP};
 enum VoigtAlgorithm {ARMSTRONG, RYBICKI, HUI_ETAL, HUMLICEK, LOOKUP};

@@ -838,6 +838,8 @@ void readAtomicModels(void)
       atom->initial_solution = LTE_POPULATIONS;
     } else if (strstr(popsKey, "ZERO_RADIATION")) {
       atom->initial_solution = ZERO_RADIATION;
+    }else if(strstr(popsKey, "PESC")){
+      atom->initial_solution = PESC;
     }
     /* --- If popsKey is not recognized --             -------------- */
 
