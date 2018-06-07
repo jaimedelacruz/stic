@@ -43,6 +43,7 @@
 #include "inputs.h"
 #include "xdr.h"
 #include "initial_j.h"
+#include "pesc.h"
 //#include "mtime.h"
 
 #define IMU_FILE_TEMPLATE "scratch/Imu_p%d.dat"
@@ -61,6 +62,67 @@ extern char messageStr[];
 
 extern enum Topology topology;
 
+
+void zeroRadiation(Atom *atom)
+{
+
+  static const double hc_k   = (HPLANCK * CLIGHT) / (KBOLTZMANN * NM_TO_M);
+  static const double twoc   = 2.0*CLIGHT / CUBE(NM_TO_M);
+  static const double fourPI = 4.0 * PI;
+  register int nspect, la, i, j, ij, k, nact, n;
+  double wla, twohnu3_c2, gijk;
+  AtomicLine *line;
+  AtomicContinuum *continuum;
+  ActiveSet *as;
+  
+  initGammaAtom(atom, 1.0);
+  
+  /* --- Then add radiative contributions of active transitions --  */
+  
+  for (nspect = 0;  nspect < spectrum.Nspect;  nspect++) {
+    as = spectrum.as + nspect;
+    
+    for (n = 0;  n < as->Nactiveatomrt[nact];  n++) {
+      switch (as->art[nact][n].type) {
+      case ATOMIC_LINE:
+	line = as->art[nact][n].ptype.line;
+	la = nspect - line->Nblue;
+	i  = line->i;
+	j  = line->j;
+	ij = i*atom->Nlevel + j;
+	
+	if (la == 0) {
+	  for (k = 0;  k < atmos.Nspace;  k++)
+	    atom->Gamma[ij][k] += line->Aji;
+	}
+	break;
+	
+      case ATOMIC_CONTINUUM:
+	continuum = as->art[nact][n].ptype.continuum;
+	la = nspect - continuum->Nblue;
+	i  = continuum->i;
+	j  = continuum->j;
+	ij = i*atom->Nlevel + j;
+	
+	wla = fourPI * getwlambda_cont(continuum, la) /
+	  continuum->lambda[la];
+	twohnu3_c2 = twoc / CUBE(continuum->lambda[la]);
+	for (k = 0;  k < atmos.Nspace;  k++) {
+	  gijk = atom->nstar[i][k]/atom->nstar[j][k] *
+	    exp(-hc_k/(continuum->lambda[la] * atmos.T[k]));
+	  atom->Gamma[ij][k] += gijk * twohnu3_c2 *
+	    continuum->alpha[la]*wla;
+	}
+	break;
+      default:
+	break;
+      }
+    }
+  }
+      /* --- Solve statistical equilibrium equations --  ------------ */
+  
+  statEquil(atom, (input.isum == -1) ? 0 : input.isum);
+}
 
 void initSolution_alloc2(int myrank) {
   const char routineName[] = "initSolution_p";
@@ -710,8 +772,9 @@ void initSolution_j( int myrank)
   Atom       *atom;
   AtomicLine *line;
   AtomicContinuum *continuum;
+  int conv = 0;
   getCPU(2, TIME_START, NULL);
-
+  
 
   /* --- Allocate arrays, taken fro T. Pereira's 
      version to not mess up with the PRD business --- */
@@ -749,61 +812,18 @@ void initSolution_j( int myrank)
       break;
 
     case ZERO_RADIATION:
-      hc_k   = (HPLANCK * CLIGHT) / (KBOLTZMANN * NM_TO_M);
-      twoc   = 2.0*CLIGHT / CUBE(NM_TO_M);
-      fourPI = 4.0 * PI;
-
-      initGammaAtom(atom, 1.0);
-
-      /* --- Then add radiative contributions of active transitions --  */
-
-      for (nspect = 0;  nspect < spectrum.Nspect;  nspect++) {
-	as = spectrum.as + nspect;
-
-	for (n = 0;  n < as->Nactiveatomrt[nact];  n++) {
-	  switch (as->art[nact][n].type) {
-	  case ATOMIC_LINE:
-	    line = as->art[nact][n].ptype.line;
-	    la = nspect - line->Nblue;
-	    i  = line->i;
-	    j  = line->j;
-	    ij = i*atom->Nlevel + j;
-	    
-	    if (la == 0) {
-	      for (k = 0;  k < atmos.Nspace;  k++)
-		atom->Gamma[ij][k] += line->Aji;
-	    }
-	    break;
-
-	  case ATOMIC_CONTINUUM:
-	    continuum = as->art[nact][n].ptype.continuum;
-	    la = nspect - continuum->Nblue;
-	    i  = continuum->i;
-	    j  = continuum->j;
-	    ij = i*atom->Nlevel + j;
-
-	    wla = fourPI * getwlambda_cont(continuum, la) /
-	      continuum->lambda[la];
-	    twohnu3_c2 = twoc / CUBE(continuum->lambda[la]);
-	    for (k = 0;  k < atmos.Nspace;  k++) {
-	      gijk = atom->nstar[i][k]/atom->nstar[j][k] *
-		exp(-hc_k/(continuum->lambda[la] * atmos.T[k]));
-	      atom->Gamma[ij][k] += gijk * twohnu3_c2 *
-		continuum->alpha[la]*wla;
-	    }
-	    break;
-	  default:
-	    break;
-	  }
-	}
-      }
-      /* --- Solve statistical equilibrium equations --  ------------ */
-
-      statEquil(atom, (input.isum == -1) ? 0 : input.isum);
+      zeroRadiation(atom);
       break;
 
-    case OLD_POPULATIONS:
+    case PESC:
       //readPopulations(atom);
+      zeroRadiation(atom);
+      for(i=0; i<100; i++){
+	conv = pesc(atom, i, 1.e-2);
+	//if(i>2)exit(0);
+	if(conv) break;
+      }
+      if(!conv) zeroRadiation(atom);
       break;
 
     default:;

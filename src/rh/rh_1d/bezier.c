@@ -23,6 +23,7 @@
 
 #include <math.h>
 #include <string.h>    // memcpy, memset
+#include <stdlib.h>
 //
 #include "rh.h"
 #include "error.h"
