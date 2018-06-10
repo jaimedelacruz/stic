@@ -86,6 +86,7 @@ reg_t():to_reg(false), npar(0), nreg(0), scl(1.0), dreg(NULL), reg(NULL){};
 /* --- 
    Type for the function that will compute chi2 and the response function 
    --- */
+typedef Eigen::Matrix<double,Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> matrixXd;
 
 typedef int (*clm_func)(int npar, int nd, double *x, double *syn_in, double *res,
 			double **rf, void *mydata, reg_t &regul, bool store);
@@ -141,8 +142,8 @@ class clm{
   void zero(double *res, double **rf);
   void getParTypes();
   void backSub(int n, Eigen::MatrixXd &u, Eigen::VectorXd &w, Eigen::MatrixXd &v,  double *b);
-  void geoAcceleration(double *x, double *dx, double h, Eigen::MatrixXd &A, Eigen::MatrixXd &LL,
-		       double *res, void *mydat, reg_t &dregul, double **rf, clm_func fx, double lam);
+  void geoAcceleration(double *x, double *dx, double h,  Eigen::BDCSVD<matrixXd> &A, matrixXd &LL,
+  		       double *res, void *mydat, reg_t &dregul, double **rf, clm_func fx, double lam);
 
 
   double getTime(double t0 = -1.0){

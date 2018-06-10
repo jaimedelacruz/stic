@@ -175,7 +175,7 @@ void atmos::responseFunction(int npar, mdepth_t &m_in, double *pars, int nd, dou
     }
 
     pertu = (ipars[pp] - pval);
-
+    //fprintf(stderr,"pval=%e, pertu=%e, ipars=%e\n", pval, pertu, ipars[pp]);
     
     /* --- Synth --- */
     
@@ -499,9 +499,9 @@ int line3dregul(int nn, double *ltau, double *var, double weight, double **dreg,
 
 void getDregul2(double *m, int npar, reg_t &dregul, nodes_t &n)
 {
-  static const double weights[7] = {0.01, 0.06, 0.1, 0.1, 0.1, 0.1,20.0};
+  //static const double weights[7] = {0.006, 0.06, 0.1, 0.1, 0.1, 0.1,20.0};
   //  const double weights[7] = {0.0002, 0.6, 0.6, 0.1, 0.1, 0.1,20.0};
-
+  double *weights = n.rewe;
   double  *ltau = NULL, we = 0.0;
   nodes_type_t ntype = none_node;
   int off = 0, roff = 0;

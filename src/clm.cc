@@ -989,7 +989,7 @@ double clm::fitdata(clm_func fx, double *x, void *mydat, int maxiter, reg_t &dre
 /* -------------------------------------------------------------------------------- */
 
 void clm::geoAcceleration(double *x, double *dx, double h,
-			  MatrixXd &Ap, MatrixXd &LL,
+			  Eigen::BDCSVD<matrixXd> &svd, Matrix<double,Dynamic, Dynamic, RowMajor> &LL,
 			  double *res, void *mydat, reg_t &dregul, double **rf, clm_func fx, double lam)
 {
 
@@ -1007,7 +1007,7 @@ void clm::geoAcceleration(double *x, double *dx, double h,
   VectorXd acu(npar), acd(npar), dresu(nd), dresd(nd), B(npar), dpen(npen), dum(nd); B.Zero(npar);
   bool regme = false;//dregul.to_reg;
   double mdx = sqrt(mth::ksum2((size_t)npar, dx));
-  double mx = sqrt(mth::ksum2((size_t)npar, dx)), hh = mth::sqr(h*mdx);// * (mx*mx);
+  double mx = sqrt(mth::ksum2((size_t)npar, dx)), hh = mth::sqr(h);// * (mx*mx);
   
   for(int ii=0;ii<npar;ii++){
     double corr = h * dx[ii];
@@ -1020,37 +1020,39 @@ void clm::geoAcceleration(double *x, double *dx, double h,
   reg_t udregul = dregul, ddregul = dregul;
   
   int status = fx(npar, nd, &acu[0], &dum[0], &dresu[0], NULL, mydat, udregul, false);
-      status = fx(npar, nd, &acd[0], &dum[0], &dresd[0], NULL, mydat, ddregul, false);
-      
+  status = fx(npar, nd, &acd[0], &dum[0], &dresd[0], NULL, mydat, ddregul, false);
+  
   
   /* --- Now we have to build up the acceleration term --- */
-
-      for(int ii=0;ii<nd;ii++) dresu[ii] = (dresu[ii] - 2.0*res[ii] + dresd[ii]) / h;//or hh?
   
-  if(regme )
-    for(int ii=0;ii<npen;ii++)
-      dpen[ii] = (udregul.reg[ii] - 2.0 * dregul.reg[ii] + ddregul.reg[ii]) / h;//or hh?
+  for(int ii=0;ii<nd;ii++) dresu[ii] = (dresu[ii] - 2.0*res[ii] + dresd[ii]) / hh;//or hh?
+  
+  //if(regme )
+  //  for(int ii=0;ii<npen;ii++)
+  //   dpen[ii] = (udregul.reg[ii] - 2.0 * dregul.reg[ii] + ddregul.reg[ii]) / h;//or hh?
 
   for(int yy=0;yy<npar;yy++){
 
-    if(regme ){
-      for(int xx=0;xx<npen;xx++)
-	B[yy] -= dregul.dreg[xx][yy] * dpen[xx];
-    }
+    // if(regme ){
+    /// for(int xx=0;xx<npen;xx++)
+    //	B[yy] -= dregul.dreg[xx][yy] * dpen[xx];
+    //    }
 
     for(int xx = 0; xx<nd; xx++) B[yy] += rf[yy][xx] * dresu[xx];
 
     
-    if(regme) for(int xx =0; xx<npar; xx++) Ap(yy,xx) += LL(yy,xx);
-    Ap(yy,yy) += Ap(yy,yy)*lam;//std::max(lam,10.0);
+    //if(regme) for(int xx =0; xx<npar; xx++) Ap(yy,xx) += LL(yy,xx);
+    //Ap(yy,yy) += Ap(yy,yy)*lam;//std::max(lam,10.0);
   }
    /* --- 
      Solve linear system with SVD decomposition and singular value thresholding.
      The SVD is computed with Eigen3 instead of LaPack.
      --- */
   
-  JacobiSVD<MatrixXd,ColPivHouseholderQRPreconditioner> svd(Ap, ComputeThinU | ComputeThinV);
-  svd.setThreshold(1.0e-4);
+  // JacobiSVD<MatrixXd,ColPivHouseholderQRPreconditioner> svd(Ap, ComputeThinU | ComputeThinV);
+  //BDCSVD<matrixXd> svd(Ap,Eigen::ComputeThinU | Eigen::ComputeThinV);
+
+  //svd.setThreshold(1.0e-5);
 
   VectorXd RES = svd.solve(B);
   //scaleParameters(&RES[0]);
@@ -1061,9 +1063,6 @@ void clm::geoAcceleration(double *x, double *dx, double h,
   cerr<<ratio<<endl;
   
   checkMaxChange(dx, x);
-
-
-  
 }
 
 /* -------------------------------------------------------------------------------- */
@@ -1081,7 +1080,7 @@ void clm::compute_trial3(double *res, double **rf, double lambda,
   
   /* --- Init Eigen-3 arrays --- */
   
-  MatrixXd A(npar, npar), LL(npar,npar), Ap(npar,npar);
+  Matrix<double,Dynamic, Dynamic, RowMajor> A(npar, npar), LL(npar,npar), Ap(npar,npar);
   A.Zero(npar, npar), LL.Zero(npar,npar), Ap.Zero(npar,npar);
   
   VectorXd B(npar); B.Zero(npar);
@@ -1133,10 +1132,10 @@ void clm::compute_trial3(double *res, double **rf, double lambda,
 	LL(yy,xx) = sumarr(tmp1, npen);
 
       }//xx
-      for(int jj=0;jj<npen; jj++)
-	tmp1[jj] =  dregul.dreg[jj][yy] * dregul.reg[jj]; // L.t # gamm
+      //for(int jj=0;jj<npen; jj++)
+      //tmp1[jj] =  dregul.dreg[jj][yy] * dregul.reg[jj]; // L.t # gamm
       
-      B[yy]  = -sumarr(tmp1, npen);//*2.0;//*(1.+lambda);    
+      B[yy]  = 0.0;// -sumarr(tmp1, npen);//*2.0;//*(1.+lambda);    
     }//yy
   }
   
@@ -1157,16 +1156,17 @@ void clm::compute_trial3(double *res, double **rf, double lambda,
     
     /* --- There are claims that it works better to store the 
        largest diagonal terms in this cycle and multiply lambda 
-       by this value than the current estimate.
+       by this value than the current estimate. Avoids parameter
+       evaporation.
        --- */
     
     diag[yy] = std::max(A(yy,yy), diag[yy]*0.6);
     double idia = diag[yy];
 
-    // if(dregul.to_reg){
-    //   for(int xx=0;xx<npar;xx++) A(yy,xx) += LL(yy,xx);
-    //  A(yy,yy) += lambda * LL(yy,yy);
-    // }
+    //if(dregul.to_reg){
+    // for(int xx=0;xx<npar;xx++) A(yy,xx) += LL(yy,xx);
+    // A(yy,yy) += lambda * LL(yy,yy);
+    //}
 
     
     /* --- Damp the diagonal of A --- */
@@ -1192,9 +1192,10 @@ void clm::compute_trial3(double *res, double **rf, double lambda,
      Solve linear system with SVD decomposition and singular value thresholding.
      The SVD is computed with Eigen3 instead of LaPack.
      --- */
-  
-  JacobiSVD<MatrixXd,ColPivHouseholderQRPreconditioner> svd(A, ComputeThinU | ComputeThinV);
-  
+  //Ap = A;
+  //JacobiSVD<matrixXd,ColPivHouseholderQRPreconditioner> svd(A, ComputeThinU | ComputeThinV);
+  BDCSVD<matrixXd> svd(A,Eigen::ComputeThinU | Eigen::ComputeThinV);
+
 
   
   if(nvar > 1){
@@ -1282,7 +1283,8 @@ void clm::compute_trial3(double *res, double **rf, double lambda,
   /* --- Use low curvature acceleration? (testing!) --- */
   
   if(use_geo_accel > 0){
-    geoAcceleration(x, xnew, 0.15, Ap, LL, res, mydat, dregul, rf, fx, lambda);
+    //svd.setThreshold(1.e-3);
+    geoAcceleration(x, xnew, 0.2, svd, LL, res, mydat, dregul, rf, fx, lambda);
   }
   
   

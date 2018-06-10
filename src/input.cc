@@ -105,9 +105,12 @@ iput_t read_input(std::string filename, bool verbose){
   input.tcut = -1.0;
   input.use_geo_accel = 0;
   input.delay_bracket = 0;
-
+  
   memset(input.getResponse, 8, sizeof(int));
-  memset(input.nodes.regul_type, 0, 6*sizeof(int));
+  memset(input.nodes.regul_type, 0, 7*sizeof(int));
+  const double tmp[7] = {0.006, 0.06, 0.1, 0.1, 0.1, 0.1, 10.0};
+  memcpy(input.nodes.rewe, tmp, 7*sizeof(double));
+
   
   // Open File and read
   std::ifstream in(filename, std::ios::in | std::ios::binary);
@@ -203,6 +206,13 @@ iput_t read_input(std::string filename, bool verbose){
 	int dum = (int)param.size();
 	if(dum > 7) dum = 7;
 	for(int ii = 0; ii<dum; ii++) input.nodes.regul_type[ii] = std::stoi(param[ii]);
+	set = true;
+      }
+      else if(key == "regularization_weights"){
+	std::vector<std::string> param = strsplit(field,",");
+	int dum = (int)param.size();
+	if(dum > 7) dum = 7;
+	for(int ii = 0; ii<dum; ii++) input.nodes.rewe[ii] = std::stof(param[ii]);
 	set = true;
       }
       else if(key == "get_response"){

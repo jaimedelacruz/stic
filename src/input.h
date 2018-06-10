@@ -58,6 +58,7 @@ struct nodes{
   std::vector<nodes_type_t> ntype;
   int toinv[7];
   int regul_type[7];
+  double rewe[7];
 };
 typedef nodes nodes_t;
 
