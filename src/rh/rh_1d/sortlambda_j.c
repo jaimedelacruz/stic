@@ -156,7 +156,7 @@ void init_info_lambda( )
       if(lam[ww] > lam[ww-1]){
 	lam[off++] = lam[ww];
       }
-
+    nwav = off;
     //fprintf(stderr,"Found %d unique wav of %d\n", off, nwav);
 
     // --- Assign position in Jgas --- //
@@ -177,8 +177,8 @@ void init_info_lambda( )
     
     // -- Cleanup
 
-    spectrum.Jlam = malloc((off+2)*sizeof(double))+1;
-    spectrum.nJlam = off;
+    spectrum.Jlam = malloc((nwav+2)*sizeof(double))+1;
+    spectrum.nJlam = nwav;
     memcpy(&spectrum.Jlam[0], lam, off*sizeof(double));
     free(lam);
     

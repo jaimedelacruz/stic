@@ -108,6 +108,13 @@ void Iterate_j(int NmaxIter, double iterLimit, double *dpopmax_out)
 
     /* --- Solve statistical equilibrium equations --  -------------- */
 
+    if(((niter+1) == input.Ngdelay) && (dpopsmax > 5.e-3)){
+      for(nact = 0;  nact < atmos.Nactiveatom;  nact++){
+	atmos.activeatoms[nact]->Ng_n->Ndelay += 1;	
+      }
+      input.Ngdelay++;
+    }
+    
     sprintf(messageStr, "\n -- Iteration %3d\n", niter);
     Error(MESSAGE, routineName, messageStr);
     dpopsmax = updatePopulations(niter);
@@ -235,9 +242,9 @@ double solveSpectrum(bool_t eval_operator, bool_t redistribute, int iter, bool_t
   /*     spectrum.Jgas[nspect][k] = 0.0; */
   /*     } */
   /*   } */
-    for(nt=0;nt<spectrum.nJlam; nt++){
-      memset(spectrum.Jgas[nt],0,atmos.Nspace*sizeof(double));
-    }
+    //for(nt=0;nt<spectrum.nJlam; nt++){
+      memset(&spectrum.Jgas[0][0],0,spectrum.nJlam*atmos.Nspace*sizeof(double));
+      // }
     
   }
 
@@ -298,10 +305,10 @@ double solveSpectrum(bool_t eval_operator, bool_t redistribute, int iter, bool_t
       
     for (nspect = 0;  nspect < spectrum.Nspect;  nspect++) {
       if (!redistribute ||
-	  //(redistribute && containsPRDline(&spectrum.as[nspect]))) {
-	  (redistribute && spectrum.linfo[nspect].is)) {
+	  (redistribute && containsPRDline(&spectrum.as[nspect]))) {
+	  // (redistribute && spectrum.linfo[nspect].is)) {
 
-	if(synth_all || containsUnconvergedAtom(&spectrum.as[nspect]))
+	//if(synth_all || containsUnconvergedAtom(&spectrum.as[nspect]))
 	  dJ = Formal(nspect, eval_operator, redistribute, iter);
 	//else fprintf(stderr,"skipping lambda=%f\n", spectrum.lambda[nspect]);
 	if (dJ > dJmax) {

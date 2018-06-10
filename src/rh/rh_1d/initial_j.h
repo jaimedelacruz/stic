@@ -3,7 +3,7 @@
 //#include "rh.h"
 //#include "atom.h"
 
-void initSolution_j( int myrank);
+void initSolution_j( int myrank, int save_pop);
 void initSolution_alloc2(int myrank);
 
   

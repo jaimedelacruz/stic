@@ -79,8 +79,10 @@ void UpdateAtmosDep(void) {
     atom->ntotal = (double *) realloc(atom->ntotal, atmos.Nspace * sizeof(double));
     atom->vbroad = (double *) realloc(atom->vbroad, atmos.Nspace * sizeof(double));
     
-    if (atom->nstar != NULL) 
+    if (atom->nstar != NULL){
+      //fprintf(stderr,"%s %p\n", atom->ID, atom->nstar);
       freeMatrix((void **) atom->nstar);
+    }
     atom->nstar = matrix_double(atom->Nlevel, atmos.Nspace);
       
   
