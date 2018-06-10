@@ -1,3 +1,5 @@
+
+
 /* ------- file: -------------------------- rhf1d.c -----------------
 
        Version:       rh2.0, 1-D plane-parallel
@@ -507,9 +509,9 @@ void read_populations(crhpop *save_pop, int flag){
     
     
     for(j= 0; j < atom->Nlevel; j++ ){
-      //hermitian_interpolation((int)atmos.Nspace, save_pop->tau_ref, &save_pop->pop[nact].n[j*atmos.Nspace],
-      //		      (int)atmos.Nspace, geometry.tau_ref, tmp1, 1);
-      memcpy(tmp1,&save_pop->pop[nact].n[j*atmos.Nspace],atmos.Nspace*sizeof(double));
+      hermitian_interpolation((int)atmos.Nspace, save_pop->tau_ref, &save_pop->pop[nact].n[j*atmos.Nspace],
+			      (int)atmos.Nspace, geometry.tau_ref, tmp1, 1);
+      //memcpy(tmp1,&save_pop->pop[nact].n[j*atmos.Nspace],atmos.Nspace*sizeof(double));
       
       
       for(k = 0; k < atmos.Nspace; k++){
@@ -549,13 +551,13 @@ void read_populations(crhpop *save_pop, int flag){
 	  
 	  if(line->PRD && (save_pop->pop[nact].line[kr].nlambda == line->Nlambda)){
 	    // //   fprintf(stderr, "Copying rho array for nact=%d, line=%d\n", nact, kr);
-	     memcpy(&line->rho_prd[0][0], save_pop->pop[nact].line[kr].rho,
-		    line->Nlambda*atmos.Nspace*sizeof(double));
-	    //for(la=0;la<line->Nlambda;la++){
-	    //hermitian_interpolation((int)atmos.Nspace, save_pop->tau_ref, &save_pop->pop[nact].line[kr].rho[la*atmos.Nspace],
-	    //			      (int)atmos.Nspace, geometry.tau_ref, line->rho_prd[la],0);
+	    //memcpy(&line->rho_prd[0][0], save_pop->pop[nact].line[kr].rho,
+	    //		    line->Nlambda*atmos.Nspace*sizeof(double));
+	    for(la=0;la<line->Nlambda;la++){
+	      hermitian_interpolation((int)atmos.Nspace, save_pop->tau_ref, &save_pop->pop[nact].line[kr].rho[la*atmos.Nspace],
+	    			      (int)atmos.Nspace, geometry.tau_ref, line->rho_prd[la],0);
 
-	     //}
+	    }
 	  }else{
 	    fprintf(stderr,"read_populations: BAD BOOK-KEEPING, not a PRD line, not copying rho, idx=%d, kkr=%d \n", kr, kkr );
 
@@ -577,15 +579,15 @@ void read_populations(crhpop *save_pop, int flag){
   
   if(spectrum.Nspect == save_pop->nw || atmos.Nspace == save_pop->ndep){
     for(la=0;la<spectrum.Nspect;la++)
-      //hermitian_interpolation((int)atmos.Nspace, save_pop->tau_ref, &save_pop->J[la*atmos.Nspace],
-      //			      (int)atmos.Nspace, geometry.tau_ref, spectrum.J[la],0);
-      memcpy(spectrum.J[la], &save_pop->J[la*atmos.Nspace], atmos.Nspace*sizeof(double));
+      hermitian_interpolation((int)atmos.Nspace, save_pop->tau_ref, &save_pop->J[la*atmos.Nspace],
+      			      (int)atmos.Nspace, geometry.tau_ref, spectrum.J[la],0);
+      //memcpy(spectrum.J[la], &save_pop->J[la*atmos.Nspace], atmos.Nspace*sizeof(double));
       
       
     if(input.backgr_pol){
-      //hermitian_interpolation((int)atmos.Nspace, save_pop->tau_ref, &save_pop->J20[la*atmos.Nspace],
-      //			      (int)atmos.Nspace, geometry.tau_ref, spectrum.J20[la],0);
-      memcpy(spectrum.J20[la], &save_pop->J20[la*atmos.Nspace], atmos.Nspace*sizeof(double));
+      hermitian_interpolation((int)atmos.Nspace, save_pop->tau_ref, &save_pop->J20[la*atmos.Nspace],
+      			      (int)atmos.Nspace, geometry.tau_ref, spectrum.J20[la],0);
+      //memcpy(spectrum.J20[la], &save_pop->J20[la*atmos.Nspace], atmos.Nspace*sizeof(double));
 	    
       //   memcpy(&spectrum.J20[0][0], &save_pop->J20[0],
       //	     spectrum.Nspect*atmos.Nspace*sizeof(double));
