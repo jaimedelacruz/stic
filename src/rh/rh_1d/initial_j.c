@@ -405,8 +405,10 @@ void initSolution_alloc2(int myrank) {
 	
       }// la
       
-      
-    }
+      if(spectrum.nc[lamuk] > Nlamu){
+	fprintf(stderr,"rh::initial_j: ERROR, need to allocate more space for interpolation coeffs. Allocated [%d], needed [%d]\n", Nlamu, spectrum.nc[lamuk]);
+	exit(0);
+      }
     
     /* /\* precompute Jgas interpolation coefficients if requested *\/ */
     /* if (!input.prdh_limit_mem) { */
