@@ -26,6 +26,7 @@
 #include "error.h"
 #include "rh_1d/rhf1d.h"
 #include "inputs.h"
+#include "solveLinear.h"
 
 /* --- Function prototypes --                          -------------- */
 
@@ -37,6 +38,7 @@ extern InputData input;
 extern char messageStr[];
 extern MPI_t mpi;
 extern InputData input;
+
 
 /* ------- begin -------------------------- statEquil.c ------------- */
 
@@ -95,10 +97,15 @@ void statEquil(Atom *atom, int isum)
     /* --- Solve for new population numbers at location k -- -------- */
 
     SolveLinearEq(Nlevel, Gamma_k, n_k, TRUE);
+    //solveLinearCXX(Nlevel, Gamma_k, n_k);
+
+    
     if (mpi.stop) {
       free(n_k);
       freeMatrix((void **) Gamma_k);
       return; /* Get out if there is a singular matrix */
+      //solveLinearCXX(Nlevel, Gamma_k, n_k);
+      //mpi.stop = 0;
     }
     
     for (i = 0;  i < Nlevel;  i++) atom->n[i][k] = n_k[i];
@@ -169,6 +176,8 @@ void statEquilMolecule(struct Molecule *molecule, int isum)
       /* --- Solve for new population numbers at location k --------- */
 
       SolveLinearEq(Nlevel, Gamma_k, n_k, TRUE);
+      //solveLinearCXX(Nlevel, Gamma_k, n_k);
+
       if (mpi.stop) {
 	free(n_k);
 	freeMatrix((void **) Gamma_k);
@@ -197,7 +206,7 @@ double updatePopulations(int niter)
   Atom *atom;
   Molecule *molecule;
 
-  if(atmos.atoms[0].active && !atmos.atoms[0].converged) hydrogen = TRUE;
+  if((atmos.atoms[0].active && !atmos.atoms[0].converged) || 1) hydrogen = TRUE;
   
   /* --- Update active atoms --                        -------------- */
 
@@ -217,7 +226,7 @@ double updatePopulations(int niter)
       Error(MESSAGE, NULL, (accel) ? " (accelerated)\n" : "\n");
       atom->mxchange = dpops;
       if(dpops <= input.iterLimit) atom->converged = TRUE;
-    } else dpops = atom->mxchange;
+      } else dpops = atom->mxchange;
     dpopsmax = MAX(dpops, dpopsmax);
   }
   /* --- Update active molecules --                    -------------- */

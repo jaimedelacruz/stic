@@ -63,42 +63,41 @@ extern char messageStr[];
 extern enum Topology topology;
 
 
-void zeroRadiation(Atom *atom)
+void zeroRadiation(Atom *atom, int nact)
 {
 
   static const double hc_k   = (HPLANCK * CLIGHT) / (KBOLTZMANN * NM_TO_M);
   static const double twoc   = 2.0*CLIGHT / CUBE(NM_TO_M);
   static const double fourPI = 4.0 * PI;
-  register int nspect, la, i, j, ij, k, nact, n;
+  register int nspect, la, i, j, ij, k, n, kr;
   double wla, twohnu3_c2, gijk;
   AtomicLine *line;
   AtomicContinuum *continuum;
   ActiveSet *as;
+
   
   initGammaAtom(atom, 1.0);
   
   /* --- Then add radiative contributions of active transitions --  */
+
+  for(kr=0;kr<atom->Nline; kr++){
+    line = &atom->line[kr];
+    i  = line->i;
+    j  = line->j;
+    ij = i*atom->Nlevel + j;
+    
+    for (k = 0;  k < atmos.Nspace;  k++)
+      atom->Gamma[ij][k] += line->Aji;
+  }
+  
   
   for (nspect = 0;  nspect < spectrum.Nspect;  nspect++) {
     as = spectrum.as + nspect;
     
-    for (n = 0;  n < as->Nactiveatomrt[nact];  n++) {
-      switch (as->art[nact][n].type) {
-      case ATOMIC_LINE:
-	line = as->art[nact][n].ptype.line;
-	la = nspect - line->Nblue;
-	i  = line->i;
-	j  = line->j;
-	ij = i*atom->Nlevel + j;
-	
-	if (la == 0) {
-	  for (k = 0;  k < atmos.Nspace;  k++)
-	    atom->Gamma[ij][k] += line->Aji;
-	}
-	break;
-	
-      case ATOMIC_CONTINUUM:
+    for (n = 0;  n < as->Nactiveatomrt[nact];  n++) {    
+      if(ATOMIC_CONTINUUM == as->art[nact][n].type){
 	continuum = as->art[nact][n].ptype.continuum;
+	//if(continuum->atom == atom){
 	la = nspect - continuum->Nblue;
 	i  = continuum->i;
 	j  = continuum->j;
@@ -113,13 +112,11 @@ void zeroRadiation(Atom *atom)
 	  atom->Gamma[ij][k] += gijk * twohnu3_c2 *
 	    continuum->alpha[la]*wla;
 	}
-	break;
-      default:
-	break;
+	//	}
       }
     }
   }
-      /* --- Solve statistical equilibrium equations --  ------------ */
+  /* --- Solve statistical equilibrium equations --  ------------ */
   
   statEquil(atom, (input.isum == -1) ? 0 : input.isum);
 }
@@ -137,6 +134,7 @@ void initSolution_alloc2(int myrank) {
   double *lambda,fac,lambda_prv,lambda_gas,lambda_nxt,dl,dl1,frac,lag;
   double q0,q_emit,qN, waveratio=1.0, t0=0, t1=0;
   static bool_t firsttime = true, firstl, lastl;
+  static const double vsign[2] = {-1.0, 1.0};
 
   for (nact = 0;  nact < atmos.Nactiveatom;  nact++) {
     atom = atmos.activeatoms[nact];
@@ -268,7 +266,7 @@ void initSolution_alloc2(int myrank) {
 	    for (la = 0;  la < line->Nlambda;  la++) {
 	      for (mu = 0;  mu < atmos.Nrays;  mu++) {
 		for (to_obs = 0;  to_obs <= 1;  to_obs++) {
-		  sign = (to_obs) ? 1.0 : -1.0;
+		  sign = vsign[to_obs];//(to_obs) ? 1.0 : -1.0;
 		  lamu = 2*(atmos.Nrays*la + mu) + to_obs;
 		  
 		  for (k = 0;  k < atmos.Nspace;  k++) {
@@ -309,7 +307,7 @@ void initSolution_alloc2(int myrank) {
       spectrum.iprdh =  ((unsigned int *)calloc( Nlamu , sizeof(unsigned int   )));
       
       if(spectrum.cprdh != NULL) free((void*)spectrum.cprdh);
-      spectrum.cprdh =  ((unsigned short *)calloc( Nlamu , sizeof(unsigned short)));
+      spectrum.cprdh =  ((unsigned int *)calloc( Nlamu , sizeof(unsigned int)));
 
       Nlamu=2*2*atmos.Nrays*(spectrum.nJlam+2)*atmos.Nspace;
       if (spectrum.nc != NULL) free((void*)(spectrum.nc-1));
@@ -323,7 +321,7 @@ void initSolution_alloc2(int myrank) {
 	  firstl = true;
 	  
 	  for (to_obs = 0;  to_obs <= 1;  to_obs++) {
-	    sign = (to_obs) ? 1.0 : -1.0;
+	    sign = vsign[to_obs];//(to_obs) ? 1.0 : -1.0;
 	    //lamu = 2*(atmos.Nrays*la + mu) + to_obs;
 	    
 	    for (k = 0;  k < atmos.Nspace;  k++) {
@@ -334,6 +332,7 @@ void initSolution_alloc2(int myrank) {
 		+ k ;
 	      
 	      ncoef=0;
+	      lc = spectrum.nc[lamuk-1];
 	      
 	      // previous, current and next wavelength shifted to gas rest frame 
 	      fac = (1.+spectrum.v_los[mu][k]*sign/CLIGHT);
@@ -341,36 +340,47 @@ void initSolution_alloc2(int myrank) {
 	      lambda_gas = lambda[ la                   ]*fac;
 	      lambda_nxt = lambda[ la+1                 ]*fac;
 	      
-	      //omin = 0;
-	      for (idx = omin; idx < spectrum.nJlam ; idx++) {
+	      //omin = 0;		
 		
+	      // do lambda_prv and lambda_gas bracket lambda points?
+	      dl = (lambda_gas - lambda_prv); // It contains the conversion factor to ushort (65535)
+	      dl1= (lambda_nxt - lambda_gas); // It contains the conversion factor to ushort (65535)
+
+	      lastl = true;
+	      for (idx = 0; idx < spectrum.nJlam ; idx++) {
 		
-		// do lambda_prv and lambda_gas bracket lambda points?
 		if ((lambda[idx] > lambda_prv) && (lambda[idx] <= lambda_gas)){
-		  dl = 65535./(lambda_gas - lambda_prv); // It contains the conversion factor to ushort (65535)
 		  
 		  ncoef += 1;
-		  spectrum.iprdh[lc]=idx;
-		  spectrum.cprdh[lc++]=(unsigned short)(round((lambda[idx]-lambda_prv)*dl));
-		  if(firstl){
-		    omin = min(idx, omin);
-		    firstl = false;
-		  }
-		  lastl = false;
+		  spectrum.iprdh[lc]=(unsigned int)idx;
+		  spectrum.cprdh[lc++]=(unsigned int)(round(65535.*(lambda[idx]-lambda_prv)/dl));
+		  /* if(firstl){ */
+		  /*   omin = min(idx, omin); */
+		  /*   firstl = false; */
+		  /* } */
+		  lastl = false; 
 		  
 		  continue;
 		  //omin = min(omin,idx);
 		  //lc++;
-		}else if ((lambda[idx] > lambda_gas) && (lambda[idx] < lambda_nxt)){
+		}
+
+		if(!lastl) break;
+
+	      }
+	      
+	      lastl = true;
+	      for (idx = 0; idx < spectrum.nJlam ; idx++) {
+		
+		if ((lambda[idx] > lambda_gas) && (lambda[idx] < lambda_nxt)){
 		  ncoef += 1;
-		  dl1= 65535./(lambda_nxt - lambda_gas); // It contains the conversion factor to ushort (65535)
-		  spectrum.iprdh[lc]=idx;
-		  spectrum.cprdh[lc++]=(unsigned short)(round(65535. - (lambda[idx]-lambda_gas)*dl1)); // The 255 must be 1.0 if using floats
+		  spectrum.iprdh[lc]=(unsigned int)idx;
+		  spectrum.cprdh[lc++]=(unsigned int)(round(65535.*(1. - (lambda[idx]-lambda_gas)/dl1))); // The 255 must be 1.0 if using floats
 		  
-		  if(firstl){
-		    omin = min(idx, omin);
-		    firstl = false;
-		  }
+		  /* if(firstl){ */
+		  /*   omin = min(idx, omin); */
+		  /*   firstl = false; */
+		  /* } */
 		  lastl = false;
 		  
 		  
@@ -381,16 +391,17 @@ void initSolution_alloc2(int myrank) {
 		if(!lastl) break;
 		
 	      } // idx
+	      
 	      spectrum.nc[lamuk]=onc+ncoef;
 	      onc = spectrum.nc[lamuk];
 	      //      }
 	      
-	      lc = spectrum.nc[lamuk-1];
+	      // lc = spectrum.nc[lamuk-1];
 	      
 	    } // k
 	  } // to_obs
 	} // mu
-	omin = max(omin-1, 0);
+	//	omin = max(omin-1, 0);
 	
       }// la
       
@@ -761,7 +772,7 @@ void initSolution_alloc2(int myrank) {
 
 
 
-void initSolution_j( int myrank)
+void initSolution_j( int myrank, int savepop)
 {
   const char routineName[] = "initSolution_j";
   register int k, i, ij, nspect, n, nact;
@@ -788,6 +799,7 @@ void initSolution_j( int myrank)
     exit(0);
   }
 
+  //if(!savepop) return;// Reusing departure coeffs
   
   for (nact = 0;  nact < atmos.Nactiveatom;  nact++) {
     atom = atmos.activeatoms[nact];
@@ -812,18 +824,19 @@ void initSolution_j( int myrank)
       break;
 
     case ZERO_RADIATION:
-      zeroRadiation(atom);
+      zeroRadiation(atom, nact);
+	    
       break;
 
     case PESC:
       //readPopulations(atom);
-      zeroRadiation(atom);
+      zeroRadiation(atom, nact);
       for(i=0; i<100; i++){
 	conv = pesc(atom, i, 1.e-2);
 	//if(i>2)exit(0);
 	if(conv) break;
       }
-      if(!conv) zeroRadiation(atom);
+      if(!conv) zeroRadiation(atom, nact);
       break;
 
     default:;

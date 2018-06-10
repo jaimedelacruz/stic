@@ -16,6 +16,7 @@
 
 #include <stdlib.h>
 #include <math.h>
+#include <string.h>
 
 #include "rh.h"
 #include "error.h"
@@ -69,6 +70,7 @@ void SolveLinearEq(int N, double **A, double *b, bool_t improve)
 
   LUdecomp(N, A, index, &d);
   if(mpi.stop){
+    memcpy(&A[0][0], &A_copy[0][0], N*N*sizeof(double));
     free(residual);
     free(b_copy);
     freeMatrix((void **) A_copy);
@@ -120,7 +122,7 @@ void LUdecomp(int N, double **A, int *index, double *d)
       sprintf(messageStr, "Singular matrix");
       Error(ERROR_LEVEL_2, "LUdecomp", messageStr);
       free(vv);
-      mpi.stop = true;
+      mpi.stop = TRUE;
       return;
     }
     vv[i] = 1.0 / big;

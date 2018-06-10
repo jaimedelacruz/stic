@@ -1,4 +1,19 @@
+/* ---------------------------------------
 
+   Adapted from Phil Judge's routines to fit RH variable names
+   Computes the atom populations using second order escape probability.
+
+   Ref: http://adsabs.harvard.edu/abs/2017ApJ...851....5J
+   "Efficient Radiative Transfer for Dynamically Evolving Stratified Atmospheres"; Judge, P.
+   
+   The routine assumes that the atom populations have been initialized in LTE or something else.
+   I prefer zero radiation because it gives Aji appropiate weight when the collisional terms are 
+   very small. If the populations do not convert, then revert back to zero radiation.
+
+   Modifications history:
+         2018-06-04, JdlCR: Created!
+   
+   ----------------------------------------- */
 #include <fcntl.h>
 #include <math.h>
 #include <stdlib.h>
@@ -38,6 +53,7 @@ extern Geometry geometry;
 extern enum Topology topology;
 extern rhbgmem *bmem;
 int readBackground_j(int la, int mu, bool_t to_obs);
+extern double VoigtArmstrong(double, double);
 
 /* ------- file: -------------------------- voigt.c -----------------
 

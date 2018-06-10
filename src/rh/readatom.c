@@ -165,6 +165,7 @@ void readAtom(Atom *atom, char *atom_file, bool_t active)
     Error(ERROR_LEVEL_2, routineName, messageStr);
   }
 
+  if(atom->nstar != NULL) freeMatrix((void**)atom->nstar);
   atom->nstar  = matrix_double(Nlevel, Nspace);
   atom->ntotal = (double *) malloc(Nspace * sizeof(double));
 
