@@ -22,7 +22,7 @@ LINKER = $(MPCXX)
 #
 # OPTIMIZATION
 #
-OPTS = -g  -march=native -I/usr/include/tirpc
+OPTS = -march=native -I/usr/include/tirpc
 CXXFLAGS = -O3 $(OPTS) -fPIC -std=c++11
 CFLAGS = -Ofast $(OPTS) -DHAVE_F90 -fPIC
 FFLAGS =  -O3 -march=native
