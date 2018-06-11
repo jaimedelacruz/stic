@@ -26,7 +26,7 @@
 #include "error.h"
 #include "rh_1d/rhf1d.h"
 #include "inputs.h"
-#include "solveLinear.h"
+
 
 /* --- Function prototypes --                          -------------- */
 
