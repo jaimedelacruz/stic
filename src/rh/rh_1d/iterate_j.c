@@ -159,7 +159,7 @@ void Iterate_j(int NmaxIter, double iterLimit, double *dpopmax_out)
     niter++;
 
     if (input.solve_ne == ITERATION)
-      Background(write_analyze_output=TRUE, equilibria_only=FALSE);
+      Background_j(write_analyze_output=TRUE, equilibria_only=FALSE);
 
 
     /* Update collisional radiative switching */

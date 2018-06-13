@@ -353,7 +353,7 @@ bool crh::synth(mdepth_t &m_in, double *syn, cprof_solver sol, bool save_pops){
   
   /* --- convert nHtot to Pgas using the electron density, the H abundance and temperature --- */
   
-  if(hydrostat > 0 && 0){
+  if(hydrostat > 0){
     for(int kk = 0; kk < m.ndep; kk++){
       
       m.pgas[kk] = (nhtot[kk] * eos.totalAbund / eos.ABUND[0] + m.nne[kk]) *

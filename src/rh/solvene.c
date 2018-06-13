@@ -34,8 +34,8 @@
 #include "error.h"
 #include "statistics.h"
 
-#define MAX_ELECTRON_ERROR         1.0E-2
-#define N_MAX_ELECTRON_ITERATIONS  10
+#define MAX_ELECTRON_ERROR         1.0E-4
+#define N_MAX_ELECTRON_ITERATIONS  100
 #define N_MAX_ELEMENT              26
 
 
@@ -157,6 +157,7 @@ void getfjk(Element *element, double ne, int k, double *fjk, double *dfjk)
   /* --- Get the fractional population f_j(ne, T) = N_j/N for element
          element and its partial derivative with ne. -- ------------- */
 
+
   if (element->model  &&  element->model->NLTEpops) {
 
     /* --- If element has NLTE populations then use these -- -------- */
@@ -210,7 +211,6 @@ double getKuruczpf(Element *element, int stage, int k)
 {
   bool_t hunt = TRUE;
   double Uk;
-
   Linear(atmos.Npf, atmos.Tpf, element->pf[stage], 
 	 1, &atmos.T[k], &Uk, hunt);
 
