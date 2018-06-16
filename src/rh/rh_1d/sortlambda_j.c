@@ -131,7 +131,7 @@ void init_info_lambda( )
   // --- allocate wavelengths info array ---//
 
   unsigned int Nspect = spectrum.Nspect;
-  spectrum.linfo = calloc(Nspect, sizeof(linf*));
+  spectrum.linfo = calloc(Nspect, sizeof(linf));
 
   if(atmos.NPRDactive > 0){
     for(nlines=0; nlines<spectrum.nPRDlines; nlines++){
