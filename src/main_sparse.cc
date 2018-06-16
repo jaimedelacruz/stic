@@ -1,15 +1,38 @@
 #include <mpi.h>
 #include <iostream>
 #include <cstdio>
+#include <string>
+#include <sys/time.h>
 
 #include "master_sparse.h"
 #include "slave.h"
 using namespace std;
 //
+double master_getTime(double t0 = -1.0){
+  struct timeval dum;
+  gettimeofday(&dum, NULL);
+  if(t0 < 0.0) return dum.tv_sec + dum.tv_usec * 1.0E-6;
+  else return (dum.tv_sec + dum.tv_usec * 1.0E-6) - t0;
+}
+//
+std::string double2time(double dt)
+{
+  int hh = int(dt/3600.);
+  dt -= hh*3600.;
+  int mm = int(dt/60.);
+  dt -= mm*60.;
+  
+  char buff[13];
+  sprintf(buff, "%02d:%02d:%06.3f", hh, mm, dt);
+
+  return std::string(buff);
+}
+
+//
 int main(int narg, char* argv[]){
   
                                                       
-
+  double dt=master_getTime();
 
   //
   // Init MPI
@@ -67,6 +90,11 @@ int main(int narg, char* argv[]){
   // Finalize work
   //
   MPI_Barrier(MPI_COMM_WORLD); // Wait until all processors reach this point
+  if(myrank == 0){
+    string ti = double2time(master_getTime(dt));
+    printf("main: total elapsed time [%s]\n", ti.c_str());
+  }
+  
   MPI_Finalize();
   
 }
