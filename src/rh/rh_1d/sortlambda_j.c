@@ -131,11 +131,10 @@ void init_info_lambda( )
   // --- allocate wavelengths info array ---//
 
   unsigned int Nspect = spectrum.Nspect;
-  spectrum.linfo = calloc(Nspect, sizeof(linf));
+  spectrum.linfo = (linf*)calloc(Nspect, sizeof(linf));
 
   if(atmos.NPRDactive > 0){
     for(nlines=0; nlines<spectrum.nPRDlines; nlines++){
-      // fix_lambda_info(   spectrum.PRDlines[nlines]  );
       nwav += spectrum.PRDlines[nlines]->Nlambda;
     }
 
@@ -178,7 +177,7 @@ void init_info_lambda( )
     
     // -- Cleanup
 
-    spectrum.Jlam = malloc((nwav+2)*sizeof(double))+1;
+    spectrum.Jlam = ((double*)malloc((nwav+2)*sizeof(double)))+1;
     spectrum.nJlam = nwav;
     memcpy(&spectrum.Jlam[0], lam, off*sizeof(double));
     free(lam);
@@ -414,8 +413,8 @@ void SortLambda_j(int mynw, double *mylambda)
   wavetable = malloc((spectrum.Nspect)*sizeof(double));
   memcpy(wavetable,spectrum.lambda, spectrum.Nspect*sizeof(double));
   
-  spectrum.lambda = (double *) realloc(spectrum.lambda,
-				       (spectrum.Nspect+2)*sizeof(double))+1;
+  spectrum.lambda = ((double *) realloc(spectrum.lambda,
+					(spectrum.Nspect+2)*sizeof(double)))+1;
 
   memcpy(&spectrum.lambda[0],wavetable, spectrum.Nspect*sizeof(double) );
   free(wavetable);

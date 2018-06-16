@@ -26,6 +26,7 @@
 #include "atmos.h"
 #include "geometry.h"
 #include "spectrum.h"
+#include <stdlib.h>
 //#include "scl_opac.h"
 
 
