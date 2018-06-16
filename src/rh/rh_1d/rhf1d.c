@@ -106,7 +106,6 @@ bool_t rhf1d(float muz, int rhs_ndep, double *rhs_T, double *rhs_rho,
   atmos.moving = TRUE;
   atmos.Stokes = FALSE;
   atmos.Nspace = rhs_ndep;
-
   
   /* --- Read input data and initialize --             -------------- */
 

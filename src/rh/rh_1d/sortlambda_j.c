@@ -161,7 +161,8 @@ void init_info_lambda( )
 
     // --- Assign position in Jgas --- //
     
-    spectrum.Jgas = matrix_double(nwav, atmos.Nspace);
+    //    spectrum.Jgas = matrix_double(nwav, atmos.Nspace);
+    spectrum.Jgas = d2dim(-1, nwav, 0, atmos.Nspace-1);
     
     for(nlines=0; nlines<spectrum.nPRDlines; nlines++){
       lin = spectrum.PRDlines[nlines];

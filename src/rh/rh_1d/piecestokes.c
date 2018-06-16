@@ -26,6 +26,7 @@
 
 #include <math.h>
 #include <string.h>
+#include <stdlib.h>
 
 #include "rh.h"
 #include "error.h"

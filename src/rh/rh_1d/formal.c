@@ -333,7 +333,7 @@ double Formal(int nspect, bool_t eval_operator, bool_t redistribute, int iter)
 		  idx0 = (long int)spectrum.nc[lamuk-1]; idx1 = (long int)spectrum.nc[lamuk];
 
 		  for ( idx = idx0 ; idx <  idx1 ; idx++ ){
-		    spectrum.Jgas[ spectrum.iprdh[idx] ][k] += wmu * I[k] * (((double)spectrum.cprdh[idx])/65535.);
+		    spectrum.Jgas[ spectrum.iprdh[idx] ][k] += wmu * I[k] * ((double)spectrum.cprdh[idx]);
 		  }
 		}
 	      }

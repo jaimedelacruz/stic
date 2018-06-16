@@ -52,7 +52,7 @@ typedef struct {
     **Jgas, **Ilast, **v_los;
   ActiveSet *as;
   unsigned int    *nc, *iprdh, nJlam;
-  unsigned int *cprdh;
+  float *cprdh;
   double *Jlam;
   linf *linfo;
   AtomicLine **PRDlines;

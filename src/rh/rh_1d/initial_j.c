@@ -307,7 +307,7 @@ void initSolution_alloc2(int myrank) {
       spectrum.iprdh =  ((unsigned int *)calloc( Nlamu , sizeof(unsigned int   )));
       
       if(spectrum.cprdh != NULL) free((void*)spectrum.cprdh);
-      spectrum.cprdh =  ((unsigned int *)calloc( Nlamu , sizeof(unsigned int)));
+      spectrum.cprdh =  ((float *)calloc( Nlamu , sizeof(float)));
 
       Nlamu=2*2*atmos.Nrays*(spectrum.nJlam+2)*atmos.Nspace;
       if (spectrum.nc != NULL) free((void*)(spectrum.nc-1));
@@ -343,8 +343,8 @@ void initSolution_alloc2(int myrank) {
 	      //omin = 0;		
 		
 	      // do lambda_prv and lambda_gas bracket lambda points?
-	      dl = (lambda_gas - lambda_prv); // It contains the conversion factor to ushort (65535)
-	      dl1= (lambda_nxt - lambda_gas); // It contains the conversion factor to ushort (65535)
+	      dl = (lambda_gas - lambda_prv); 
+	      dl1= (lambda_nxt - lambda_gas); 
 
 	      lastl = true;
 	      for (idx = 0; idx < spectrum.nJlam ; idx++) {
@@ -353,7 +353,7 @@ void initSolution_alloc2(int myrank) {
 		  
 		  ncoef += 1;
 		  spectrum.iprdh[lc]=(unsigned int)idx;
-		  spectrum.cprdh[lc++]=(unsigned int)(round(65535.*(lambda[idx]-lambda_prv)/dl));
+		  spectrum.cprdh[lc++]=(float)((lambda[idx]-lambda_prv)/dl);
 		  /* if(firstl){ */
 		  /*   omin = min(idx, omin); */
 		  /*   firstl = false; */
@@ -375,7 +375,7 @@ void initSolution_alloc2(int myrank) {
 		if ((lambda[idx] > lambda_gas) && (lambda[idx] < lambda_nxt)){
 		  ncoef += 1;
 		  spectrum.iprdh[lc]=(unsigned int)idx;
-		  spectrum.cprdh[lc++]=(unsigned int)(round(65535.*(1. - (lambda[idx]-lambda_gas)/dl1))); // The 255 must be 1.0 if using floats
+		  spectrum.cprdh[lc++]=(float)(1. - (lambda[idx]-lambda_gas)/dl1);
 		  
 		  /* if(firstl){ */
 		  /*   omin = min(idx, omin); */

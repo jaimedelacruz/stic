@@ -750,12 +750,12 @@ double clm::fitdata(clm_func fx, double *x, void *mydat, int maxiter, reg_t &dre
   getParTypes();
   double chi2 = 1.e13, ochi2 = 1.e13, bestchi2 = 1.e13, olambda = 0.0, t0 = 0, t1 = 0;
   double orchi2=1.e13, rchi2=1.e13, reg = 0.0;
-  int iter = 0, nretry = 0;
+  int iter = iit = 0, nretry = 0;
   bool exitme = false, toolittle = false, dcreased = false;
   string rej = "";
   memset(&diag[0],0,npar*sizeof(double));
   error = false;
-
+  miter = maxiter;
   //reg_t dregul;
   //if(regularize) dregul.set(npar, regul_scal); // To store derivatives of regularization terms
   
@@ -805,7 +805,7 @@ double clm::fitdata(clm_func fx, double *x, void *mydat, int maxiter, reg_t &dre
   /* --- Main iterations --- */
 
   while(iter <= maxiter){
-
+    iit = iter;
     
     /* --- Get new estimate of the model and Chi2 for a given lambda parameter.
        The new parameters are already checked for limits and too large corrections 
@@ -876,7 +876,6 @@ double clm::fitdata(clm_func fx, double *x, void *mydat, int maxiter, reg_t &dre
 	status = fx(npar, nd, x, &iSyn[0], res, rf, mydat, dregul, true);
 	memset(x, 0, npar*sizeof(double));
 	memset(xnew, 0, npar*sizeof(double));
-
       }
       
     }else{
@@ -996,7 +995,7 @@ void clm::geoAcceleration(double *x, double *dx, double h,
   /* ----
      Low curvature acceleration by Mark K. Transtrum, James P. Sethna (2012)
      https://arxiv.org/abs/1201.5885
-
+     Note: it does not seem to work ....
      --- */
   
   /* --- Get the residual for x + h*dx --- */
@@ -1077,6 +1076,8 @@ void clm::compute_trial3(double *res, double **rf, double lambda,
 
      --- */
   
+  //double sclfac = 1.0 - double(iit)/double(miter);
+  //fprintf(stderr,"sclfac=%f\n", sclfac);
   
   /* --- Init Eigen-3 arrays --- */
   
@@ -1184,7 +1185,7 @@ void clm::compute_trial3(double *res, double **rf, double lambda,
     
   } // yy
 
-  if(dregul.to_reg) A += LL*(1.0+lambda); 
+  if(dregul.to_reg) A += LL*(lambda); 
   
   delete [] tmp1;
   

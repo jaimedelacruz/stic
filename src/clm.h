@@ -99,7 +99,7 @@ double sumarr2(double *arr, int n);
 
 class clm{
  private:
-  int nd, npar, nzero, lwork;
+  int nd, npar, nzero, lwork, iit, miter;
   bool error;
  public:
   std::vector<clmf> fcnt;
