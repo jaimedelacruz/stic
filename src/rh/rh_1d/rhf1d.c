@@ -197,7 +197,7 @@ bool_t rhf1d(float muz, int rhs_ndep, double *rhs_T, double *rhs_rho,
     read_populations(save_pop,0);
 
     if((savpop == 0) && 1){
-      input.Ngdelay = min(7,input.Ngdelay) ;
+      input.Ngdelay = min(11,input.Ngdelay) ;
       input.Ngperiod = min(11,input.Ngperiod) ;
       //input.PRD_NmaxIter = min(3,input.PRD_NmaxIter) ;
     }
