@@ -658,7 +658,7 @@ double clm::getChi2ParsLineSearch(double *res, double **rf, double &lambda,
        time.
        --- */
     
-    if(idx != 0){
+    if((idx != 0) && false){
       for(int ii=0; ii<1; ii++){
 	
 	int idxu = idx-1, idx0 = idx, idxd = idx+1;
@@ -1173,7 +1173,8 @@ void clm::compute_trial3(double *res, double **rf, double lambda,
     /* --- Damp the diagonal of A --- */
     
      //A(yy,yy) += lambda * A(yy,yy);
-     A(yy,yy) += lambda * idia;
+    if(!dregul.to_reg)
+      A(yy,yy) += lambda * idia;
 
 
     
@@ -1185,7 +1186,7 @@ void clm::compute_trial3(double *res, double **rf, double lambda,
     
   } // yy
 
-  if(dregul.to_reg) A += LL*(lambda); 
+  if(dregul.to_reg) A += LL*(1.0+lambda); 
   
   delete [] tmp1;
   

@@ -24,6 +24,7 @@
 #include "clm.h"
 #include "math_tools.h"
 #include "mmem.h"
+#include "interpol.h"
 //
 using namespace std;
 //
@@ -201,9 +202,16 @@ void atmos::responseFunction(int npar, mdepth_t &m_in, double *pars, int nd, dou
     
 }
 
-void atmos::randomizeParameters(nodes_t &n, int npar, double *pars){
+void atmos::randomizeParameters(const nodes_t &n, int npar, double *pars, int nrandomize){
   srand (time(NULL));
   int ninit = (int)scal.size();
+
+  static const double tau[3] = {-8.0, -4.0, 0.0};
+  static const double vlos[2][3] = {
+    {-9.,-2.5,0.0},
+    {9.0, 2.5, 0.0}};
+				    
+  
   
   if(npar != ninit){
     fprintf(stderr,"atmos::randomizeParameters: atmos pars[%d] != scal[%d] -> not randomizing!\n", npar, ninit);
@@ -223,9 +231,17 @@ void atmos::randomizeParameters(nodes_t &n, int npar, double *pars){
 
     if(n.ntype[pp] == temp_node)
       pertu = 2.0 * (rnum - 0.5) * scal[pp] * 0.2;
-    else if(n.ntype[pp] == v_node)
-      pertu =  (rnum - 0.5) * scal[pp];
-    else if(n.ntype[pp] == vturb_node){
+    else if(n.ntype[pp] == v_node){
+      
+      if(nrandomize > 1){ // constant randomization
+	pertu =  (rnum - 0.5) * scal[pp];
+      }else{ // try a gradient
+	double dum = 0.0;
+	hermpol(size_t(3), tau, vlos[nrandomize], size_t(1), (double*)&n.v[pp-n.v_off], &dum);
+	pertu = 1.e5*dum-pars[pp];
+      }
+      
+    } else if(n.ntype[pp] == vturb_node){
       pertu =  (rnum - 0.75) * 2.e5;
     }else if(n.ntype[pp] == bl_node)
       pertu =  (rnum-0.5) * scal[pp];
@@ -581,8 +597,8 @@ void getDregul2(double *m, int npar, reg_t &dregul, nodes_t &n)
       break;
     case(4):
       if(nn >= 2){
-	roff += tikhonov1_dregul(nn, ltau, &m[off], we*0.5, dregul.dreg, dregul.reg, off, roff);
-	roff += const_dregul(nn, ltau, &m[off], we*0.5, dregul.dreg, dregul.reg, 0.0, off, roff);
+	roff += tikhonov1_dregul(nn, ltau, &m[off], we*0.2, dregul.dreg, dregul.reg, off, roff);
+	roff += const_dregul(nn, ltau, &m[off], we*0.8, dregul.dreg, dregul.reg, 0.0, off, roff);
       }
       break;
     default:
@@ -964,7 +980,8 @@ double atmos::fitModel2(mdepth_t &m, int npar, double *pars, int nobs, double *o
 
   
   /* --- Loop iters --- */
-  
+
+  int nrandomize = 0;
   for(int iter = 0; iter < input.nInv; iter++){
 
     cleanup();
@@ -980,7 +997,7 @@ double atmos::fitModel2(mdepth_t &m, int npar, double *pars, int nobs, double *o
 
     
     if(iter > 0 || input.random_first){
-      randomizeParameters(input.nodes , npar, &ipars[0]);
+      randomizeParameters(input.nodes , npar, &ipars[0], nrandomize++);
       if(depth_per){
 	imodel->ref_m->expand(input.nodes, &ipars[0], input.dint, input.depth_model);
 	checkBounds(*imodel->ref_m);

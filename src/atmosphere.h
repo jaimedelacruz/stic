@@ -50,7 +50,7 @@ class atmos{
   //
   virtual double fitModel2( mdepth_t &m, int npar, double *pars, int nobs, double *o, mat<double> &weights);
 
-  virtual void randomizeParameters(nodes_t &n, int npar, double *pars);
+  virtual void randomizeParameters(const nodes_t &n, int npar, double *pars, int nrandomize);
   //
   virtual double checkParameter(double val, int n){
     if(val > mmax[n]) val = mmax[n];
