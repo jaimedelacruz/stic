@@ -24,13 +24,13 @@
 #include "clm.h"
 #include "math_tools.h"
 #include "mmem.h"
-#include "interpol.h"
 //
 using namespace std;
 //
-const double atmos::maxchange[7] = {3000., 5.0e5, 1.5e5, 600., 600., phyc::PI/5, 0.6};
+const double atmos::maxchange[7] = {7000., 7.0e5, 5.0e5, 600., 600., phyc::PI/5, 0.6};
 
-
+inline double SQ(const double a){return a*a;};
+inline double CUB(const double a){return a*a*a;};
 
 vector<double> atmos::get_max_change(nodes_t &n){
 
@@ -80,10 +80,10 @@ void atmos::responseFunction(int npar, mdepth_t &m_in, double *pars, int nd, dou
     
   //
   if(input.depth_model == 0){
-    if((input.nodes.ntype[pp] == temp_node) && pval > 10000.){
+    if((input.nodes.ntype[pp] == temp_node) && (pval > 10000.)){
       pertu = input.dpar * pval * 0.25;
     }else
-      pertu = input.dpar * scal[pp];
+      pertu = input.dpar * scal[pp] * 0.3;
   }else  pertu = input.dpar * scal[pp];
     
   
@@ -202,16 +202,9 @@ void atmos::responseFunction(int npar, mdepth_t &m_in, double *pars, int nd, dou
     
 }
 
-void atmos::randomizeParameters(const nodes_t &n, int npar, double *pars, int nrandomize){
+void atmos::randomizeParameters(nodes_t &n, int npar, double *pars){
   srand (time(NULL));
   int ninit = (int)scal.size();
-
-  static const double tau[3] = {-8.0, -4.0, 0.0};
-  static const double vlos[2][3] = {
-    {-9.,-2.5,0.0},
-    {9.0, 2.5, 0.0}};
-				    
-  
   
   if(npar != ninit){
     fprintf(stderr,"atmos::randomizeParameters: atmos pars[%d] != scal[%d] -> not randomizing!\n", npar, ninit);
@@ -231,17 +224,9 @@ void atmos::randomizeParameters(const nodes_t &n, int npar, double *pars, int nr
 
     if(n.ntype[pp] == temp_node)
       pertu = 2.0 * (rnum - 0.5) * scal[pp] * 0.2;
-    else if(n.ntype[pp] == v_node){
-      
-      if(nrandomize > 1){ // constant randomization
-	pertu =  (rnum - 0.5) * scal[pp];
-      }else{ // try a gradient
-	double dum = 0.0;
-	hermpol(size_t(3), tau, vlos[nrandomize], size_t(1), (double*)&n.v[pp-n.v_off], &dum);
-	pertu = 1.e5*dum-pars[pp];
-      }
-      
-    } else if(n.ntype[pp] == vturb_node){
+    else if(n.ntype[pp] == v_node)
+      pertu =  (rnum - 0.5) * scal[pp];
+    else if(n.ntype[pp] == vturb_node){
       pertu =  (rnum - 0.75) * 2.e5;
     }else if(n.ntype[pp] == bl_node)
       pertu =  (rnum-0.5) * scal[pp];
@@ -264,7 +249,7 @@ void atmos::randomizeParameters(const nodes_t &n, int npar, double *pars, int nr
 
 /* --------------------------------------------------------------------------------------------------- */
 
-int const_dregul(int n, double *ltau, double *var, double weight, double **dreg, double *reg, double m, int off, int roff)
+int const_dregul(int n, double *ltau, double *var, double weight, reg_t &dregul, double m, int off, int roff, int typ)
 {
   
   /* --- 
@@ -279,28 +264,47 @@ int const_dregul(int n, double *ltau, double *var, double weight, double **dreg,
      of the number of nodes. It is a mean value when all the penalties
      are summed.
      --- */  
-  
-  double c = sqrt(weight / double(n));
-  double dtau = 1.0, ttau = ((n>1)?fabs(ltau[n-1] - ltau[0]):1.0);
 
+  double *reg = dregul.reg, **LL = dregul.LL, **dreg = dregul.dreg; 
+  
+  
+  double c = sqrt(weight/n);
+  double dtau = 1.0;// ttau = ((n>1)?fabs(ltau[n-1] - ltau[0]):1.0);
+  double dtmax = 0.0;
+  
+  for(int ii=1; ii<n; ii++){
+    double dt = fabs(ltau[ii]-ltau[ii-1]);
+    if(dt > dtmax) dtmax = dt;
+  }
+  if(dtmax == 0.0) dtmax = 1.0;
+
+
+  
   for(int yy=0;yy<n; yy++){
 
     
-    if((yy == 0) && (n > 1)) dtau = fabs(ltau[0] - ltau[1])/ttau;
-    else if((yy > 0) && (yy < (n-1)) && (n > 1)) dtau = fabs(ltau[yy+1] - ltau[yy-1])*0.5/ttau;
-    else if((yy == (n-1)) && (n > 1)) dtau = fabs(ltau[yy] - ltau[yy-1])/ttau;
+    if((yy == 0) && (n > 1)) dtau = fabs(ltau[0] - ltau[1])/dtmax;
+    else if((yy > 0) && (yy < (n-1)) && (n > 1)) dtau = fabs(ltau[yy+1] - ltau[yy-1])*0.5/dtmax;
+    else if((yy == (n-1)) && (n > 1)) dtau = fabs(ltau[yy] - ltau[yy-1])/dtmax;
     
     //dtau = 1.0;
+    double tmp = c/ dtau;
+    reg[roff+yy] = tmp*(var[yy] - m);
+    dreg[roff+yy][off+yy] = tmp;
+    dregul.rt[yy+roff] = typ;
 
-    reg[roff+yy] = c*(var[yy] - m) / dtau;
-    dreg[roff+yy][off+yy] = c / dtau;
+    tmp *= tmp;
+    LL[off+yy][off+yy] += c/dtau;
+    
   }
+  
+  
   return n;
 }
 
 /* --------------------------------------------------------------------------------------------------- */
 
-int mean_dregul(int n, double *ltau, double *var, double weight, double **dreg, double *reg, int off, int roff)
+int mean_dregul(int n, double *ltau, double *var, double weight, reg_t &dregul, int off, int roff, int typ)
 {
   
   /* --- 
@@ -320,43 +324,69 @@ int mean_dregul(int n, double *ltau, double *var, double weight, double **dreg, 
 
      --- */
 
+  double *reg = dregul.reg, **LL = dregul.LL, **dreg = dregul.dreg; 
+
+  
   if(n == 1){
     reg[roff] = 0.0;
     dreg[roff][off] = 0.0;
     return 1;
   }
 
-  double ttau = fabs(ltau[n-1] - ltau[0]);
   double dn = double(n), idn = 1.0/dn;
-  double c = sqrt(weight / dn);
+  double c = sqrt(weight/n);
   double me = mth::mean(n, var), dtau = 1.0;
-    
+
+  double dtmax = 0.0;
+  for(int ii=1; ii<n; ii++){
+    double dt = fabs(ltau[ii]-ltau[ii-1]);
+    if(dt > dtmax) dtmax = dt;
+  }
+  if(dtmax == 0.0) dtmax = 1.0;
+
+  
   for(int yy=0;yy<n; yy++){
 
     
-    if((yy == 0) && (n > 1)) dtau = fabs(ltau[0] - ltau[1]) / ttau;
-    else if((yy > 0) && (yy < (n-1)) && (n > 1)) dtau = fabs((ltau[yy+1] - ltau[yy-1]) / ttau) * 0.5;
-    else if((yy == (n-1)) && (n > 1)) dtau = fabs(ltau[yy] - ltau[yy-1]) / ttau;
+    if((yy == 0) && (n > 1)) dtau = fabs(ltau[0] - ltau[1]) / dtmax;
+    else if((yy > 0) && (yy < (n-1)) && (n > 1)) dtau = fabs((ltau[yy+1] - ltau[yy-1]) / dtmax) * 0.5;
+    else if((yy == (n-1)) && (n > 1)) dtau = fabs(ltau[yy] - ltau[yy-1]) / dtmax;
     
     
     reg[roff+yy] = c*(var[yy] - me) / dtau;
+    dregul.rt[yy+roff] = typ;
 
     for(int xx=0; xx<n; xx++){
 
       if(xx == yy) dreg[roff+yy][off+xx] = c * (1.0 - idn) / dtau;
       else         dreg[roff+yy][off+xx] = c * (    - idn) / dtau;
-     
+      
     }
   }
+
+  
+  for(int yy=0; yy<n; yy++){
+    for(int xx=0; xx<n; xx++){
+      double sum = 0.0;
+      for(int kk=0;kk<n;kk++)
+	sum += dreg[roff+kk][off+xx] * dreg[roff+kk][off+yy];
+      LL[yy+roff][xx+off] += sum;
+    }
+  }
+      
+  
+
+
+  
   return n;
 }
 
 /* --------------------------------------------------------------------------------------------------- */
 
-int tikhonov1_dregul(int n, double *ltau, double *var, double weight, double **dreg, double *reg, int off, int roff)
+int tikhonov1_dregul(int n, double *ltau, double *var, double weight, reg_t &dregul, int off, int roff, int typ)
 {
 
-  
+  double *reg = dregul.reg, **LL = dregul.LL, **dreg = dregul.dreg; 
   double c = weight / (double)(n-1);
   double c_sqrt = sqrt(c);
   
@@ -372,26 +402,108 @@ int tikhonov1_dregul(int n, double *ltau, double *var, double weight, double **d
      --- */
 
   
-  double ttau = fabs(ltau[n-1] - ltau[0]);
+  //double ttau = fabs(ltau[n-1] - ltau[0]);
+  double dtmax = 0.0;
+  for(int ii=1; ii<n; ii++){
+    double dt = fabs(ltau[ii]-ltau[ii-1]);
+    if(dt > dtmax) dtmax = dt;
+  }
+  if(dtmax == 0.0) dtmax = 1.0;
+  
+  
   for(int yy = 1; yy<n; yy++){
 
     /* --- 2 terms around the diagonal of J --- */
     
-    double dtau = fabs(ltau[yy] - ltau[yy-1]) / ttau;
-
+    double dtau = (abs(ltau[yy] - ltau[yy-1]) / dtmax);
+    dregul.rt[yy-1+roff] = typ;	
     reg[yy-1+roff] = c_sqrt * (var[yy] - var[yy-1]) / dtau;
-    dreg[yy-1+roff][yy+off] = c_sqrt / dtau;
-    dreg[yy-1+roff][yy-1+off] = - dreg[yy-1+roff][yy+off];
+    //
+    double tmp = c_sqrt / dtau;
+    dreg[yy-1+roff][yy+off] = tmp;
+    dreg[yy-1+roff][yy-1+off] = -tmp;
+    //
+    tmp *= tmp;
+    LL[yy+off-1][yy+off-1] += tmp;
+    LL[yy+off  ][yy+off  ] += tmp;
+    
+    LL[yy+off][yy+off-1] += - tmp;
+    LL[yy+off-1][yy+off]   += - tmp;
   }
+  
+  return n-1;
+}
+
+/* --------------------------------------------------------------------------------------------------- */
+
+
+int scalGrad_dregul(int n, double *ltau, double *var, double weight, reg_t &dregul, int off, int roff, int typ)
+{
+
+  double *reg = dregul.reg, **LL = dregul.LL, **dreg = dregul.dreg; 
+  double c = weight/ (double)(n-1);
+  double c_sqrt = sqrt(c);
+
+  
+  /* --- Derivative in the first and last points:
+
+     Penalty: pe =  c * ((var[k+1] - var[k])/|dltau|)
+     d/x_i pe     = c / |dltau|
+     d/x_i-1 pe  =  c * (-1) / |dltau| = -d/dx_i pe
+
+     In the LM we have divided the x2 in all terms so we do it here too in 
+     the implementation.
+     
+     --- */
+
+  
+  //double ttau = fabs(ltau[n-1] - ltau[0]);
+  double dtmax = 0.0;
+  for(int ii=1; ii<n; ii++){
+    double dt = fabs(ltau[ii]-ltau[ii-1]);
+    if(dt > dtmax) dtmax = dt;
+  }
+  if(dtmax == 0.0) dtmax = 1.0;
+  
+  
+  for(int yy = 1; yy<n; yy++){
+
+    /* --- 2 terms around the diagonal of J --- */
+
+    double ya = var[yy-1], yb = var[yy];
+    
+    double dtau = (abs(ltau[yy] - ltau[yy-1]) / dtmax);
+    double ysum = sqrt(1.0 + SQ(ya) + SQ(yb));
+    double tmp = c_sqrt / dtau;
+
+    dregul.rt[yy-1+roff] = typ;	
+    reg[yy-1+roff] = tmp * 2.0 * (yb-ya) / ysum;
+    //
+    dreg[yy-1+roff][yy+off] = tmp * (2.0*(1+ya*ya + ya*yb)) / CUB(ysum);
+    dreg[yy-1+roff][yy-1+off] = -tmp * (2.0*(1.0+ya*yb + yb*yb)) / CUB(ysum);
+    //
+    tmp *= tmp*0.5;
+    ysum = CUB(1.0 + SQ(ya) + SQ(yb));
+
+
+    LL[yy+off-1][yy+off-1] += tmp * (8.*(1.-3.*SQ(ya) - 2.*CUB(ya)*yb + SQ(yb) + 6*ya*(yb+CUB(yb)))) / ysum;
+    LL[yy+off  ][yy+off  ] += tmp * (8.*(1.+SQ(ya) + 6.*ya*yb*(1.+SQ(ya)) - 3.*SQ(yb) - 2.*ya*CUB(yb))) / ysum;
+    
+    double tmp1 = 8.*(-1. + SQ(SQ(ya)) -4.*ya*yb - 6.*SQ(ya)*SQ(yb) + SQ(SQ(yb))) / ysum;
+    LL[yy+off][yy+off-1] +=  tmp * tmp1 ;
+    LL[yy+off-1][yy+off]   +=  tmp * tmp1;
+  }
+  
   return n-1;
 }
 /* --------------------------------------------------------------------------------------------------- */
 
-int secDer_dregul(int n, double *ltau, double *var, double weight, double **dreg, double *reg, int off, int roff)
+int secDer_dregul(int n, double *ltau, double *var, double weight, reg_t &dregul, int off, int roff, int typ)
 {
 
-  
-  double c = weight / (double)(n);
+  double *reg = dregul.reg, **LL = dregul.LL, **dreg = dregul.dreg; 
+
+  double c = weight / double(n-2);
   double c_sqrt = sqrt(c);
   
   /* --- non-equidistant second derivative:
@@ -406,110 +518,49 @@ int secDer_dregul(int n, double *ltau, double *var, double weight, double **dreg
      
      --- */
 
+  double dtmax = 0.0;
+  for(int ii=1; ii<n; ii++){
+    double dt = fabs(ltau[ii]-ltau[ii-1]);
+    if(dt > dtmax) dtmax = dt;
+  }
+  if(dtmax == 0.0) dtmax = 1.0;
+
   
-  double ttau = 1.0;//fabs(ltau[n-1] - ltau[0]);
+  
   for(int yy = 1; yy<(n-1); yy++){
 
     /* --- 3 terms around the diagonal of J --- */
     
-    double dt0 = fabs(ltau[yy] - ltau[yy-1]) / ttau;
-    double dt1 = fabs(ltau[yy+1] - ltau[yy]) / ttau;
+    double dt0 = fabs(ltau[yy] - ltau[yy-1]) / dtmax;
+    double dt1 = fabs(ltau[yy+1] - ltau[yy]) / dtmax;
     double tmp = 2.0/(dt0+dt1);
     double A = tmp / dt1, C = tmp / dt0;
     double B = -2.0 / (dt0*dt1);
     
-    
+    dregul.rt[yy-1+roff] = typ;
     reg[yy-1+roff] = c_sqrt * (B*var[yy] + C*var[yy-1] + A*var[yy+1]);
-    dreg[yy-1+roff][yy-1+off] = c_sqrt * C;
-    dreg[yy-1+roff][yy+off]   = c_sqrt * B;
-    dreg[yy-1+roff][yy+1+off] = c_sqrt * A;
+    dreg[yy-1+roff][yy-1+off] += c_sqrt * C;
+    dreg[yy-1+roff][yy+off]   += c_sqrt * B;
+    dreg[yy-1+roff][yy+1+off] += c_sqrt * A;
+ 
+    LL[yy-1+off][yy-1+off] += c * C*C;
+    LL[yy+off  ][yy+off  ] += c * B*B;
+    LL[yy+1+off][yy+1+off] += c * A*A;
 
+    tmp = c*C*B;
+    LL[yy-1+off][yy+0+off] += tmp; LL[yy+0+off][yy-1+off] += tmp;
+
+    tmp = c*A*C;
+    LL[yy-1+off][yy+1+off] += tmp; LL[yy+1+off][yy-1+off] += tmp;
+
+    tmp = c*A*B;
+    LL[yy+1+off][yy+0+off] += tmp; LL[yy+0+off][yy+1+off] += tmp;
   }
+  
   return n-2;
 }
 
-/* --------------------------------------------------------------------------------------------------- */
-int line3dregul(int nn, double *ltau, double *var, double weight, double **dreg, double *reg, int off, int roff)
-{
-  
-  
-  double c = weight;// / (double)(nn);
-  double c_sqrt = sqrt(c);
-  static const double n = 3.0, in = 1/n;
-  int nn1 = nn-1;
-  
-  /* --- Deviations from a local linear fit:
-     pen = (y_i - a*x_i - b)
-     The trick is to express the derivative of a and b
-     in terms of y_i, y_i-1 and y_i+1.
-     
-     a = n*xysum - xsum * ysum / (n*x2sum - (xsum)**2)
-     b = 1/n * (ysum - a * xsum)
-     
-     dpen_dyi = 1 - x_i * da_dy_i - db_dy_i
-     dpen_dyj = 0 - x_i * da_dy_j - db_dy_j
-     
-     where:
-     da_dy_i/j = (n*x_i/j - xsum) / (n*x2sum - (xsum)**2) 
-     db_dy_i/j = (1 - xsum * da_dy_i/j) / n
-     
-     --- */
-  
-  for(int yy = 1; yy<nn1; yy++){
-    
-    double xsum = ltau[yy-1] + ltau[yy] + ltau[yy+1];
-    double ysum = var[yy-1]  + var[yy]  + var[yy+1];
-    double x2sum = ltau[yy-1]*ltau[yy-1] + ltau[yy]*ltau[yy] + ltau[yy+1]*ltau[yy+1];
-    double xysum = ltau[yy-1]*var[yy-1]  + ltau[yy]*var[yy]  + ltau[yy+1]*var[yy+1];
-    
-    double tmp = (n*x2sum - (xsum*xsum));
-    double a = (n*xysum - xsum*ysum) / tmp;
-    double b = (ysum - a*xsum) * in;
-    
-    double y0 = a*ltau[yy-1] + b;
-    double y1 = a*ltau[yy]   + b;
-    double y2 = a*ltau[yy+1] + b;
-    
-    double p0 = (var[yy-1]-y0);
-    double p1 = (var[yy  ]-y1);
-    double p2 = (var[yy+1]-y2);
 
-    double s0 = mth::sign(p0), s1 = mth::sign(p1), s2 = mth::sign(p2);
-    
-    reg[yy-1+roff] =  c_sqrt * (fabs(p0) + fabs(p1) + fabs(p2));
-    //    fprintf(stderr,"[%d] a=%e, b=%e, c=%e -> %e \n", yy-1-roff, y0, y1, y2, reg[yy-1+roff]);
-
-    // --- Central Upwind point term derivatives of the 3 penalty functions  --- //
-    
-    double da_dy = (n*ltau[yy-1] - xsum)/tmp;
-    double db_dy = in*(1.0 - xsum * da_dy);
-    dreg[yy-1+roff][yy-1+off] = s0*c_sqrt * (1.0-ltau[yy-1]*da_dy - db_dy);
-    dreg[yy-1+roff][yy+off]   = s1*c_sqrt * (0.0-ltau[yy  ]*da_dy - db_dy);
-    dreg[yy-1+roff][yy+1+off] = s2*c_sqrt * (0.0-ltau[yy+1]*da_dy - db_dy);
-
-    
-    
-    // --- Central point --- //
-    
-    da_dy = (n*ltau[yy] - xsum)/tmp;
-    db_dy = in*(1.0 - xsum * da_dy);
-    dreg[yy-1+roff][yy-1+off]+= s0*c_sqrt * (0.0-ltau[yy-1]*da_dy - db_dy);
-    dreg[yy-1+roff][yy+off]  += s1*c_sqrt * (1.0-ltau[yy  ]*da_dy - db_dy);
-    dreg[yy-1+roff][yy+1+off]+= s2*c_sqrt * (0.0-ltau[yy+1]*da_dy - db_dy);
-
-    
-    // --- Downwind point --- //
-    
-    da_dy = (n*ltau[yy+1] - xsum)/tmp;
-    db_dy = in*(1.0 - xsum * da_dy);
-    dreg[yy-1+roff][yy-1+off]+= s0*c_sqrt * (0.0-ltau[yy-1]*da_dy - db_dy);
-    dreg[yy-1+roff][yy+off]  += s1*c_sqrt * (0.0-ltau[yy  ]*da_dy - db_dy);
-    dreg[yy-1+roff][yy+1+off]+= s2*c_sqrt * (1.0-ltau[yy+1]*da_dy - db_dy);
-    
-  }
-  
-  return nn-2;
-}
 
 /* --------------------------------------------------------------------------------------------------- */
 
@@ -521,6 +572,7 @@ void getDregul2(double *m, int npar, reg_t &dregul, nodes_t &n)
   double  *ltau = NULL, we = 0.0;
   nodes_type_t ntype = none_node;
   int off = 0, roff = 0;
+
   
   dregul.zero();
   
@@ -535,14 +587,24 @@ void getDregul2(double *m, int npar, reg_t &dregul, nodes_t &n)
     int nn = (int)n.temp.size();
     switch(n.regul_type[0]){
     case(1):
-      if((nn-1) >= 2){
-	roff += tikhonov1_dregul(nn-1, &ltau[1], &m[off+1], we, dregul.dreg, dregul.reg, off+1, roff);
+      if((nn) >= 2){
+	roff += tikhonov1_dregul(nn, &ltau[0], &m[off], we, dregul , off, roff,0);
       }
       break;
+    case(2):
+      if(nn >= 2)
+	roff += scalGrad_dregul(nn, &ltau[0], &m[off], we, dregul , off, roff,0);
+      break;
+    case(3):
+      if(nn >= 3)
+	roff += secDer_dregul(nn, &ltau[0], &m[off], we, dregul , off, roff, 0);
+      break;
     case(5):
-      if((nn-1) >= 2){
+      if(nn >= 3){
 	//	roff += tikhonov1_dregul(nn-1, &ltau[1], &m[off+1], we*0.6, dregul.dreg, dregul.reg, off+1, roff);
-	roff +=    line3dregul(nn, ltau, &m[off], we, dregul.dreg, dregul.reg, off, roff);
+	//	roff +=    line3dregul(nn, ltau, &m[off], we, dregul, off, roff);
+	roff+= secDer_dregul(nn, &ltau[0], &m[off],    we*0.3, dregul , off, roff,0);
+	roff+= tikhonov1_dregul(nn, &ltau[0], &m[off], we*0.7, dregul , off, roff,0);
       }
       break;
     default:
@@ -562,13 +624,13 @@ void getDregul2(double *m, int npar, reg_t &dregul, nodes_t &n)
     switch(n.regul_type[1]){
     case(1):
       if(nn >= 2)
-	roff += tikhonov1_dregul(nn, ltau, &m[off], we, dregul.dreg, dregul.reg, off, roff);
+	roff += tikhonov1_dregul(nn, ltau, &m[off], we, dregul , off, roff,1);
       break;
     case(2):
-      roff += mean_dregul(nn, ltau, &m[off], we, dregul.dreg, dregul.reg, off, roff);
+      roff += mean_dregul(nn, ltau, &m[off], we, dregul , off, roff,1);
       break;
     case(3):
-      roff += const_dregul(nn, ltau, &m[off], we, dregul.dreg, dregul.reg, 0.0, off, roff);
+      roff += const_dregul(nn, ltau, &m[off], we, dregul, 0.0, off, roff,1);
       break;
     default:
       break;
@@ -587,18 +649,18 @@ void getDregul2(double *m, int npar, reg_t &dregul, nodes_t &n)
     switch(n.regul_type[2]){
     case(1):
       if(nn >= 2)
-	roff += tikhonov1_dregul(nn, ltau, &m[off], we, dregul.dreg, dregul.reg, off, roff);
+	roff += tikhonov1_dregul(nn, ltau, &m[off], we, dregul, off, roff,2);
       break;
     case(2):
-      roff += mean_dregul(nn, ltau, &m[off], we, dregul.dreg, dregul.reg, off, roff);
+      roff += mean_dregul(nn, ltau, &m[off], we, dregul, off, roff,2);
       break;
     case(3):
-      roff += const_dregul(nn, ltau, &m[off], we, dregul.dreg, dregul.reg, 0.0, off, roff);
+      roff += const_dregul(nn, ltau, &m[off], we, dregul, 0.0, off, roff,2);
       break;
     case(4):
       if(nn >= 2){
-	roff += tikhonov1_dregul(nn, ltau, &m[off], we*0.2, dregul.dreg, dregul.reg, off, roff);
-	roff += const_dregul(nn, ltau, &m[off], we*0.8, dregul.dreg, dregul.reg, 0.0, off, roff);
+	roff += tikhonov1_dregul(nn, ltau, &m[off], we*0.8, dregul, off, roff,2);
+	roff += const_dregul(nn, ltau, &m[off], we*0.2, dregul, 0.0, off, roff,2);
       }
       break;
     default:
@@ -619,13 +681,13 @@ void getDregul2(double *m, int npar, reg_t &dregul, nodes_t &n)
     switch(n.regul_type[3]){
     case(1):
       if(nn >= 2)
-	roff += tikhonov1_dregul(nn, ltau, &m[off], we, dregul.dreg, dregul.reg, off, roff);
+	roff += tikhonov1_dregul(nn, ltau, &m[off], we, dregul, off, roff,3);
       break;
     case(2):
-      roff += mean_dregul(nn, ltau, &m[off], we, dregul.dreg, dregul.reg, off, roff);
+      roff += mean_dregul(nn, ltau, &m[off], we, dregul, off, roff,3);
       break;
     case(3):
-      roff += const_dregul(nn, ltau, &m[off], we, dregul.dreg, dregul.reg, 0.0, off, roff);
+      roff += const_dregul(nn, ltau, &m[off], we, dregul, 0.0, off, roff,3);
       break;
     default:
       break;
@@ -644,13 +706,13 @@ void getDregul2(double *m, int npar, reg_t &dregul, nodes_t &n)
     switch(n.regul_type[4]){
     case(1):
       if(nn >= 2)
-	roff += tikhonov1_dregul(nn, ltau, &m[off], we, dregul.dreg, dregul.reg, off, roff);
+	roff += tikhonov1_dregul(nn, ltau, &m[off], we, dregul, off, roff,4);
       break;
     case(2):
-      roff += mean_dregul(nn, ltau, &m[off], we, dregul.dreg, dregul.reg, off, roff);
+      roff += mean_dregul(nn, ltau, &m[off], we, dregul, off, roff,4);
       break;
     case(3):
-      roff += const_dregul(nn, ltau, &m[off], we, dregul.dreg, dregul.reg, 0.0, off, roff);
+      roff += const_dregul(nn, ltau, &m[off], we, dregul, 0.0, off, roff,4);
       break;
     default:
       break;
@@ -669,10 +731,10 @@ void getDregul2(double *m, int npar, reg_t &dregul, nodes_t &n)
     switch(n.regul_type[5]){
     case(1):
       if(nn >= 2)
-	roff += tikhonov1_dregul(nn, ltau, &m[off], we, dregul.dreg, dregul.reg, off, roff);
+	roff += tikhonov1_dregul(nn, ltau, &m[off], we, dregul, off, roff,5);
       break;
     case(2):
-      roff += mean_dregul(nn, ltau, &m[off], we, dregul.dreg, dregul.reg, off, roff);
+      roff += mean_dregul(nn, ltau, &m[off], we, dregul, off, roff,5);
       break;
     default:
       break;
@@ -692,6 +754,7 @@ void getDregul2(double *m, int npar, reg_t &dregul, nodes_t &n)
     double tmp = (m[off] - 0.1); // the normalization function is 10.
     dregul.reg[roff] = tmp * sqrt(weights[6]*dregul.scl);
     dregul.dreg[roff][off] = sqrt(weights[6]*dregul.scl);
+    dregul.rt[roff] = 6;
     roff++;
   }
 
@@ -706,8 +769,11 @@ void getDregul2(double *m, int npar, reg_t &dregul, nodes_t &n)
     cerr<<endl;
   }
 
-
-  memset(&dregul.reg[0], 0,dregul.nreg*sizeof(double));
+  
+  // for(int ii=0; ii<dregul.nreg; ii++) fprintf(stderr,"%e %d\n", dregul.reg[ii], dregul.nreg);
+					  
+  //fprintf(stderr,"%e\n", dregul.getReg() );
+  //memset(&dregul.reg[0], 0,dregul.nreg*sizeof(double)); 
   
 }
 
@@ -818,17 +884,18 @@ int getChi2(int npar1, int nd, double *pars1, double *syn_in, double *dev, doubl
   return 0;
 }
 
-reg_t init_dregul(int npar, nodes_t &n, double scl)
+reg_t init_dregul(int npar, nodes_t &n, double scl, double scl1, int ntrans)
 {
-
-
+  
   /* --- detect number of penalty functions --- */
 
   int npen = 0, nn = 0;
   if(n.toinv[0] && (n.regul_type[0] > 0)){
     nn = n.temp.size();
-    if     ((n.regul_type[0] == 1) && (nn >= 3)) npen += nn-2;
-    else if((n.regul_type[0] == 5) && (nn >= 3)) npen += nn-2;
+    if     ((n.regul_type[0] == 1) && (nn >= 2)) npen += nn-1;
+    else if((n.regul_type[0] == 2) && (nn >= 2)) npen += nn-1;
+    else if((n.regul_type[0] == 3) && (nn >= 2)) npen += nn-2;
+    else if((n.regul_type[0] == 5) && (nn >= 3)) npen += nn-2 + nn-1;
   }
 
   if(n.toinv[1] && (n.regul_type[1] > 0)){
@@ -869,7 +936,7 @@ reg_t init_dregul(int npar, nodes_t &n, double scl)
   
   reg_t res;
   if(npen > 0)
-    res.set(npar, npen, scl);
+    res.set(npar, npen, scl, scl1, ntrans);
   return res;
 }
 
@@ -902,8 +969,8 @@ double atmos::fitModel2(mdepth_t &m, int npar, double *pars, int nobs, double *o
 
   /* --- get regularization --- */
   reg_t regul;
-  if(input.regularize >= 1.e-5)
-    regul = init_dregul(npar, input.nodes, input.regularize);
+  if(input.nodes.regularize[0] >= 1.e-8)
+    regul = init_dregul(npar, input.nodes, input.nodes.regularize[0], input.nodes.regularize[1], input.nodes.nregul);
 
   
   /* --- Invert pixel randomizing parameters if iter > 0 --- */
@@ -918,7 +985,7 @@ double atmos::fitModel2(mdepth_t &m, int npar, double *pars, int nobs, double *o
   /* --- Init clm --- */
 
   clm lm = clm(ndata, npar);
-  lm.xtol = 3.e-3;
+  lm.xtol = 1.e-2;
   lm.verb = input.verbose;
   lm.use_geo_accel = input.use_geo_accel;
   
@@ -933,9 +1000,9 @@ double atmos::fitModel2(mdepth_t &m, int npar, double *pars, int nobs, double *o
   lm.proc = input.myrank;
   lm.delay_bracket = input.delay_bracket;
   
-  if(input.regularize >= 1.e-5){
+  if(input.nodes.regularize[0] >= 1.e-5){
     lm.regularize = true;
-    lm.regul_scal_in = input.regularize;
+    lm.regul_scal_in = input.nodes.regularize[0];
   } else lm.regularize = false;
   
   /* ---  Set parameter limits --- */
@@ -965,7 +1032,7 @@ double atmos::fitModel2(mdepth_t &m, int npar, double *pars, int nobs, double *o
     
     if(input.nodes.ntype[pp] == temp_node){
       lm.fcnt[pp].relchange = ((depth_per) ? false : true);
-      lm.fcnt[pp].maxchange[0] = 0.25;
+      lm.fcnt[pp].maxchange[0] = 0.5;
       lm.fcnt[pp].maxchange[1] = 2.0;
     }else{
       lm.fcnt[pp].relchange = false;
@@ -980,8 +1047,7 @@ double atmos::fitModel2(mdepth_t &m, int npar, double *pars, int nobs, double *o
 
   
   /* --- Loop iters --- */
-
-  int nrandomize = 0;
+  
   for(int iter = 0; iter < input.nInv; iter++){
 
     cleanup();
@@ -997,7 +1063,7 @@ double atmos::fitModel2(mdepth_t &m, int npar, double *pars, int nobs, double *o
 
     
     if(iter > 0 || input.random_first){
-      randomizeParameters(input.nodes , npar, &ipars[0], nrandomize++);
+      randomizeParameters(input.nodes , npar, &ipars[0]);
       if(depth_per){
 	imodel->ref_m->expand(input.nodes, &ipars[0], input.dint, input.depth_model);
 	checkBounds(*imodel->ref_m);

@@ -57,8 +57,9 @@ struct nodes{
   std::vector<double> azi;
   std::vector<nodes_type_t> ntype;
   int toinv[7];
-  int regul_type[7];
+  int regul_type[7], nregul;
   double rewe[7];
+  double regularize[2];
 };
 typedef nodes nodes_t;
 
@@ -70,7 +71,7 @@ struct iput{
   int nt, ny, nx, ns, npar, npack, mode, nInv, inst_len, atmos_len, ab_len,
     nw_tot, boundary, ndep, solver, centder, thydro, dint, keep_nne, svd_split, random_first, depth_model,
     use_geo_accel, nresp, getResponse[8], delay_bracket;
-  double mu, chi2_thres, sparse_threshold, dpar, init_step, marquardt_damping, svd_thres, regularize, tcut;
+  double mu, chi2_thres, sparse_threshold, dpar, init_step, marquardt_damping, svd_thres,  tcut;
   std::string imodel, omodel, iprof, oprof, myid, instrument,
     atmos_type, wavelet_type, oatmos, abfile;
   int xx, yy, ipix, nPacked;
@@ -83,6 +84,9 @@ struct iput{
   std::vector<line_t> lines;
   nodes_t nodes;
   bool verbose;
+
+  iput(){};
+  ~iput(){};
 };
 typedef iput iput_t; 
 

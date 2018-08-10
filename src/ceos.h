@@ -14,17 +14,17 @@
 
 /* Interface for Fortran routines */
 extern "C" {
-  int eqcount_(const char [][3], const char [][8], int *, int &, int &, int &);
+  int eqcount_(const char [][3], const char [][8], int *, int &, int &, int &, int, int);
 
   int eqlist_(const float *, const char [][3], const char [][8], int *, int *, char *, int &,
-	      int &, int &,  int&);
+	      int &, int &,  int&, int, int, int);
 
   void eqstat_(int &, float &, float &, float &, float *, const char [][3],
 	       const float *, int &, int *, char *, float *, float *, float *,
-	       float *, int &, int &, float &, float &, float &, int &);
+	       float *, int &, int &, float &, float &, float &, int &, int, int);
   void eqstat_rho_(int &, float &, float &, float &, float *, const char [][3],
 	       const float *, int &, int *, char *, float *, float *, float *,
-	       float *, int &, int &, float &, float &, float &, int &);
+		   float *, int &, int &, float &, float &, float &, int &, int, int);
   //     subroutine eqstat_rho(mode,temp,Pg,Pe,abund,elemen,amass,
   //   &                  ELESIZ,spindx,splist,xfract,poti,atwght,
   //   &                  nlines,nlist,xne,xna,rho,niter)

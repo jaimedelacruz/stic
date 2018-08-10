@@ -99,7 +99,8 @@ iput_t read_input(std::string filename, bool verbose){
   input.marquardt_damping = -1.0;
   input.svd_thres = 1.0e-5;
   input.svd_split = 1;
-  input.regularize = 0.0;
+  input.nodes.regularize[0] = 0.0;
+  input.nodes.nregul = 1;
   input.random_first = 0;
   input.depth_model = 0;
   input.tcut = -1.0;
@@ -108,7 +109,7 @@ iput_t read_input(std::string filename, bool verbose){
   
   memset(input.getResponse, 8, sizeof(int));
   memset(input.nodes.regul_type, 0, 7*sizeof(int));
-  const double tmp[7] = {0.006, 0.06, 0.1, 0.1, 0.1, 0.1, 10.0};
+  const double tmp[7] = {1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0};
   memcpy(input.nodes.rewe, tmp, 7*sizeof(double));
 
   
@@ -194,8 +195,22 @@ iput_t read_input(std::string filename, bool verbose){
 	set = true;
       }
       else if(key == "regularize"){
-	input.regularize = atof(field.c_str());
+	std::vector<std::string> param = strsplit(field,",");
+	int dum = (int)param.size();
+	if(dum == 3){
+	  input.nodes.regularize[0] = std::stof(param[0]);
+	  input.nodes.regularize[1] = std::stof(param[1]);
+	  input.nodes.nregul =  std::stoi(param[2]);
+	}else if(dum == 1){
+	  input.nodes.regularize[0] = std::stof(param[0]);
+	  input.nodes.regularize[1] = std::stof(param[0]);
+	  input.nodes.nregul = 0; 
+	}else{
+	  fprintf(stderr,"read_input: ERROR, wrong format for keyword [regularize]\n");
+	  exit(0);
+	}
 	set = true;
+
       }
       else if(key == "depth_t"){
 	input.nodes.depth_t = atoi(field.c_str());

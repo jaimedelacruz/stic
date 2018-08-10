@@ -79,12 +79,13 @@ void comm_send_parameters(iput_t &input){
   status = MPI_Bcast(&nregions,  1,    MPI_INT, 0, MPI_COMM_WORLD);  
   status = MPI_Bcast(&input.buffer_size,  2,    MPI_UNSIGNED_LONG, 0, MPI_COMM_WORLD);
 
-  status = MPI_Bcast(&input.nt, 34,    MPI_INT, 0, MPI_COMM_WORLD); // We are sending 11 ints from the struct!
-  status = MPI_Bcast(&input.nodes.regul_type, 7,    MPI_INT, 0, MPI_COMM_WORLD); // We are getting 15 ints from the struc
-  status = MPI_Bcast(&input.nodes.rewe, 7,    MPI_DOUBLE, 0, MPI_COMM_WORLD); // We are getting 15 ints from the struct!
+  status = MPI_Bcast(&input.nt, 33,    MPI_INT, 0, MPI_COMM_WORLD); // We are sending 11 ints from the struct!
+  status = MPI_Bcast(&input.nodes.regul_type, 8,    MPI_INT, 0, MPI_COMM_WORLD); // We are getting 15 ints from the struc
+  status = MPI_Bcast(&input.nodes.rewe, 9,    MPI_DOUBLE, 0, MPI_COMM_WORLD); // We are getting 15 ints from the struct!
+  // status = MPI_Bcast(&input.nodes.nregul,     1,    MPI_INT, 0, MPI_COMM_WORLD);
 
 
-  status = MPI_Bcast(&input.mu,  9, MPI_DOUBLE, 0, MPI_COMM_WORLD); // We are sending 4 doubles from the struct!
+  status = MPI_Bcast(&input.mu,  8, MPI_DOUBLE, 0, MPI_COMM_WORLD); // We are sending 4 doubles from the struct!
   status = MPI_Bcast(&input.max_inv_iter,  1, MPI_UNSIGNED, 0, MPI_COMM_WORLD);
     
   int dummy = (int)input.verbose;
@@ -184,12 +185,14 @@ void comm_recv_parameters(iput_t &input){
   status = MPI_Bcast(&nregions,  1,    MPI_INT, 0, MPI_COMM_WORLD);
   status = MPI_Bcast(&input.buffer_size,  2,    MPI_UNSIGNED_LONG, 0, MPI_COMM_WORLD);
 
-  status = MPI_Bcast(&input.nt, 34,    MPI_INT, 0, MPI_COMM_WORLD); // We are getting 15 ints from the struct!
-  status = MPI_Bcast(&input.nodes.regul_type, 7,    MPI_INT, 0, MPI_COMM_WORLD); // We are getting 15 ints from the struct!
-  status = MPI_Bcast(&input.nodes.rewe, 7,    MPI_DOUBLE, 0, MPI_COMM_WORLD); // We are getting 15 ints from the struct!
+  status = MPI_Bcast(&input.nt, 33,    MPI_INT, 0, MPI_COMM_WORLD); // We are getting 15 ints from the struct!
+  status = MPI_Bcast(&input.nodes.regul_type, 8,    MPI_INT, 0, MPI_COMM_WORLD); // We are getting 15 ints from the struct!
+  status = MPI_Bcast(&input.nodes.rewe, 9,    MPI_DOUBLE, 0, MPI_COMM_WORLD); // We are getting 15 ints from the struct!
+
+  // status = MPI_Bcast(&input.nodes.nregul,     1,    MPI_INT, 0, MPI_COMM_WORLD);
 
 
-  status = MPI_Bcast(&input.mu,  9, MPI_DOUBLE, 0, MPI_COMM_WORLD); // We are getting 4 doubles from the struct!
+  status = MPI_Bcast(&input.mu,  8, MPI_DOUBLE, 0, MPI_COMM_WORLD); // We are getting 4 doubles from the struct!
   status = MPI_Bcast(&input.max_inv_iter,  1, MPI_UNSIGNED, 0, MPI_COMM_WORLD);
 
   int dummy = 0;

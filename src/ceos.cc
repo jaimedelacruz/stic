@@ -140,7 +140,7 @@ void ceos::initEOS(vector<line_t> &lines){
   NLIST = 0; // Load the default list
   NLINES = species.size();
   
-  switch(eqcount_(ELEMEN, cspecies, &ion[0], NLINES, NLIST, NELEM))
+  switch(eqcount_(ELEMEN, cspecies, &ion[0], NLINES, NLIST, NELEM,3,8))
     {
     case 0: break;
     case 1:
@@ -172,7 +172,7 @@ void ceos::initEOS(vector<line_t> &lines){
   xamass.resize(ntotallist);
 
   switch(eqlist_(&ABUND[0], ELEMEN, &cspecies[0], &ion[0], &idxspec[0], &totallist[0],
-		 NLINES, NLIST, ntotallist, NELEM))
+		 NLINES, NLIST, ntotallist, NELEM,3,8,8))
     {
     case 0: break;
     case 1:
@@ -470,7 +470,7 @@ double ceos::nne_from_T_Pg(double T, double Pg,  double &rho, double Pe){
 
   eqstat_(mode, iT, iPg, iPe, &ABUND[0], ELEMEN, &AMASS[0], dum, &idxspec[0],
 	  &totallist[0], &fract[0], &pf[0], &potion[0], &xamass[0],
-	  NLINES, NLIST, xne, xna, RHOest, niter);
+	  NLINES, NLIST, xne, xna, RHOest, niter,3,8);
   rho = RHOest;
   
   return (double)xne;
@@ -506,7 +506,7 @@ float ceos::nne_from_T_rho_old(float T, float &iPg, float rho, float tol){
   float iT = T;
   eqstat_(mode, iT, Pg, Pe, &ABUND[0], ELEMEN, &AMASS[0], dum, &idxspec[0],
 	  &totallist[0], &fract[0], &pf[0], &potion[0], &xamass[0],
-	  NLINES, NLIST, xne, xna, rho_est, niter);
+	  NLINES, NLIST, xne, xna, rho_est, niter,3,8);
 
   
   while(fabs(dif) > tol){
@@ -525,7 +525,7 @@ float ceos::nne_from_T_rho_old(float T, float &iPg, float rho, float tol){
 
     eqstat_(mode, iT, Pg, Pe, &ABUND[0], ELEMEN, &AMASS[0], dum, &idxspec[0],
 	    &totallist[0], &fract[0], &pf[0], &potion[0], &xamass[0],
-	    NLINES, NLIST, xne, xna, rho_est, niter);
+	    NLINES, NLIST, xne, xna, rho_est, niter,3,8);
     
     dif = ((rho - rho_est)/rho);
 
@@ -995,7 +995,7 @@ double ceos::rho_from_T_nne(double T, double &iPg, double nne, float tol){
   float iT = T;
   eqstat_(mode, iT, Pg, Pe, &ABUND[0], ELEMEN, &AMASS[0], dum, &idxspec[0],
 	  &totallist[0], &fract[0], &pf[0], &potion[0], &xamass[0],
-	  NLINES, NLIST, xne, xna, rho_est, niter);
+	  NLINES, NLIST, xne, xna, rho_est, niter,3,8);
   
   
   while(fabs(dif) > tol){
@@ -1014,7 +1014,7 @@ double ceos::rho_from_T_nne(double T, double &iPg, double nne, float tol){
     
     eqstat_(mode, iT, Pg, Pe, &ABUND[0], ELEMEN, &AMASS[0], dum, &idxspec[0],
 	    &totallist[0], &fract[0], &pf[0], &potion[0], &xamass[0],
-	    NLINES, NLIST, xne, xna, rho_est, niter);
+	    NLINES, NLIST, xne, xna, rho_est, niter,3,8);
     
     dif = ((nne - xne)/nne);
     
@@ -1057,7 +1057,7 @@ double ceos::rho_from_T_pel(double T, double &iPg, double Pe, float tol){
   float iPe = (float)Pe;
   eqstat_(mode, iT, Pg, iPe, &ABUND[0], ELEMEN, &AMASS[0], dum, &idxspec[0],
 	  &totallist[0], &fract[0], &pf[0], &potion[0], &xamass[0],
-	  NLINES, NLIST, xne, xna, rho_est, niter);
+	  NLINES, NLIST, xne, xna, rho_est, niter,3,8);
   
   
   while(fabs(dif) > tol){
@@ -1076,7 +1076,7 @@ double ceos::rho_from_T_pel(double T, double &iPg, double Pe, float tol){
     
     eqstat_(mode, iT, Pg, iPe, &ABUND[0], ELEMEN, &AMASS[0], dum, &idxspec[0],
 	    &totallist[0], &fract[0], &pf[0], &potion[0], &xamass[0],
-	    NLINES, NLIST, xne, xna, rho_est, niter);
+	    NLINES, NLIST, xne, xna, rho_est, niter,3,8);
     
     dif = ((nne - xne)/nne);
     
@@ -1115,7 +1115,7 @@ float ceos::nne_from_T_Pg(float T, float Pg,  float &rho, float Pe){
 
   eqstat_(mode, T, Pg, Pe, &ABUND[0], ELEMEN, &AMASS[0], dum, &idxspec[0],
 	  &totallist[0], &fract[0], &pf[0], &potion[0], &xamass[0],
-	  NLINES, NLIST, xne, xna, RHOest, niter);
+	  NLINES, NLIST, xne, xna, RHOest, niter,3,8);
   rho = RHOest;
   
   return (float)xne;
@@ -1146,7 +1146,7 @@ double ceos::nne_from_T_rho_old(double iT, double &iPg, double irho, float tol){
   //float iT = T;
   eqstat_(mode, T, Pg, Pe, &ABUND[0], ELEMEN, &AMASS[0], dum, &idxspec[0],
 	  &totallist[0], &fract[0], &pf[0], &potion[0], &xamass[0],
-	  NLINES, NLIST, xne, xna, rho_est, niter);
+	  NLINES, NLIST, xne, xna, rho_est, niter,3,8);
 
   
   while(fabs(dif) > tol){
@@ -1165,7 +1165,7 @@ double ceos::nne_from_T_rho_old(double iT, double &iPg, double irho, float tol){
 
     eqstat_(mode, T, Pg, Pe, &ABUND[0], ELEMEN, &AMASS[0], dum, &idxspec[0],
 	    &totallist[0], &fract[0], &pf[0], &potion[0], &xamass[0],
-	    NLINES, NLIST, xne, xna, rho_est, niter);
+	    NLINES, NLIST, xne, xna, rho_est, niter,3,8);
     
     dif = ((rho - rho_est)/rho);
 
@@ -1205,7 +1205,7 @@ float ceos::rho_from_T_nne(float T, float &Pg, float nne, float tol){
   // float iT = T;
   eqstat_(mode, T, Pg, Pe, &ABUND[0], ELEMEN, &AMASS[0], dum, &idxspec[0],
 	  &totallist[0], &fract[0], &pf[0], &potion[0], &xamass[0],
-	  NLINES, NLIST, xne, xna, rho_est, niter);
+	  NLINES, NLIST, xne, xna, rho_est, niter,3,8);
   
   
   while(fabs(dif) > tol){
@@ -1224,7 +1224,7 @@ float ceos::rho_from_T_nne(float T, float &Pg, float nne, float tol){
     
     eqstat_(mode, T, Pg, Pe, &ABUND[0], ELEMEN, &AMASS[0], dum, &idxspec[0],
 	    &totallist[0], &fract[0], &pf[0], &potion[0], &xamass[0],
-	    NLINES, NLIST, xne, xna, rho_est, niter);
+	    NLINES, NLIST, xne, xna, rho_est, niter,3,8);
     
     dif = ((nne - xne)/nne);
     
@@ -1266,7 +1266,7 @@ float ceos::rho_from_T_pel(float T, float &Pg, float Pe, float tol){
   // float iPe = (float)Pe;
   eqstat_(mode, T, Pg, Pe, &ABUND[0], ELEMEN, &AMASS[0], dum, &idxspec[0],
 	  &totallist[0], &fract[0], &pf[0], &potion[0], &xamass[0],
-	  NLINES, NLIST, xne, xna, rho_est, niter);
+	  NLINES, NLIST, xne, xna, rho_est, niter,3,8);
   
   
   while(fabs(dif) > tol){
@@ -1285,7 +1285,7 @@ float ceos::rho_from_T_pel(float T, float &Pg, float Pe, float tol){
     
     eqstat_(mode, T, Pg, Pe, &ABUND[0], ELEMEN, &AMASS[0], dum, &idxspec[0],
 	    &totallist[0], &fract[0], &pf[0], &potion[0], &xamass[0],
-	    NLINES, NLIST, xne, xna, rho_est, niter);
+	    NLINES, NLIST, xne, xna, rho_est, niter,3,8);
     
     dif = ((nne - xne)/nne);
     
@@ -1321,7 +1321,7 @@ double ceos::nne_from_T_rho_nne_old(double T, double &iPg, double rho, double nn
   float iT = T;
   eqstat_(mode, iT, Pg, Pe, &ABUND[0], ELEMEN, &AMASS[0], dum, &idxspec[0],
 	  &totallist[0], &fract[0], &pf[0], &potion[0], &xamass[0],
-	  NLINES, NLIST, xne, xna, rho_est, niter);
+	  NLINES, NLIST, xne, xna, rho_est, niter,3,8);
 
   
   while(fabs(dif) > tol){
@@ -1340,7 +1340,7 @@ double ceos::nne_from_T_rho_nne_old(double T, double &iPg, double rho, double nn
 
     eqstat_(mode, iT, Pg, Pe, &ABUND[0], ELEMEN, &AMASS[0], dum, &idxspec[0],
 	    &totallist[0], &fract[0], &pf[0], &potion[0], &xamass[0],
-	    NLINES, NLIST, xne, xna, rho_est, niter);
+	    NLINES, NLIST, xne, xna, rho_est, niter,3,8);
     
     dif = ((rho - rho_est)/rho);
 
@@ -1370,7 +1370,7 @@ double ceos::nne_from_T_Pg_nne(double T, double Pg,  double &rho, double nne){
 
   eqstat_(mode, iT, iPg, iPe, &ABUND[0], ELEMEN, &AMASS[0], dum, &idxspec[0],
 	  &totallist[0], &fract[0], &pf[0], &potion[0], &xamass[0],
-	  NLINES, NLIST, xne, xna, RHOest, niter);
+	  NLINES, NLIST, xne, xna, RHOest, niter,3,8);
   rho = RHOest;
   
   return (double)xne;
@@ -1401,7 +1401,7 @@ float ceos::nne_from_T_rho(float T, float &Pg, float rho){
 
   eqstat_rho_(mode, T, Pg, Pe, &ABUND[0], ELEMEN, &AMASS[0],
 	      dum, &idxspec[0], &totallist[0], &fract[0], &pf[0], &potion[0], &xamass[0],
-	      NLINES, NLIST, xne, xna, rho, niter);
+	      NLINES, NLIST, xne, xna, rho, niter,3,8);
 
   return (float)xne;
 }
@@ -1430,7 +1430,7 @@ double ceos::nne_from_T_rho(double iT, double &iPg, double irho){
 
   eqstat_rho_(mode, T, Pg, Pe, &ABUND[0], ELEMEN, &AMASS[0],
 	      dum, &idxspec[0], &totallist[0], &fract[0], &pf[0], &potion[0], &xamass[0],
-	      NLINES, NLIST, xne, xna, rho, niter);
+	      NLINES, NLIST, xne, xna, rho, niter,3,8);
 
   iPg = (double)Pg;
   
@@ -1463,7 +1463,7 @@ double ceos::nne_from_T_rho_nne(double iT, double &iPg, double irho, double nne)
 
   eqstat_rho_(mode, T, Pg, Pe, &ABUND[0], ELEMEN, &AMASS[0],
 	      dum, &idxspec[0], &totallist[0], &fract[0], &pf[0], &potion[0], &xamass[0],
-	      NLINES, NLIST, xne, xna, rho, niter);
+	      NLINES, NLIST, xne, xna, rho, niter,3,8);
 
   iPg = (double)Pg;
   
@@ -1488,7 +1488,7 @@ float ceos::nne_from_T_rho_nne(float T, float &Pg, float rho, float nne){
 
   eqstat_rho_(mode, T, Pg, Pe, &ABUND[0], ELEMEN, &AMASS[0],
 	      dum, &idxspec[0], &totallist[0], &fract[0], &pf[0], &potion[0], &xamass[0],
-	      NLINES, NLIST, xne, xna, rho, niter);
+	      NLINES, NLIST, xne, xna, rho, niter,3,8);
 
   return (float)xne;
 }
@@ -1512,7 +1512,7 @@ float ceos::nne_from_T_Pg_nne(float T, float Pg,  float &rho, float nne){
 
   eqstat_(mode, T, Pg, Pe, &ABUND[0], ELEMEN, &AMASS[0], dum, &idxspec[0],
 	  &totallist[0], &fract[0], &pf[0], &potion[0], &xamass[0],
-	  NLINES, NLIST, xne, xna, RHOest, niter);
+	  NLINES, NLIST, xne, xna, RHOest, niter,3,8);
   rho = RHOest;
   
   return (float)xne;

@@ -60,22 +60,26 @@ struct clmf{
 /* --- Struct to store the regularization terms --- */
 
 struct reg_t{
-  bool to_reg;
-  int npar, nreg;
-  double scl;
+bool to_reg;
+int npar, nreg, ntrans;
+double scl, regularize[2];
   double **dreg;
   double *reg;
-
-reg_t():to_reg(false), npar(0), nreg(0), scl(1.0), dreg(NULL), reg(NULL){};
-  reg_t(int npar_in, int nreg_in, double scl_in);
+  double **LL;
+std::vector<int> rt;
+  
+reg_t():to_reg(false), npar(0), nreg(0), ntrans(0), scl(1.0), regularize{}, dreg(NULL), reg(NULL), LL(NULL){};
+reg_t(int npar_in, int nreg_in, double scl_in, double scl1_in, int ntot_in);
   reg_t(const reg_t &in);
   ~reg_t();
   
-  void set(int npar_in, int nreg_in, double scl_in);
+void set(int npar_in, int nreg_in, double scl_in, double scl1_in, int ntot_in);
   void zero();
   double getReg();
   void del();
   void copyReg(double *reg_in);
+void updateScl(int itt);
+void printReg();
   reg_t &operator=(const reg_t &in);
   
   
@@ -107,7 +111,7 @@ class clm{
   std::vector<unsigned> ptype, ntype;
   std::vector<std::vector<unsigned>> pidx;
   bool verb, regularize, first;
-  double xtol, chi2_thres, svd_thres, lfac, lmax, lmin, ilambda, regul_scal, regul_scal_in, reset_par;
+  double xtol, chi2_thres, svd_thres, lfac, lmax, lmin, ilambda, regul_scal, regul_scal_in, reset_par, corr, q, tchi;
   int maxreject, proc, nvar, use_geo_accel, delay_bracket;
 
   
@@ -142,8 +146,8 @@ class clm{
   void zero(double *res, double **rf);
   void getParTypes();
   void backSub(int n, Eigen::MatrixXd &u, Eigen::VectorXd &w, Eigen::MatrixXd &v,  double *b);
-  void geoAcceleration(double *x, double *dx, double h,  Eigen::BDCSVD<matrixXd> &A, matrixXd &LL,
-  		       double *res, void *mydat, reg_t &dregul, double **rf, clm_func fx, double lam);
+  //void geoAcceleration(double *x, double *dx, double h,  Eigen::BDCSVD<Eigen::Matrix<double,Dynamic, Dynamic, RowMajor>> &A, Eigen::Matrix<double,Dynamic, Dynamic, RowMajor &LL,
+  //  		       double *res, void *mydat, reg_t &dregul, double **rf, clm_func fx, double lam);
 
 
   double getTime(double t0 = -1.0){
