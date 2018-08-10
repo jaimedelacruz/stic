@@ -386,7 +386,7 @@ void set_S_Interpolation_stokes(char *value, void *pointer)
 
   enum S_interpol_stokes interpolation;
 
-  if      (!strcmp(value, "DELO_PARABOLIC"))
+  if      (!strcmp(value, "DELO_LINEAR"))
     interpolation = DELO_PARABOLIC;
   else if (!strcmp(value, "DELO_BEZIER3"))
     interpolation = DELO_BEZIER3;
