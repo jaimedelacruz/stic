@@ -22,10 +22,10 @@ LINKER = $(MPCXX)
 #
 # OPTIMIZATION
 #
-OPTS = -march=native -I/usr/include/tirpc
-CXXFLAGS = -O3 $(OPTS) -fPIC -std=c++11
-CFLAGS = -Ofast $(OPTS) -DHAVE_F90 -fPIC
-FFLAGS =  -O3 -march=native
+OPTS = -O3 -march=native -fPIC -I/usr/include/tirpc
+CXXFLAGS =  $(OPTS) -std=c++11
+CFLAGS =  $(OPTS) -DHAVE_F90 
+FFLAGS =   $(OPTS) 
 AR = gcc-ar
 OPENMP = -fopenmp 
 

@@ -20,9 +20,9 @@ LINKER = $(MPCXX)
 #
 # OPTIMIZATION
 #
-OPTS = -O3 -g -march=native -lm -lpthread -Wa,-q
-CXXFLAGS = $(OPTS) -ffast-math -std=c++11 -Wno-literal-suffix
-CFLAGS = $(OPTS) -ffast-math
+OPTS = -O3 -march=native -lm -lpthread -Wa,-q
+CXXFLAGS = $(OPTS) -std=c++11 -Wno-literal-suffix
+CFLAGS = $(OPTS) 
 FFLAGS = $(OPTS)
 AR = ar
 OPENMP = -fopenmp
