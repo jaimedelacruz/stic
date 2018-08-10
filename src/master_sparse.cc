@@ -273,7 +273,7 @@ void do_master_sparse(int myrank, int nprocs,  char hostname[]){
     opfile.initVar<float>(string("weights"), {"wav", "stokes"});
     opfile.write_Tstep<double>(string("weights"), w);
 
-    omfile.initRead(input.omodel, NcFile::replace);
+    // omfile.initRead(input.omodel, NcFile::replace);
 
     vector<int> dims = ipfile.dimSize("profiles");
     if(dims.size() == 5) dims.erase(dims.begin(), dims.begin()+1); // remove time
@@ -402,14 +402,14 @@ void do_master_sparse(int myrank, int nprocs,  char hostname[]){
       if(tt == 0){
 	vector<int> odim = model.getdims();
 	odim.insert(odim.begin(), 0);
-	omfile.initDim({"time","y", "x", "par"},odim);
-	omfile.initVar<float>(string("model"), {"time","y", "x", "par"});
+	//omfile.initDim({"time","y", "x", "par"},odim);
+	//omfile.initVar<float>(string("model"), {"time","y", "x", "par"});
       }
     
 
       /* --- Write model parameters, profiles and depth-stratified atmos --- */
       
-      omfile.write_Tstep(string("model"), model, tt);
+      //omfile.write_Tstep(string("model"), model, tt);
       im.write_model2(input.oatmos, tt);
     }
 

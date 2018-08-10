@@ -17,9 +17,9 @@ extern "C" {
 using namespace std;
 using namespace phyc;
 //
-const double crh::pmax[7]  = {110000., 100.e5, 15e5, 5000.0, 5000., PI, 15.0};
-const double crh::pmin[7]  = {2700. ,-100.e5,  +0.0,-5000.0,  +0.0,  +0.0, 0.1};
-const double crh::pscal[7] = {1400. , 6.0e5, 6.0e5, 1000.0, 1000.0, PI, 10.0};
+const double crh::pmax[7]  = {90000., 100.e5, 15e5, 5000.0, 5000., PI, 10.0};
+const double crh::pmin[7]  = {3100. ,-100.e5,  +0.0,-5000.0,  +0.0,  +0.0, 0.1};
+const double crh::pscal[7] = {5000. , 6.0e5, 6.0e5, 1000.0, 1000.0, PI, 1.0};
 const double crh::pstep[7] = {1.e-1 , 1.e-1, 1.0e-1, 2.0e-1, 2.0e-1, 1.0e-1, 1.0e-1};
 
 /* ----------------------------------------------------------------*/
