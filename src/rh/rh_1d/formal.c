@@ -50,15 +50,15 @@ double Formal(int nspect, bool_t eval_operator, bool_t redistribute, int iter)
   bool_t   initialize, boundbound, polarized_as, polarized_c,
            PRD_angle_dep, to_obs, solveStokes, angle_dep;
   enum     FeautrierOrder F_order;     
-  int      Nrays = atmos.Nrays, ref_index = 0;
+  int      Nrays = atmos.Nrays;//, ref_index = 0;
   long     Nspace = atmos.Nspace;
   register long int idx,idx0,idx1, lamuk;
   double  *I, *chi, *S, **Ipol, **Spol, *Psi, *Jdag, wmu, wmu255,dJmax, dJ,
           *J20dag, musq, threemu1, threemu2, *J, *J20, *lambda, sign,
     lambda_gas,lambda_prv,lambda_nxt,fac,dl,frac, **Jg;
   ActiveSet *as;
-  unsigned int *iprdh, *nc;
-  unsigned short *cprdh;
+  //unsigned int *iprdh, *nc;
+  //unsigned short *cprdh;
 
   
   /* --- Retrieve active set as of transitions at wavelength nspect - */

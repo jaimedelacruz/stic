@@ -410,6 +410,7 @@ void SortLambda_j(int mynw, double *mylambda)
     Error(MESSAGE, routineName, messageStr);
   }
   /* --- Allocate space for wavelength array and active sets -- ----- */
+  
   wavetable = malloc((spectrum.Nspect)*sizeof(double));
   memcpy(wavetable,spectrum.lambda, spectrum.Nspect*sizeof(double));
   

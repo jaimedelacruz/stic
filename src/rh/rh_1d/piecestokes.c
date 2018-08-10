@@ -50,6 +50,73 @@ extern Spectrum spectrum;
 extern char messageStr[];
 extern MPI_t mpi;
 
+#define swap(a,b,c) (c=a,a=b,b=c)
+
+
+void solveLinearFastP(double **A, double *B)
+{
+  
+  // --- Simple Gaussian elimination with partial pivoting --- //
+  
+  // A is the matrix with coeffs that multiply X. B is the right hand
+  // term (on input). The result is overwritten into B. All operations
+  // are done in-place
+  // It uses the macro "swap" to swap the values of two rows when a pivot
+  // is found
+
+  // The algorithm is a pretty standard Gauss-Jordan algorithm, here optimized a
+  // bit for performance.
+  
+  register int i,j,k;
+  int maxrow,swapme;
+  double maxel,tmp;
+  
+  
+  for (i=0; i<4; i++) {
+
+    // Find pivot
+
+    maxel = fabs(A[i][i]);
+    maxrow = i, swapme = 0;
+    
+    for (k=i+1; k<4; k++){
+      tmp = fabs(A[k][i]);
+      if(tmp > maxel){
+	maxel = tmp;
+	maxrow = k, swapme = 1;
+      }
+    }
+    
+    // swap
+    if(swapme){
+      for (k=i; k<4;k++) swap(A[maxrow][k],A[i][k],tmp);  
+      swap(B[maxrow],B[i],tmp); 
+    }
+
+    // Set to zero relevant columns
+    for (k=i+1; k<4; k++){
+      tmp = -A[k][i]/A[i][i];
+      A[k][i] = 0.0;
+      for ( j=i+1; j<4; j++) {
+	A[k][j] += tmp * A[i][j];
+      }
+      B[k] += tmp*B[i];
+    }
+  }
+
+  
+  // Solve upper triagonal system and store in B
+  
+  for (i=3; i>=0; i--) {
+    B[i] /= A[i][i];
+    for ( k=i-1;k>=0; k--) {
+      B[k] -= A[k][i] * B[i];
+    }
+  }
+  
+}
+
+
 
 /* ------- begin -------------------------- PiecewiseStokes.c ------- */
 
@@ -174,11 +241,13 @@ void PiecewiseStokes(int nspect, int mu, bool_t to_obs,
     }
     /* --- Solve linear equations for I --             -------------- */
 
-    SolveLinearEq(4, R, P, TRUE);
-    if (mpi.stop) {
-      freeMatrix((void **) R);
-      return; /* Get out if there is a singular matrix */
-    }
+    //SolveLinearEq(4, R, P, TRUE);
+    //if (mpi.stop) {
+    //  freeMatrix((void **) R);
+    //  return; /* Get out if there is a singular matrix */
+    // }
+
+    solveLinearFastP(R,P);
     
     /* --- Store results for Stokes vector --          -------------- */
 
