@@ -595,7 +595,7 @@ void getDregul2(double *m, int npar, reg_t &dregul, nodes_t &n)
       if(nn >= 2)
 	roff += scalGrad_dregul(nn, &ltau[0], &m[off], we, dregul , off, roff,0);
       break;
-    case(3):
+    case(4):
       if(nn >= 3)
 	roff += secDer_dregul(nn, &ltau[0], &m[off], we, dregul , off, roff, 0);
       break;
@@ -632,6 +632,10 @@ void getDregul2(double *m, int npar, reg_t &dregul, nodes_t &n)
     case(3):
       roff += const_dregul(nn, ltau, &m[off], we, dregul, 0.0, off, roff,1);
       break;
+    case(4):
+      if(nn >= 3)
+	roff += secDer_dregul(nn, &ltau[0], &m[off], we, dregul , off, roff, 0);
+      break;
     default:
       break;
     }
@@ -658,6 +662,10 @@ void getDregul2(double *m, int npar, reg_t &dregul, nodes_t &n)
       roff += const_dregul(nn, ltau, &m[off], we, dregul, 0.0, off, roff,2);
       break;
     case(4):
+      if(nn >= 3)
+	roff += secDer_dregul(nn, &ltau[0], &m[off], we, dregul , off, roff, 0);
+      break;
+    case(5):
       if(nn >= 2){
 	roff += tikhonov1_dregul(nn, ltau, &m[off], we*0.8, dregul, off, roff,2);
 	roff += const_dregul(nn, ltau, &m[off], we*0.2, dregul, 0.0, off, roff,2);
@@ -689,6 +697,10 @@ void getDregul2(double *m, int npar, reg_t &dregul, nodes_t &n)
     case(3):
       roff += const_dregul(nn, ltau, &m[off], we, dregul, 0.0, off, roff,3);
       break;
+    case(4):
+      if(nn >= 3)
+	roff += secDer_dregul(nn, &ltau[0], &m[off], we, dregul , off, roff, 0);
+      break;
     default:
       break;
     }
@@ -714,6 +726,10 @@ void getDregul2(double *m, int npar, reg_t &dregul, nodes_t &n)
     case(3):
       roff += const_dregul(nn, ltau, &m[off], we, dregul, 0.0, off, roff,4);
       break;
+    case(4):
+      if(nn >= 3)
+	roff += secDer_dregul(nn, &ltau[0], &m[off], we, dregul , off, roff, 0);
+      break;
     default:
       break;
     }
@@ -735,6 +751,10 @@ void getDregul2(double *m, int npar, reg_t &dregul, nodes_t &n)
       break;
     case(2):
       roff += mean_dregul(nn, ltau, &m[off], we, dregul, off, roff,5);
+      break;
+    case(4):
+      if(nn >= 3)
+	roff += secDer_dregul(nn, &ltau[0], &m[off], we, dregul , off, roff, 0);
       break;
     default:
       break;
@@ -894,39 +914,44 @@ reg_t init_dregul(int npar, nodes_t &n, double scl, double scl1, int ntrans)
     nn = n.temp.size();
     if     ((n.regul_type[0] == 1) && (nn >= 2)) npen += nn-1;
     else if((n.regul_type[0] == 2) && (nn >= 2)) npen += nn-1;
-    else if((n.regul_type[0] == 3) && (nn >= 2)) npen += nn-2;
+    else if((n.regul_type[0] == 4) && (nn >= 3)) npen += nn-2;
     else if((n.regul_type[0] == 5) && (nn >= 3)) npen += nn-2 + nn-1;
   }
 
   if(n.toinv[1] && (n.regul_type[1] > 0)){
     nn = n.v.size();
     if((n.regul_type[1] == 1) && (nn >= 2)) npen += nn-1;
-    else                     npen += nn;
+    else if(n.regul_type[1] == 2)           npen += nn;
+    else if((n.regul_type[1] == 4) && (nn >= 3)) npen += nn-2;
   }
 
 
   if(n.toinv[2] && (n.regul_type[2] > 0)){
     nn = n.vturb.size();
     if((n.regul_type[2] == 1) && (nn >= 2)) npen += nn-1;
-    else if((n.regul_type[2] == 4) && (nn >= 2)) npen += nn-1 + nn;
+    else if((n.regul_type[2] == 4) && (nn >= 3)) npen += nn-2;
+    else if((n.regul_type[2] == 5) && (nn >= 2)) npen += nn-1 + nn;
     else                     npen += nn;
   }
 
   if(n.toinv[3] && (n.regul_type[3] > 0)){
     nn = n.bl.size();
     if     ((n.regul_type[3] == 1) && (nn >= 2)) npen += nn-1;
+    else if((n.regul_type[3] == 4) && (nn >= 3)) npen += nn-2;
     else                                         npen += nn;
   }
 
   if(n.toinv[4] && (n.regul_type[4] > 0)){
     nn = n.bh.size();
     if((n.regul_type[4] == 1) && (nn >= 2)) npen += nn-1;
+    else if((n.regul_type[4] == 4) && (nn >= 3)) npen += nn-2;
     else                     npen += nn;
   }
   
   if(n.toinv[5] && (n.regul_type[5] > 0)){
     nn = n.azi.size();
     if((n.regul_type[5] == 1) && (nn >= 2)) npen += nn-1;
+    else if((n.regul_type[5] == 4) && (nn >= 3)) npen += nn-2;
     else if((n.regul_type[5] == 2)) npen += nn;
   }
 

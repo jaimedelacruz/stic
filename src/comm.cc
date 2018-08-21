@@ -3,6 +3,8 @@
 #include <vector>
 #include <string>
 #include <iostream>
+#include <chrono>
+#include <thread>
 #include "input.h"
 #include "comm.h"
 #include "cmemt.h"
@@ -465,20 +467,37 @@ void comm_master_pack_data(iput_t &input, mat<double> &obs, mat<double> &model,
 void comm_slave_unpack_data(iput_t &input, int &action, mat<double> &obs, mat<double> &pars, vector<mdepth_t> &m, int &cgrad){
   string inam = "comm_slave_unpack_data: ";
 
-  char *buffer = new char [input.buffer_size];
-  // char buffer[input.buffer_size];
-  
-  int  pos = 0;
-  MPI_Status ierr;
-  int nPacked;
-  unsigned long len;
+  //char buffer[input.buffer_size];
+  char *buffer = NULL;
 
+  int  pos = 0, tag = 0;
+  MPI_Status ierr = {}, stat = {};
+  int nPacked, nbuff=0, status = 0;
+  unsigned long len;
+  
 
   /* --- Get DATA from master ---*/
   
-  int status = MPI_Recv(buffer, input.buffer_size, MPI_PACKED, 0, 1, MPI_COMM_WORLD, &ierr);
+  //int status = MPI_Recv(buffer, input.buffer_size, MPI_PACKED, 0, 1, MPI_COMM_WORLD, &ierr);
 
-  
+  while(1){
+    int from_process = MPI_ANY_SOURCE, msg_tag = 1, flag = 0;
+    MPI_Iprobe(from_process, msg_tag, MPI_COMM_WORLD, &flag, &stat);
+    
+    if(flag > 0){
+      MPI_Get_count(&stat, MPI_CHAR, &nbuff);
+      from_process = stat.MPI_SOURCE;
+      tag = stat.MPI_TAG;
+      buffer = new char [nbuff]();
+      status = MPI_Recv(buffer, nbuff, MPI_PACKED, from_process, 1, MPI_COMM_WORLD, &ierr);
+      break;
+    }
+
+    std::this_thread::sleep_for(std::chrono::microseconds(1000)); // Avoid polling all the time!
+
+  }
+    
+
   /* --- Unpack action --- */
   
   status = MPI_Unpack(buffer, input.buffer_size, &pos, &action, 1, MPI_INT, MPI_COMM_WORLD );
@@ -653,18 +672,38 @@ void comm_slave_unpack_data(iput_t &input, int &action, mat<double> &obs, mat<do
 void comm_master_unpack_data(int &iproc, iput_t input, mat<double> &obs, mat<double> &pars, mat<double> &chi2, unsigned long &irec, mat<double> &dsyn, int cgrad, mdepthall_t &m){
   
   // char buffer[input.buffer_size];
-  char *buffer = new char [input.buffer_size1];
+  char *buffer;// = new char [input.buffer_size1];
   
   int  pos = 0;
-  int nPacked = 0;
+  int nPacked = 0, nbuff=0, tag = 0;
   int status = 0;
-  MPI_Status ierr = {};
+  MPI_Status ierr = {}, stat = {};
   unsigned long len;
 
   // Get buffer from the slave
-  status = MPI_Recv(buffer, input.buffer_size1, MPI_PACKED, MPI_ANY_SOURCE,
-		    MPI_ANY_TAG, MPI_COMM_WORLD, &ierr);
+  //status = MPI_Recv(buffer, input.buffer_size1, MPI_PACKED, MPI_ANY_SOURCE,
+  //		    MPI_ANY_TAG, MPI_COMM_WORLD, &ierr);
 
+  while(1){
+    int from_process = MPI_ANY_SOURCE, msg_tag = MPI_ANY_TAG, flag = 0;
+    MPI_Iprobe(from_process, msg_tag, MPI_COMM_WORLD, &flag, &stat);
+    
+    if(flag > 0){
+      MPI_Get_count(&stat, MPI_CHAR, &nbuff);
+      from_process = stat.MPI_SOURCE;
+      tag = stat.MPI_TAG;
+      
+      buffer = new char [nbuff]();
+      status = MPI_Recv(buffer, nbuff, MPI_PACKED, from_process, tag, MPI_COMM_WORLD, &ierr);
+      break;
+    }
+
+    std::this_thread::sleep_for(std::chrono::microseconds(40)); // Avoid polling all the time
+    
+  }
+
+
+  
   // Get nPacked
   status = MPI_Unpack(buffer, input.buffer_size1, &pos, &nPacked, 1, MPI_INT,
 		      MPI_COMM_WORLD );
