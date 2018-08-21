@@ -71,6 +71,7 @@ std::vector<double> fill_lambdas(iput_t &input, bool air){
 iput_t read_input(std::string filename, bool verbose){
   
   iput_t input = {};
+  memset(&input, 0, sizeof(iput_t));
   
   // Default values
   input.mu = 1.0; // default

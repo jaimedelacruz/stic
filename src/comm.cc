@@ -177,7 +177,7 @@ void comm_send_parameters(iput_t &input){
     input.nodes.bound = input.boundary;
     
   }
-  
+
 }
 
 void comm_recv_parameters(iput_t &input){
@@ -316,6 +316,8 @@ void comm_recv_parameters(iput_t &input){
     input.nodes.bound = input.boundary;
 
   }
+
+  
 }
 void comm_master_pack_data(iput_t &input, mat<double> &obs, mat<double> &model,
 			   unsigned long &ipix, int proc, mdepthall_t &m, int cgrad,

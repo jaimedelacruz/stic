@@ -162,7 +162,7 @@ void do_master_sparse(int myrank, int nprocs,  char hostname[]){
   wav.d = fill_lambdas(input, false);
 
   
-  input.nprocs = nprocs;
+  input.nprocs = nprocs; input.myrank = myrank;
   input.myid = (string)"master, "; 
 
   /* --- Set OpenMP threads in the master --- */
