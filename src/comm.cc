@@ -95,14 +95,17 @@ void comm_send_parameters(iput_t &input){
 
   
   // Instrument type
-  status = MPI_Bcast(const_cast<char *>(input.instrument.c_str()), input.inst_len+1,  MPI_CHAR, 0, MPI_COMM_WORLD);
+  //status = MPI_Bcast(const_cast<char *>(input.instrument.c_str()), input.inst_len+1,  MPI_CHAR, 0, MPI_COMM_WORLD);
   
   // Atmos type
-  status = MPI_Bcast(const_cast<char *>(input.atmos_type.c_str()), input.atmos_len+1, MPI_CHAR, 0, MPI_COMM_WORLD);
+  std::string tempo = input.atmos_type;
+  if(tempo.size() == 0) tempo = " ";
+  status = MPI_Bcast(const_cast<char *>(tempo.c_str()), tempo.size()+1, MPI_CHAR, 0, MPI_COMM_WORLD);
 
   // Abund file
-  status = MPI_Bcast(const_cast<char *>(input.abfile.c_str()), input.ab_len+1, MPI_CHAR, 0, MPI_COMM_WORLD);
-
+  tempo = input.abfile;
+  if(tempo.size() == 0) tempo = " ";
+  status = MPI_Bcast(const_cast<char *>(tempo.c_str()), tempo.size()+1, MPI_CHAR, 0, MPI_COMM_WORLD);
   
   // Line structs
   for (int ll = 0;ll<nline;ll++) {
@@ -209,10 +212,10 @@ void comm_recv_parameters(iput_t &input){
   
   
   { // Instrument type
-    input.instrument.clear();
-    char buf[input.inst_len+1];
-    status = MPI_Bcast(&buf,     input.inst_len+1,    MPI_CHAR, 0, MPI_COMM_WORLD);
-    input.instrument = removeSpaces(string(buf));
+    // input.instrument.clear();
+    // char buf[input.inst_len+1];
+    /// status = MPI_Bcast(&buf,     input.inst_len+1,    MPI_CHAR, 0, MPI_COMM_WORLD);
+    //input.instrument = removeSpaces(string(buf));
   }
   { // Atmos type
     input.atmos_type.clear();
