@@ -21,6 +21,7 @@
 #include "ceos.h"
 #include "input.h"
 #include "physical_consts.h"
+#include "interpol.h"
 #include "clm.h"
 #include "math_tools.h"
 #include "mmem.h"
@@ -202,7 +203,18 @@ void atmos::responseFunction(int npar, mdepth_t &m_in, double *pars, int nd, dou
     
 }
 
-void atmos::randomizeParameters(nodes_t &n, int npar, double *pars){
+void atmos::randomizeParameters(const nodes_t &n, int npar, double *pars, const int rvel){
+
+  static const double vtau[4] = {-7.0, -5.0, -3.0, 1.0};
+  static const double vvel[4] = {10, 6.0, 3.0, 0.0};
+  std::vector<double> res(n.v.size(), 0.0);
+
+  int nvel = (int)n.v.size();
+  if(nvel > 1){
+    hermpol<double>(4, vtau, vvel, nvel, &n.v[0], &res[0]);
+  }
+
+  
   srand (time(NULL));
   int ninit = (int)scal.size();
   
@@ -225,7 +237,12 @@ void atmos::randomizeParameters(nodes_t &n, int npar, double *pars){
     if(n.ntype[pp] == temp_node)
       pertu = 2.0 * (rnum - 0.5) * scal[pp] * 0.2;
     else if(n.ntype[pp] == v_node)
-      pertu =  (rnum - 0.5) * scal[pp];
+      if((rvel == 0)&&(nvel>1)){
+	pars[pp]= res[pp-n.v_off]*1.e5; pertu = 0.0;
+      }else if((rvel == 1)&&(nvel>1)){
+	pars[pp]= res[pp-n.v_off]*-1.e5; pertu = 0.0;
+      }else
+	pertu =  (rnum - 0.5) * scal[pp];
     else if(n.ntype[pp] == vturb_node){
       pertu =  (rnum - 0.75) * 2.e5;
     }else if(n.ntype[pp] == bl_node)
@@ -1072,6 +1089,7 @@ double atmos::fitModel2(mdepth_t &m, int npar, double *pars, int nobs, double *o
 
   
   /* --- Loop iters --- */
+  int do_vel_grad = -1;
   
   for(int iter = 0; iter < input.nInv; iter++){
 
@@ -1088,7 +1106,8 @@ double atmos::fitModel2(mdepth_t &m, int npar, double *pars, int nobs, double *o
 
     
     if(iter > 0 || input.random_first){
-      randomizeParameters(input.nodes , npar, &ipars[0]);
+      if(input.vgrad) do_vel_grad+= 1;
+      randomizeParameters(input.nodes , npar, &ipars[0], do_vel_grad);
       if(depth_per){
 	imodel->ref_m->expand(input.nodes, &ipars[0], input.dint, input.depth_model);
 	checkBounds(*imodel->ref_m);

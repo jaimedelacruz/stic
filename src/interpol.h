@@ -227,7 +227,7 @@ template <class T, class U> void linpol(size_t ni, T *x, T *y, size_t nni, U *xx
 
  */
 
-template <class T1, class T2> void hermpol(size_t ni, T1 *x, T1 *y, size_t nni, T2 *xx, T2 *yy, bool extrapolate = false){
+template <class T1, class T2> void hermpol(const size_t ni, const T1 *x, const T1 *y, const size_t nni, const T2 *xx, T2 *yy, bool extrapolate = false){
 
   unsigned n = (unsigned)ni, nn = (unsigned)nni;
   

@@ -107,7 +107,7 @@ iput_t read_input(std::string filename, bool verbose){
   input.tcut = -1.0;
   input.use_geo_accel = 0;
   input.delay_bracket = 0;
-  
+  input.vgrad = 0;
   memset(input.getResponse, 8, sizeof(int));
   memset(input.nodes.regul_type, 0, 7*sizeof(int));
   const double tmp[7] = {1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0};
@@ -153,6 +153,10 @@ iput_t read_input(std::string filename, bool verbose){
       }
       else if(key == "marquardt_damping"){
 	input.marquardt_damping = atof(field.c_str());
+	set = true;
+      }
+      else if(key == "randomize_velocity_gradients"){
+	input.vgrad = atoi(field.c_str());
 	set = true;
       }
       else if(key == "temperature_cut"){

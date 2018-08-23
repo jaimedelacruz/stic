@@ -673,7 +673,7 @@ double clm::getChi2ParsLineSearch(double *res, double **rf, double &lambda,
        chi2 with larger lambda values --- */
     
     kk = 0;
-    while((idx == 0) && (kk++ <= 5) && (ilamb[0] < lmax)){
+    while((idx == 0) && (kk++ <= 4) && (ilamb[0] < lmax) && (ilamb[0] > lmin)){
       double ilfac = lfac;//(ilamb[0]  >= 0.1)? lfac : sqrt(lfac);
       ilamb.insert(ilamb.begin(), ilamb[0] * ilfac);
       dregul = dregul_in;
