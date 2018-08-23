@@ -9,12 +9,15 @@
 #include <stdlib.h>
 #include <math.h>
 #include <string.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+
 
 #include "rh.h"
 #include "error.h"
 #include "inputs.h"
-#include <sys/types.h>
-#include <unistd.h>
+
 
 #define PROCLOGFILE "scratch/procLog_cpu-%06d_%s.txt"
 
@@ -27,6 +30,8 @@
 
 extern CommandLine commandline;
 extern char messageStr[];
+
+
 
 
 /* ------- begin -------------------------- setOptions.c ------------ */
@@ -63,6 +68,7 @@ void setOptions(int argc, char *argv[], int iproc, int quiet)
   
   if (strlen(logfileName) > 0) {
     if(!commandline.quiet){
+      
       if ((commandline.logfile = fopen(logfileName, "w")) == NULL) {
 	sprintf(messageStr, "Unable to open log file %s", logfileName);
 	Error(ERROR_LEVEL_2, routineName, messageStr);

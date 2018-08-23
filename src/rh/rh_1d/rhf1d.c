@@ -24,6 +24,10 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
+#include <dirent.h>
+#include <errno.h>
+#include <unistd.h>
+#include <sys/stat.h>
 
 #include "rh.h"
 #include "atom.h"
@@ -68,6 +72,16 @@ MPI_t mpi;
 #define min(a,b) (((a)<(b))?(a):(b))
 #define max(a,b) (((a)>(b))?(a):(b))
 
+/* ---- Check for directory --- */
+
+int bdir_exists(const char *name){
+  DIR* dir = opendir(name);
+  if (dir) return 1;
+  else return 0;
+}
+
+
+
 /* ------- begin -------------------------- rhf1d.c ----------------- */
 
 bool_t rhf1d(float muz, int rhs_ndep, double *rhs_T, double *rhs_rho, 
@@ -101,6 +115,9 @@ bool_t rhf1d(float muz, int rhs_ndep, double *rhs_T, double *rhs_rho,
     atmos.cos_gamma = NULL;
     atmos.cos_2chi = NULL;
     atmos.sin_2chi = NULL;
+    
+    if(bdir_exists("scratch/") == 0) mkdir("scratch", 0700);
+
   }
   
   atmos.moving = TRUE;
