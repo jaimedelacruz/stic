@@ -17,8 +17,8 @@ extern "C" {
 using namespace std;
 using namespace phyc;
 //
-const double crh::pmax[7]  = {90000., 100.e5, 15e5, 5000.0, 5000., PI, 10.0};
-const double crh::pmin[7]  = {3100. ,-100.e5,  +0.0,-5000.0,  +0.0,  +0.0, 0.1};
+const double crh::pmax[7]  = {90000., 150.e5, 15e5, 5000.0, 5000., PI, 10.0};
+const double crh::pmin[7]  = {3100. ,-150.e5,  +0.0,-5000.0,  +0.0,  +0.0, 0.1};
 const double crh::pscal[7] = {5000. , 6.0e5, 6.0e5, 1000.0, 1000.0, PI, 1.0};
 const double crh::pstep[7] = {1.e-1 , 1.e-1, 1.0e-1, 2.0e-1, 2.0e-1, 1.0e-1, 1.0e-1};
 
@@ -26,10 +26,12 @@ const double crh::pstep[7] = {1.e-1 , 1.e-1, 1.0e-1, 2.0e-1, 2.0e-1, 1.0e-1, 1.0
 
 vector<double> crh::get_max_limits(nodes_t &n){
 
-  int nnodes = (int)n.nnodes;
+  
+  int nnodes = (int)n.nnodes, ntype = n.ntype.size(), kmx = std::min(nnodes, ntype);
+  
   mmax.resize(nnodes);
   
-  for(int k = 0; k<nnodes; k++){
+  for(int k = 0; k<kmx; k++){
     if     (n.ntype[k] == temp_node ) mmax[k] = pmax[0];
     else if(n.ntype[k] == v_node    ) mmax[k] = pmax[1];
     else if(n.ntype[k] == vturb_node) mmax[k] = pmax[2];
@@ -39,7 +41,8 @@ vector<double> crh::get_max_limits(nodes_t &n){
     else if(n.ntype[k] == pgas_node ) mmax[k] = pmax[6];
     else                              mmax[k] = 0;
   }
-
+  
+  
   if(n.nnodes == 0){
     mmax.resize(8);
     for(int ii=0; ii<6; ii++)mmax[ii] = pmax[ii];
@@ -55,10 +58,12 @@ vector<double> crh::get_max_limits(nodes_t &n){
 
 vector<double> crh::get_min_limits(nodes_t &n){
 
-  int nnodes = (int)n.nnodes;
-  mmin.resize(nnodes);
+  int nnodes = (int)n.nnodes, ntype = n.ntype.size(), kmx = std::min(nnodes, ntype);
+  
 
-  for(int k = 0; k<nnodes; k++){
+  mmin.resize(nnodes);
+  
+  for(int k = 0; k<kmx; k++){
     if     (n.ntype[k] == temp_node ) mmin[k] = pmin[0];
     else if(n.ntype[k] == v_node    ) mmin[k] = pmin[1];
     else if(n.ntype[k] == vturb_node) mmin[k] = pmin[2];
@@ -68,11 +73,11 @@ vector<double> crh::get_min_limits(nodes_t &n){
     else if(n.ntype[k] == pgas_node ) mmin[k] = pmin[6];
     else                              mmin[k] = 0;
   }
-
+  
   if(n.nnodes == 0){
     mmin.resize(8);
     for(int ii=0; ii<6; ii++)mmin[ii] = pmin[ii];
-
+    
     mmin[6] = 0.0, mmin[7] = 0.0;
   }
   
@@ -84,10 +89,13 @@ vector<double> crh::get_min_limits(nodes_t &n){
 
 vector<double> crh::get_scaling(nodes_t &n){
 
-  int nnodes = (int)n.nnodes;
+  int nnodes = (int)n.nnodes, ntype = n.ntype.size(), kmx = std::min(nnodes, ntype);
+  //if(nnodes = ntype) return scal;
+  
   scal.resize(nnodes);
 
-  for(int k = 0; k<nnodes; k++){
+  
+  for(int k = 0; k<kmx; k++){
     if     (n.ntype[k] == temp_node ) scal[k] = pscal[0];
     else if(n.ntype[k] == v_node    ) scal[k] = pscal[1];
     else if(n.ntype[k] == vturb_node) scal[k] = pscal[2];
@@ -215,7 +223,7 @@ crh::crh(iput_t &inpt, double grav): atmos(inpt, grav){
 
 bool crh::synth(mdepth_t &m_in, double *syn, cprof_solver sol, bool save_pops){
 
-  static int ncall = 0;
+  static int ncall = 0, npix = 0;
   ncall++;
 
   /* --- Copy model, RH seems to tamper with the model --- */
@@ -354,14 +362,24 @@ bool crh::synth(mdepth_t &m_in, double *syn, cprof_solver sol, bool save_pops){
   /* --- convert nHtot to Pgas using the electron density, the H abundance and temperature --- */
   
   if(hydrostat > 0){
+    // char fname[35]; sprintf(fname, "ne_pix=%05d.txt", npix++);
+    //   FILE *fout = fopen(fname, "w");
+      
     for(int kk = 0; kk < m.ndep; kk++){
+
+      //fprintf(fout, "%e %e\n", m_in.nne[kk], m.nne[kk]*1.e-6);
+
       
       m.pgas[kk] = (nhtot[kk] * eos.totalAbund / eos.ABUND[0] + m.nne[kk]) *
 	phyc::BK * m_in.temp[kk] * 1.e-6;
       
       if(kk > 0) m_in.pgas[kk] = m.pgas[kk]; // preserve pgas at the boundary otherwise the inversion can be unstable
       m_in.nne[kk] = m.nne[kk] * 1.0e-6;
+
     }
+
+    // fclose(fout);
+    
   }
 
   /* --- Deallocate sp --- */
