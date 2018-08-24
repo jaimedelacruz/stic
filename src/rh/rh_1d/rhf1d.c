@@ -93,7 +93,7 @@ bool_t rhf1d(float muz, int rhs_ndep, double *rhs_T, double *rhs_rho,
 	     int iverbose, int *hydrostat)
 {
   
-  bool_t write_analyze_output, equilibria_only, quiet = ((iverbose == 0)? TRUE : FALSE);
+  bool_t write_analyze_output, equilibria_only, quiet = ((iverbose <= 1)? TRUE : FALSE);
   int    niter, nact, i, sNgperiod, sNgdelay, sPRDNITER;
   static int save_Nrays;
   static double save_muz, save_mux, save_muy, save_wmu;
@@ -127,7 +127,7 @@ bool_t rhf1d(float muz, int rhs_ndep, double *rhs_T, double *rhs_rho,
   /* --- Read input data and initialize --             -------------- */
 
   
-  setOptions(argc, argv, myrank, (int)quiet);
+  setOptions(argc, argv, myrank, quiet);
   if(iverbose == 0) commandline.quiet = quiet;
   
   

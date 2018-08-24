@@ -88,7 +88,7 @@ iput_t read_input(std::string filename, bool verbose){
   input.nw_tot = 0;
   input.nodes.nnodes = 0;
   input.nodes.depth_t = 0;
-  input.verbose = false; // default
+  input.verbose = 0; // default
   memset(&input.nodes.toinv[0],0, 7*sizeof(int));
   input.solver = 0;
   input.centder = 0;
@@ -296,8 +296,9 @@ iput_t read_input(std::string filename, bool verbose){
 	set = true;
       }
       else if(key == "verbose"){
-	if(field == "true") input.verbose = true;
-	else input.verbose = false;
+	if(field == "true") input.verbose = 1;
+	else if(field == "false") input.verbose = 0;
+	else input.verbose = atoi(field.c_str());
 	set = true;
       }
       else if(key == "sparse_threshold"){
