@@ -71,7 +71,7 @@ std::vector<double> fill_lambdas(iput_t &input, bool air){
 iput_t read_input(std::string filename, bool verbose){
   
   iput_t input = {};
-  memset(&input, 0, sizeof(iput_t));
+  //memset(&input, 0, sizeof(iput_t));
   
   // Default values
   input.mu = 1.0; // default
@@ -82,8 +82,8 @@ iput_t read_input(std::string filename, bool verbose){
   input.max_inv_iter = 40; // default
   input.master_threads = 1; // default
   input.sparse_threshold = 0.70; //
-  input.wavelet_order = 4;
-  input.wavelet_type = "daub"; 
+  //input.wavelet_order = 4;
+  //input.wavelet_type = "daub"; 
   input.dpar = 1.e-2; // Default
   input.nw_tot = 0;
   input.nodes.nnodes = 0;
@@ -108,7 +108,7 @@ iput_t read_input(std::string filename, bool verbose){
   input.use_geo_accel = 0;
   input.delay_bracket = 0;
   input.vgrad = 0;
-  memset(input.getResponse, 8, sizeof(int));
+  memset(input.getResponse, 0, 8*sizeof(int));
   memset(input.nodes.regul_type, 0, 7*sizeof(int));
   const double tmp[7] = {1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0};
   memcpy(input.nodes.rewe, tmp, 7*sizeof(double));
@@ -125,7 +125,6 @@ iput_t read_input(std::string filename, bool verbose){
       std::string key = removeSpaces(iline.substr(0, n));
       std::string field = removeSpaces(iline.substr(n+1));
       bool set = false;
-      
       // Fill in input structure
       if     (key == "input_model"){
 	input.imodel = field;
