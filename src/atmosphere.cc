@@ -34,8 +34,9 @@ inline double SQ(const double a){return a*a;};
 inline double CUB(const double a){return a*a*a;};
 
 vector<double> atmos::get_max_change(nodes_t &n){
-
-  int nnodes = (int)n.nnodes;
+  
+  int nnodes = (int)n.nnodes, ntype = n.ntype.size();
+  if(nnodes != ntype) return maxc;
   maxc.resize(nnodes);
 
   for(int k = 0; k<nnodes; k++){

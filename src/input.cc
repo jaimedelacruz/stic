@@ -589,10 +589,10 @@ void read_lines(std::string filename, iput_t &input, bool verbose){
   
   in.close();
   
-  if(input.lines.size() == 0){
-    cerr << inam << "ERROR, input file does not contain lines present in "<< filename<<endl;
-    exit(0);
-  }
+  //if(input.lines.size() == 0){
+    // cerr << inam << "ERROR, input file does not contain lines present in "<< filename<<endl;
+  //  exit(0);
+  //}
   
 }
 

@@ -101,21 +101,22 @@ void comm_send_parameters(iput_t &input){
   
   // Atmos type
   std::string tempo = input.atmos_type;
-  if(tempo.size() == 0) tempo = " ";
+  //if(tempo.size() == 0) tempo = " ";
   status = MPI_Bcast(const_cast<char *>(tempo.c_str()), tempo.size()+1, MPI_CHAR, 0, MPI_COMM_WORLD);
 
   // Abund file
   tempo = input.abfile;
-  if(tempo.size() == 0) tempo = " ";
+  //if(tempo.size() == 0) tempo = " ";
   status = MPI_Bcast(const_cast<char *>(tempo.c_str()), tempo.size()+1, MPI_CHAR, 0, MPI_COMM_WORLD);
   
   // Line structs
-  for (int ll = 0;ll<nline;ll++) {
-    status = MPI_Bcast(&input.lines[ll].elem[0], 8,   MPI_CHAR, 0, MPI_COMM_WORLD); // We are getting 23 chars
-    status = MPI_Bcast(&input.lines[ll].Jup,     19, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-    status = MPI_Bcast(&input.lines[ll].anum,     4,    MPI_INT, 0, MPI_COMM_WORLD); 
+  if(nline > 0){
+    for (int ll = 0;ll<nline;ll++) {
+      status = MPI_Bcast(&input.lines[ll].elem[0], 8,   MPI_CHAR, 0, MPI_COMM_WORLD); // We are getting 23 chars
+      status = MPI_Bcast(&input.lines[ll].Jup,     19, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+      status = MPI_Bcast(&input.lines[ll].anum,     4,    MPI_INT, 0, MPI_COMM_WORLD); 
+    }
   }
-
   // Regions
   for (int ll = 0;ll<nregions;ll++){
     status = MPI_Bcast(&input.regions[ll].w0, 3,   MPI_DOUBLE, 0, MPI_COMM_WORLD); 
@@ -185,7 +186,7 @@ void comm_send_parameters(iput_t &input){
 void comm_recv_parameters(iput_t &input){
   string inam = "comm_recv_parameters: ";
   //
-  int status, nline, nregions;
+  int status=0, nline=0, nregions=0;
   status = MPI_Bcast(&nline,     1,    MPI_INT, 0, MPI_COMM_WORLD);
   status = MPI_Bcast(&nregions,  1,    MPI_INT, 0, MPI_COMM_WORLD);
   status = MPI_Bcast(&input.buffer_size,  2,    MPI_UNSIGNED_LONG, 0, MPI_COMM_WORLD);
@@ -208,7 +209,7 @@ void comm_recv_parameters(iput_t &input){
 
   
   //
-  //cerr << nline << endl;
+  //  cerr << nline << endl;
   input.lines.resize(nline);
   input.regions.resize(nregions);
   
@@ -232,15 +233,17 @@ void comm_recv_parameters(iput_t &input){
     status = MPI_Bcast(buf,     input.ab_len+1,    MPI_CHAR, 0, MPI_COMM_WORLD);
     input.abfile = removeSpaces(string(buf));
   }
-  
-  for (int ll = 0;ll<nline;ll++){
-    char bla[8];
-    status = MPI_Bcast(bla, 8,   MPI_CHAR, 0, MPI_COMM_WORLD); // We are getting 23 chars
-    strcpy(&input.lines[ll].elem[0], &bla[0]);
-    status = MPI_Bcast(&input.lines[ll].Jup,     19, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-    status = MPI_Bcast(&input.lines[ll].anum,     4,    MPI_INT, 0, MPI_COMM_WORLD); 
-  }
 
+
+  if(nline > 0){
+    for (int ll = 0;ll<nline;ll++){
+      char bla[8];
+      status = MPI_Bcast(bla, 8,   MPI_CHAR, 0, MPI_COMM_WORLD); // We are getting 23 chars
+      strcpy(&input.lines[ll].elem[0], &bla[0]);
+      status = MPI_Bcast(&input.lines[ll].Jup,     19, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+      status = MPI_Bcast(&input.lines[ll].anum,     4,    MPI_INT, 0, MPI_COMM_WORLD); 
+    }
+  }
 
   // Regions
   for (int ll = 0;ll<nregions;ll++){
