@@ -548,7 +548,6 @@ void mdepth::fill_densities(ceos &eos, int keep_nne, int k0, int k1){
   
   */
 }
-
 void mdepth::getScales(ceos &eos, int bound){
 
   vector<double> kappa;
@@ -572,7 +571,7 @@ void mdepth::getScales(ceos &eos, int bound){
 
 
     tau[0] = pow(10.0, ltau[0]);
-    cmass[0] = (tau[0] / kappa[0]) * rho[0];
+    cmass[0] = 0.0;//(tau[0] / kappa[0]) * rho[0];
     z[0] = 0.0;
     
     for(int k = 1; k < ndep; k++){
@@ -580,21 +579,29 @@ void mdepth::getScales(ceos &eos, int bound){
       z[k] = z[k-1] - 2.0 * (tau[k] - tau[k-1]) / (kappa[k] + kappa[k-1]);
       cmass[k] = cmass[k-1] + 0.5*(rho[k-1] + rho[k]) * (z[k-1] - z[k]);
     } // k
-    for(int k = 0; k < ndep; k++) cmass[k] = log10(cmass[k]);
+    double cmass_off = exp(2.0 * log(cmass[1]) - log(cmass[2]));
+    for(int k = 0; k < ndep; k++) cmass[k] = log10(cmass[k]+cmass_off);
 
   }else if(bound == 1){  /* --- if we know Z --- */
 
     eos.read_partial_pressures(0, frac, part, na, ne);
-    tau[0] = 0.5 * kappa[0] * (z[0] - z[1]);
-    cmass[0] = (na + ne) * (phyc::BK * temp[0] / eos.gravity);
+    tau[0] = 0;//0.5 * kappa[0] * (z[0] - z[1]);
+    cmass[0] = 0;//(na + ne) * (phyc::BK * temp[0] / eos.gravity);
     ltau[0] = log10(tau[0]);
 
     for(int k = 1; k < ndep; k++){
       tau[k] = tau[k-1] + 0.5 * (kappa[k-1] + kappa[k]) * (z[k-1] - z[k]);
       cmass[k] = cmass[k-1] + 0.5 * (rho[k-1] + rho[k]) * (z[k-1] - z[k]);
+    }
+    
+    double cmass_off = exp(2.0 * log(cmass[1]) - log(cmass[2]));
+    double tau_off   =  exp(2.0 * log(tau[1]) - log(tau[2]));
+    
+    for(int k = 0; k < ndep; k++){
+      tau[k] += tau_off;
+      cmass[k] = log10(cmass[k]+cmass_off);
       ltau[k] = log10(tau[k]);
     }
-    for(int k = 0; k < ndep; k++) cmass[k] = log10(cmass[k]);
 
     
   }else if(bound ==2){ /* --- If we know cmass --- */

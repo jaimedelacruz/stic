@@ -28,20 +28,21 @@ vector<double> crh::get_max_limits(nodes_t &n){
 
   
   int nnodes = (int)n.nnodes, ntype = n.ntype.size(), kmx = std::min(nnodes, ntype);
-  
-  mmax.resize(nnodes);
-  
-  for(int k = 0; k<kmx; k++){
-    if     (n.ntype[k] == temp_node ) mmax[k] = pmax[0];
-    else if(n.ntype[k] == v_node    ) mmax[k] = pmax[1];
-    else if(n.ntype[k] == vturb_node) mmax[k] = pmax[2];
-    else if(n.ntype[k] == bl_node    ) mmax[k] = pmax[3];
-    else if(n.ntype[k] == bh_node  ) mmax[k] = pmax[4];
-    else if(n.ntype[k] == azi_node  ) mmax[k] = pmax[5];
-    else if(n.ntype[k] == pgas_node ) mmax[k] = pmax[6];
-    else                              mmax[k] = 0;
+  if(kmx > 0){
+
+    mmax.resize(nnodes);
+    
+    for(int k = 0; k<kmx; k++){
+      if     (n.ntype[k] == temp_node ) mmax[k] = pmax[0];
+      else if(n.ntype[k] == v_node    ) mmax[k] = pmax[1];
+      else if(n.ntype[k] == vturb_node) mmax[k] = pmax[2];
+      else if(n.ntype[k] == bl_node    ) mmax[k] = pmax[3];
+      else if(n.ntype[k] == bh_node  ) mmax[k] = pmax[4];
+      else if(n.ntype[k] == azi_node  ) mmax[k] = pmax[5];
+      else if(n.ntype[k] == pgas_node ) mmax[k] = pmax[6];
+      else                              mmax[k] = 0;
+    }
   }
-  
   
   if(n.nnodes == 0){
     mmax.resize(8);
@@ -60,18 +61,20 @@ vector<double> crh::get_min_limits(nodes_t &n){
 
   int nnodes = (int)n.nnodes, ntype = n.ntype.size(), kmx = std::min(nnodes, ntype);
   
+  if(kmx > 0){
 
-  mmin.resize(nnodes);
+    mmin.resize(nnodes);
   
-  for(int k = 0; k<kmx; k++){
-    if     (n.ntype[k] == temp_node ) mmin[k] = pmin[0];
-    else if(n.ntype[k] == v_node    ) mmin[k] = pmin[1];
-    else if(n.ntype[k] == vturb_node) mmin[k] = pmin[2];
-    else if(n.ntype[k] == bl_node    ) mmin[k] = pmin[3];
-    else if(n.ntype[k] == bh_node  ) mmin[k] = pmin[4];
-    else if(n.ntype[k] == azi_node  ) mmin[k] = pmin[5];
-    else if(n.ntype[k] == pgas_node ) mmin[k] = pmin[6];
-    else                              mmin[k] = 0;
+    for(int k = 0; k<kmx; k++){
+      if     (n.ntype[k] == temp_node ) mmin[k] = pmin[0];
+      else if(n.ntype[k] == v_node    ) mmin[k] = pmin[1];
+      else if(n.ntype[k] == vturb_node) mmin[k] = pmin[2];
+      else if(n.ntype[k] == bl_node    ) mmin[k] = pmin[3];
+      else if(n.ntype[k] == bh_node  ) mmin[k] = pmin[4];
+      else if(n.ntype[k] == azi_node  ) mmin[k] = pmin[5];
+      else if(n.ntype[k] == pgas_node ) mmin[k] = pmin[6];
+      else                              mmin[k] = 0;
+    }
   }
   
   if(n.nnodes == 0){
@@ -91,21 +94,22 @@ vector<double> crh::get_scaling(nodes_t &n){
 
   int nnodes = (int)n.nnodes, ntype = n.ntype.size(), kmx = std::min(nnodes, ntype);
   //if(nnodes = ntype) return scal;
-  
-  scal.resize(nnodes);
+  if(kmx > 0){
+
+    scal.resize(nnodes);
 
   
-  for(int k = 0; k<kmx; k++){
-    if     (n.ntype[k] == temp_node ) scal[k] = pscal[0];
-    else if(n.ntype[k] == v_node    ) scal[k] = pscal[1];
-    else if(n.ntype[k] == vturb_node) scal[k] = pscal[2];
-    else if(n.ntype[k] == bl_node    ) scal[k] = pscal[3];
-    else if(n.ntype[k] == bh_node  ) scal[k] = pscal[4];
-    else if(n.ntype[k] == azi_node  ) scal[k] = pscal[5];
-    else if(n.ntype[k] == pgas_node ) scal[k] = pscal[6];
-    else                              scal[k] = 1.0;
+    for(int k = 0; k<kmx; k++){
+      if     (n.ntype[k] == temp_node ) scal[k] = pscal[0];
+      else if(n.ntype[k] == v_node    ) scal[k] = pscal[1];
+      else if(n.ntype[k] == vturb_node) scal[k] = pscal[2];
+      else if(n.ntype[k] == bl_node    ) scal[k] = pscal[3];
+      else if(n.ntype[k] == bh_node  ) scal[k] = pscal[4];
+      else if(n.ntype[k] == azi_node  ) scal[k] = pscal[5];
+      else if(n.ntype[k] == pgas_node ) scal[k] = pscal[6];
+      else                              scal[k] = 1.0;
+    }
   }
-
   if(n.nnodes == 0){
     scal.resize(8);
     for(int ii=0; ii<6; ii++)scal[ii] = pscal[ii];

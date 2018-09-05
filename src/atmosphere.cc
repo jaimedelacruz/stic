@@ -37,18 +37,21 @@ vector<double> atmos::get_max_change(nodes_t &n){
   
   int nnodes = (int)n.nnodes, ntype = n.ntype.size();
   if(nnodes != ntype) return maxc;
-  maxc.resize(nnodes);
-
-  for(int k = 0; k<nnodes; k++){
-    if     (n.ntype[k] == temp_node ) maxc[k] = maxchange[0];
-    else if(n.ntype[k] == v_node    ) maxc[k] = maxchange[1];
-    else if(n.ntype[k] == vturb_node) maxc[k] = maxchange[2];
-    else if(n.ntype[k] == bl_node    ) maxc[k] = maxchange[3];
-    else if(n.ntype[k] == bh_node  ) maxc[k] = maxchange[4];
-    else if(n.ntype[k] == azi_node  ) maxc[k] = maxchange[5];
-    else if(n.ntype[k] == pgas_node ) maxc[k] = maxchange[6];
-    else                              maxc[k] = 0;
+  if(nnodes > 0){
+    maxc.resize(nnodes);
+    
+    for(int k = 0; k<nnodes; k++){
+      if     (n.ntype[k] == temp_node ) maxc[k] = maxchange[0];
+      else if(n.ntype[k] == v_node    ) maxc[k] = maxchange[1];
+      else if(n.ntype[k] == vturb_node) maxc[k] = maxchange[2];
+      else if(n.ntype[k] == bl_node    ) maxc[k] = maxchange[3];
+      else if(n.ntype[k] == bh_node  ) maxc[k] = maxchange[4];
+      else if(n.ntype[k] == azi_node  ) maxc[k] = maxchange[5];
+      else if(n.ntype[k] == pgas_node ) maxc[k] = maxchange[6];
+      else                              maxc[k] = 0;
+    }
   }
+  
   return maxc;
 }
 
@@ -674,7 +677,8 @@ void getDregul2(double *m, int npar, reg_t &dregul, nodes_t &n)
 	roff += tikhonov1_dregul(nn, ltau, &m[off], we, dregul, off, roff,2);
       break;
     case(2):
-      roff += mean_dregul(nn, ltau, &m[off], we, dregul, off, roff,2);
+      if(nn >= 2)
+	roff += mean_dregul(nn, ltau, &m[off], we, dregul, off, roff,2);
       break;
     case(3):
       roff += const_dregul(nn, ltau, &m[off], we, dregul, 0.0, off, roff,2);
@@ -684,9 +688,9 @@ void getDregul2(double *m, int npar, reg_t &dregul, nodes_t &n)
 	roff += secDer_dregul(nn, &ltau[0], &m[off], we, dregul , off, roff, 0);
       break;
     case(5):
-      if(nn >= 2){
-	roff += tikhonov1_dregul(nn, ltau, &m[off], we*0.8, dregul, off, roff,2);
-	roff += const_dregul(nn, ltau, &m[off], we*0.2, dregul, 0.0, off, roff,2);
+      if(nn >= 3){
+	roff += secDer_dregul(nn, &ltau[0], &m[off], we*0.4, dregul , off, roff, 0);
+	roff += const_dregul(nn, ltau, &m[off], we*0.6, dregul, 0.0, off, roff,2);
       }
       break;
     default:
@@ -787,13 +791,11 @@ void getDregul2(double *m, int npar, reg_t &dregul, nodes_t &n)
     
     
     /* --- Penalize deviations from 1.0 --- */
-
+    int nn = 1; double dum = 0.1;
+    //ltau =  &n.[0];
+    we =  weights[6]*dregul.scl;
     off = (int)n.pgas_off;
-    double tmp = (m[off] - 0.1); // the normalization function is 10.
-    dregul.reg[roff] = tmp * sqrt(weights[6]*dregul.scl);
-    dregul.dreg[roff][off] = sqrt(weights[6]*dregul.scl);
-    dregul.rt[roff] = 6;
-    roff++;
+    roff += const_dregul(nn, &dum, &m[off], we, dregul, 1.0, off, roff, 6);
   }
 
   if(0){
@@ -947,8 +949,10 @@ reg_t init_dregul(int npar, nodes_t &n, double scl, double scl1, int ntrans)
   if(n.toinv[2] && (n.regul_type[2] > 0)){
     nn = n.vturb.size();
     if((n.regul_type[2] == 1) && (nn >= 2)) npen += nn-1;
+    else if((n.regul_type[2] == 2) && (nn >=2)) npen += nn;
+    else if((n.regul_type[2] == 3))             npen += nn;
     else if((n.regul_type[2] == 4) && (nn >= 3)) npen += nn-2;
-    else if((n.regul_type[2] == 5) && (nn >= 2)) npen += nn-1 + nn;
+    else if((n.regul_type[2] == 5) && (nn >= 3)) npen += nn-2 + nn;
     else                     npen += nn;
   }
 
