@@ -10,7 +10,7 @@ def convolve(var, tr):
     n1 = len(tr)
     npad = n + n1
     
-    if((n1/2)*2 != n1):
+    if((n1//2)*2 != n1):
         npad -= 1
         off = 1
     else:
@@ -19,12 +19,12 @@ def convolve(var, tr):
     # Pad arrays using wrap around effect
     pvar = np.empty(npad, dtype='float64')
     pvar[0:n] = var
-    pvar[n:n+n1/2] = var[-1]
-    pvar[n+n1/2::] = var[0]
+    pvar[n:n+n1//2] = var[-1]
+    pvar[n+n1//2::] = var[0]
     
     ptr = np.zeros(npad, dtype = 'float64')
     ptr[0:n1] = tr / np.sum(tr)
-    ptr = np.roll(ptr, -n1/2 + off)
+    ptr = np.roll(ptr, -n1//2 + off)
     
     # FFT, convolve and FFT back
     return( (np.fft.irfft(np.fft.rfft(pvar) * np.fft.rfft(ptr)))[0:n])
