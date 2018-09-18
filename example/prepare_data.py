@@ -258,5 +258,5 @@ if __name__ == "__main__":
     m.azi[0,0,0,:] = 100. * 3.14159 / 180.
 
     # Write to HD
-    m.write('modelin.nc', write_all=True)
+    m.write('modelin.nc')
     
