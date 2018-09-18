@@ -24,7 +24,7 @@ class crisp:
         this_dir, this_filename = os.path.split(__file__)
         self.dfile = os.path.join(this_dir, "crisp_data","crisp_ref.txt")
         if(not os.path.isfile(self.dfile)):
-            print inam + "ERROR, reflectivities file not found in "+ self.dfile
+            print(inam + "ERROR, reflectivities file not found in "+ self.dfile)
             return 0
         self.w0 = float(w0)
         self.read_reflectivity(self.w0)
@@ -32,11 +32,11 @@ class crisp:
 
         # Init cavity separations
         shr = 787.e4
-        nhr = long(0.5 + shr / (self.w0 * 0.5)) 
+        nhr = int(0.5 + shr / (self.w0 * 0.5)) 
         self.hc = nhr * self.w0 * 0.5
         #
         slr = 295.5e4
-        nlr = long(0.5 + slr / (self.w0 * 0.5)) 
+        nlr = int(0.5 + slr / (self.w0 * 0.5)) 
         self.lc = nlr * self.w0 * 0.5
   
         # other parameters

@@ -17,11 +17,11 @@ def dual_fpi(wav, ang = 0.0, erh = 0.0, erl = 0.0):
   
     # Fix cavity separation
     shr = 357.8e4
-    nhr = long(0.5 + shr / (w0 * 0.5))
+    nhr = int(0.5 + shr / (w0 * 0.5))
     hc = nhr * w0 * 0.5
     #
     slr = 136.9e4
-    nlr = long(0.5 + slr / (w0 * 0.5)) 
+    nlr = int(0.5 + slr / (w0 * 0.5)) 
     lc = nlr * w0 * 0.5
 
     # Finesse
