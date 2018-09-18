@@ -179,6 +179,8 @@ void statEquilMolecule(struct Molecule *molecule, int isum)
       //solveLinearCXX(Nlevel, Gamma_k, n_k);
 
       if (mpi.stop) {
+	//solveLinearCXX(Nlevel, Gamma_k, n_k);
+
 	free(n_k);
 	freeMatrix((void **) Gamma_k);
 	return; /* Get out if there is a singular matrix */

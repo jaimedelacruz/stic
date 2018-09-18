@@ -20,6 +20,8 @@
 #include "accelerate.h"
 #include "error.h"
 #include "rhf1d.h"
+#include "solveLinearCXX.h"
+
 
 /* --- Acceleration parameters --                      -------------- */
 
@@ -170,7 +172,8 @@ void Hydrostatic(int NmaxIter, double iterLimit)
       SolveLinearEq(Nhse, dfdn, f, TRUE);
       //
       if(mpi.stop){
-        SolveLinearSvd(Nhse, dfdn, f); // Solve singular matrix with SVD
+        solveLinearCXX(Nhse, dfdn, f, TRUE); // Solve singular matrix with SVD
+	mpi.stop = FALSE;
       }
       
       for (n = 0;  n < Nhse;  n++)  n_k[n] -= f[n];
@@ -216,7 +219,6 @@ void Hydrostatic(int NmaxIter, double iterLimit)
     free(f);
     free(n_k);
     freeMatrix((void**) dfdn);
-    //exit(0);
   }
   /* --- Adjust total populations of background metals and recalculate
          all the LTE populations, including hydrogen -- ------------- */

@@ -20,6 +20,7 @@
 #include "statistics.h"
 #include "inputs.h"
 #include "rh_1d/rhf1d.h"
+#include "solveLinearCXX.h"
 
 #define COMMENT_CHAR  "#"
 
@@ -314,7 +315,7 @@ void ChemicalEquilibrium(int NmaxIter, double iterLimit)
       if(mpi.stop){
 	fprintf(stderr,"chemequil: Singular matrix!\n");
 	fprintf(stderr, "   %d %f %e, trying SVD\n", k, atmos.T[k], atmos.nHtot[k]);
-	SolveLinearSvd(Nequation, df, f);
+	solveLinearCXX(Nequation, df, f, TRUE);
 	mpi.stop = false;
       }
       

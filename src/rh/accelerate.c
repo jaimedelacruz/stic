@@ -22,6 +22,7 @@
 #include "error.h"
 #include "statistics.h"
 #include "rh_1d/rhf1d.h"
+#include "solveLinearCXX.h"
 
 /* --- Function prototypes --                          -------------- */
 
@@ -124,10 +125,7 @@ bool_t Accelerate(struct Ng *Ngs, double *solution)
     mpi.stop = FALSE;
     SolveLinearEq(Norder, Ngs->A, Ngs->b, TRUE);
     if (mpi.stop) { /* Get out if there is a singular matrix */
-      //free(weight);
-      //freeMatrix((void **) Delta);
-      //return TRUE;
-      SolveLinearSvd(Norder, Ngs->A, Ngs->b);
+      solveLinearCXX(Norder, Ngs->A, Ngs->b, TRUE);
       mpi.stop = FALSE;
     }
     
