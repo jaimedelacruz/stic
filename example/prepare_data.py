@@ -35,7 +35,7 @@ def findgrid(w, dw, extra=8):
     idx = np.zeros(w.size, dtype='int32')
 
     np0 = w2[-1] - w2[0] + extra
-    wn = np.arange(np0, dtype='float64')*dw + w[0] -extra/2*dw
+    wn = np.arange(np0, dtype='float64')*dw + w[0] -extra//2*dw
 
     for ii in range(w.size):
         idx[ii] = np.argmin(np.abs(wn-w[ii]))
@@ -196,18 +196,18 @@ if __name__ == "__main__":
     # Ca K region
     dw =  ca_k.wav[1]-ca_k.wav[0]
     ntw= 25 # Always an odd number < ca_k.wav.size
-    tw1 = (np.arange(ntw)-ntw/2)*dw + 3934.0
+    tw1 = (np.arange(ntw)-ntw//2)*dw + 3934.0
     tr1 = cr.dual_fpi(tw1, erh = -0.1)
     tr1 /= tr1.sum()
     # Stores the FPI profile and the parameters of the prefilter
-    writeInstProf('3934.nc', tr1, [ca_k.wav[ick[39/2]], 4.5, 3.0]) 
+    writeInstProf('3934.nc', tr1, [ca_k.wav[ick[39//2]], 4.5, 3.0]) 
 
     
     # Ca II 8542
     dw =  ca_8.wav[1]-ca_8.wav[0]
     ntw= 25
     f=fpi.crisp(8542.0)
-    tw = (np.arange(ntw)-ntw/2)*dw 
+    tw = (np.arange(ntw)-ntw//2)*dw 
     tr = f.dual_fpi(tw, erh = -0.02)
     tr /= tr.sum()
     writeInstProf('8542.nc', tr,  [8542.091, 9.0, 2.0])
@@ -218,7 +218,7 @@ if __name__ == "__main__":
     dw =  fe_1.wav[1]-fe_1.wav[0]
     ntw= 45 
     f=fpi.crisp(6302.0)
-    tw = (np.arange(ntw)-ntw/2)*dw 
+    tw = (np.arange(ntw)-ntw//2)*dw 
     tr = f.dual_fpi(tw, erh=-0.01)
     tr /= tr.sum()
     writeInstProf('6302.nc', tr,  [6302.1, 4.4, 2.0])
