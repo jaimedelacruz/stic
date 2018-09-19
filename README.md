@@ -8,7 +8,7 @@ It allows inverting lines from multiple active atoms, including partial redistri
 ## Support
 The code is distributed "as it is".
 
-Although we encourage people to submit bug-reports, dedicated support will only be provided within a scientific collaboration, as we have very limited man power.
+Although we encourage people to submit bug-reports, dedicated support will only be provided within a scientific collaboration with us, as we have very limited man power.
 
 
 ## Citing STiC
@@ -39,6 +39,7 @@ The code includes source written in C, C++-11 and Fortran.
 
 It makes use of the following libraries: Eigen-3, FFTW-3, netCDF4-cxx4, openmpi-2 (or any other MPI-2 implementation).
 
+The code has been extensively run in Linux and OSX.
 
 ## Compilation instructions
 Assuming that all dependencies have been installed, you can install the code as follows:
@@ -141,3 +142,10 @@ You can run the default example by simply typing:
 mpiexec -n 1 ../src/STiC.x
 ```
 ...and wait. The code will provide information of each Levenberg-Marquardt iteration as they are completed.
+
+## Acknowledgements
+
+We are gratefull to N. Piskunov for allowing us to use his excellent EOS in our code.
+JdlCR is supported by grants from the Swedish Research Council (2015-03994), the Swedish National Space Board (128/15). This project has received funding from the European Research Council (ERC) under the European Union's Horizon 2020 research and innovation programme (SUNMAG, grant agreement 759548). SD and JdlCR are supported by a grant from the Swedish Civil Contingencies Agency (MSB).
+
+This research was supported by the CHROMATIC grant of the Knut and Alice Wallenberg foundation.
