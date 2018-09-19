@@ -114,7 +114,7 @@ file_check: ERROR, file  does not exist!
 ## Example inversion test
 We have included an example to test the code (stic/example/).
 The example is basically one spectrum from an observation of an active region on the Sun in the
-Ca II K line, Ca II 8542 \AA\ line, Fe I 6301 & 6302 \AA\ lines. The observations were
+Ca II K line, Ca II 8542 Å line, Fe I 6301 & 6302 Å lines. The observations were
 acquired with the CRISP and CHROMIS instruments at the Swedish 1-m Solar Telescope.
 
 To run the example we first need link all the python tools that are included in the repository:
@@ -140,3 +140,4 @@ You can run the default example by simply typing:
 ```
 mpiexec -n 1 ../src/STiC.x
 ```
+...and wait. The code will provide information of each Levenberg-Marquardt iteration as they are completed.
