@@ -14,15 +14,15 @@ Although we encourage people to submit bug-reports, dedicated support will only 
 ## Citing STiC
 If you have used STiC in your research, please add the following description in the manuscript (or a very similar one,
 including all references) to acknowledge all the work that has been done by different scientists over the past years:
-```
-STiC (de la Cruz Rodriguez et al. 2018; de la Cruz et al. 2016) is a MPI-parallel non-LTE inversion code
+
+*STiC (de la Cruz Rodriguez et al. 2018; de la Cruz et al. 2016) is a MPI-parallel non-LTE inversion code
 that utilises a modified version of RH (Uitenbroek 2001) to solve the atom population
 densities assuming statistical equililibrium and plane-parallel geometry and it allows including partial
 redistribution effects of scattered photons (Leenaarts et al. 2012). The radiative transport equation is
 solved using cubic Bezier solvers (de la Cruz Rodriguez et al. 2013).
 
-The inversion engine of STiC includes an equation of state extracted from the SME code (Valenti & Piskunov 2016).
-```
+The inversion engine of STiC includes an equation of state extracted from the SME code (Valenti & Piskunov 2016).*
+
 The references can be found here:
 * de la Cruz Rodriguez et al. (in prep.): no link yet
 * [de la Cruz Rodriguez et al. (2016)](http://adsabs.harvard.edu/abs/2016ApJ...830L..30D)
@@ -86,9 +86,10 @@ cd ../../
 make clean
 make
 
-If everything went fine you will find the binary of STiC in the main src folder.
-You can try to execute it and see if it starts. You should get something like this:
+If everything went fine you will find the binary of STiC in the main src folder (STiC.x).
 
+You can try to execute it and see if it starts. You should get something like this:
+```
    SSSSSSSSSSSSSSS TTTTTTTTTTTTTTTTTTTTTTT  iiii         CCCCCCCCCCCCC
  SS:::::::::::::::ST:::::::::::::::::::::T i::::i     CCC::::::::::::C
 S:::::SSSSSS::::::ST:::::::::::::::::::::T  iiii    CC:::::::::::::::C
@@ -108,5 +109,4 @@ S:::::::::::::::SS       T:::::::::T      i::::::i    CCC::::::::::::C
 
 STIC: Initialized with 1 process(es)
 file_check: ERROR, file  does not exist!
-
-
+```
