@@ -15,13 +15,13 @@ Although we encourage people to submit bug-reports, dedicated support will only 
 If you have used STiC in your research, please add the following description in the manuscript (or a very similar one,
 including all references) to acknowledge all the work that has been done by different scientists over the past years:
 
-*STiC (de la Cruz Rodriguez et al. 2018; de la Cruz et al. 2016) is a MPI-parallel non-LTE inversion code
-that utilises a modified version of RH (Uitenbroek 2001) to solve the atom population
-densities assuming statistical equililibrium and plane-parallel geometry and it allows including partial
-redistribution effects of scattered photons (Leenaarts et al. 2012). The radiative transport equation is
-solved using cubic Bezier solvers (de la Cruz Rodriguez et al. 2013).
+*STiC (de la Cruz Rodriguez et al. 2018; de la Cruz et al. 2016) is a MPI-parallel non-LTE inversion code*
+*that utilises a modified version of RH (Uitenbroek 2001) to solve the atom population*
+*densities assuming statistical equililibrium and plane-parallel geometry and it allows including partial*
+*redistribution effects of scattered photons (Leenaarts et al. 2012). The radiative transport equation is*
+*solved using cubic Bezier solvers (de la Cruz Rodriguez et al. 2013).*
 
-The inversion engine of STiC includes an equation of state extracted from the SME code (Valenti & Piskunov 2016).*
+*The inversion engine of STiC includes an equation of state extracted from the SME code (Valenti & Piskunov 2016).*
 
 The references can be found here:
 * de la Cruz Rodriguez et al. (in prep.): no link yet
