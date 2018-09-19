@@ -146,6 +146,9 @@ mpiexec -n 1 ../src/STiC.x
 ## Acknowledgements
 
 We are gratefull to N. Piskunov for allowing us to use his excellent EOS in our code.
-JdlCR is supported by grants from the Swedish Research Council (2015-03994), the Swedish National Space Board (128/15). This project has received funding from the European Research Council (ERC) under the European Union's Horizon 2020 research and innovation programme (SUNMAG, grant agreement 759548). SD and JdlCR are supported by a grant from the Swedish Civil Contingencies Agency (MSB).
+
+JdlCR is supported by grants from the Swedish Research Council (2015-03994), the Swedish National Space Board (128/15). This project has received funding from the European Research Council (ERC) under the European Union's Horizon 2020 research and innovation programme (SUNMAG, grant agreement 759548).
+
+SD and JdlCR are supported by a grant from the Swedish Civil Contingencies Agency (MSB).
 
 This research was supported by the CHROMATIC grant of the Knut and Alice Wallenberg foundation.
