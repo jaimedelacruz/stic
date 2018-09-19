@@ -175,7 +175,6 @@ bool_t rhf1d(float muz, int rhs_ndep, double *rhs_T, double *rhs_rho,
     atmos.Stokes = TRUE;
   hydrostat[0] = (int)atmos.hydrostatic;
 
-
   /* --- Init atomic/molecular models, extra lambda 
      positions and background opac. Allocated only in the first call --- */
   
@@ -201,7 +200,8 @@ bool_t rhf1d(float muz, int rhs_ndep, double *rhs_T, double *rhs_rho,
   UpdateAtmosDep();
   Background_j(write_analyze_output=FALSE, equilibria_only=FALSE);
   //convertScales(&atmos, &geometry);
-  
+  if(atmos.H->NLTEpops) hydrostat[0] = TRUE;
+
   //for(i=0;i<atmos.Nspace;i++) printf("[%3d] %e\n", i, geometry.tau_ref[i]);
   
   if(!mpi.stop){

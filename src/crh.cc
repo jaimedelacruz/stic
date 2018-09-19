@@ -317,14 +317,6 @@ bool crh::synth(mdepth_t &m_in, double *syn, cprof_solver sol, bool save_pops){
   /* --- Did not converge? --- */
 
   if(!conv){
-    // char kk[50];
-    // sprintf(kk, "dbug_%04d.txt", input.myrank);
-    
-    // FILE *bla = fopen(kk,"w");
-    // for(int ii=0; ii<m.ndep; ii++) fprintf(bla,"%e %e %e %e \n", m.ltau[ii], m.temp[ii], m.v[ii]*1.e-3, m.vturb[ii]*1.e-3);
-    // fclose(bla);
-    
-    // exit(0);
     
     for(int ww = 0; ww<nlambda*4; ww++)
       syn[ww] = 1.e13;
@@ -366,9 +358,6 @@ bool crh::synth(mdepth_t &m_in, double *syn, cprof_solver sol, bool save_pops){
   /* --- convert nHtot to Pgas using the electron density, the H abundance and temperature --- */
   
   if(hydrostat > 0){
-    // char fname[35]; sprintf(fname, "ne_pix=%05d.txt", npix++);
-    //   FILE *fout = fopen(fname, "w");
-      
     for(int kk = 0; kk < m.ndep; kk++){
 
       //fprintf(fout, "%e %e\n", m_in.nne[kk], m.nne[kk]*1.e-6);
@@ -382,7 +371,6 @@ bool crh::synth(mdepth_t &m_in, double *syn, cprof_solver sol, bool save_pops){
 
     }
 
-    // fclose(fout);
     
   }
 

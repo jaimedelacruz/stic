@@ -16,6 +16,7 @@
 #include <ctime>
 #include <cstdlib>
 #include <functional>
+#include <random>
 #include "atmosphere.h"
 #include "spectral.h"
 #include "ceos.h"
@@ -212,14 +213,23 @@ void atmos::randomizeParameters(const nodes_t &n, int npar, double *pars, const 
   static const double vtau[4] = {-7.0, -5.0, -3.0, 1.0};
   static const double vvel[4] = {10, 6.0, 3.0, 0.0};
   std::vector<double> res(n.v.size(), 0.0);
-
+  static bool firsttime = true;
+  
+  static std::mt19937 rng;
+  if(firsttime){
+    rng.seed(std::random_device()());
+  }
+  static std::uniform_int_distribution<std::mt19937::result_type> rand_dist(0,1.e4);
+  firsttime = false;
+  
+  
   int nvel = (int)n.v.size();
   if(nvel > 1){
     hermpol<double>(4, vtau, vvel, nvel, &n.v[0], &res[0]);
   }
 
   
-  srand (time(NULL));
+  //srand (time(NULL));
   int ninit = (int)scal.size();
   
   if(npar != ninit){
@@ -234,13 +244,13 @@ void atmos::randomizeParameters(const nodes_t &n, int npar, double *pars, const 
 
     /* --- Only apply a constant perturbation --- */
     if(last != n.ntype[pp]){
-      rnum = (double)rand() / RAND_MAX;
+      rnum = rand_dist(rng)*1.e-4;//(double)rand() / RAND_MAX;
       last = n.ntype[pp];
     }
 
-    if(n.ntype[pp] == temp_node)
+    if(n.ntype[pp] == temp_node){
       pertu = 2.0 * (rnum - 0.5) * scal[pp] * 0.2;
-    else if(n.ntype[pp] == v_node)
+    }else if(n.ntype[pp] == v_node)
       if((rvel == 0)&&(nvel>1)){
 	pars[pp]= res[pp-n.v_off]*1.e5; pertu = 0.0;
       }else if((rvel == 1)&&(nvel>1)){
@@ -1122,9 +1132,9 @@ double atmos::fitModel2(mdepth_t &m, int npar, double *pars, int nobs, double *o
     
     /* --- Work with normalized parameters --- */
     
-    for(int pp = 0; pp<npar; pp++) 
-      ipars[pp] /= scal[pp];
-    
+    for(int pp = 0; pp<npar; pp++){
+      ipars[pp] /= scal[pp];      
+    }
     
     
     /* --- Call clm --- */
