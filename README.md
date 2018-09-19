@@ -40,7 +40,7 @@ The code includes source written in C, C++-11 and Fortran.
 It makes use of the following libraries: Eigen-3, FFTW-3, netCDF4-cxx4, openmpi-2 (or any other MPI-2 implementation).
 
 
-## Instalation instructions
+## Compilation instructions
 Assuming that all dependencies have been installed, you can install the code as follows:
 
 We have prepared different makefiles for different platforms and operating systems.
@@ -73,7 +73,7 @@ mode anyway.
 
 STiC is based on a modified version the excellent RH code (Uitenbroek 2001).
 We have encapsulated RH in a module that needs to be compiled first:
-
+```
 cd stic/src/rh
 make clean
 make
@@ -85,7 +85,7 @@ make
 cd ../../
 make clean
 make
-
+```
 If everything went fine you will find the binary of STiC in the main src folder (STiC.x).
 
 You can try to execute it and see if it starts. You should get something like this:
@@ -109,4 +109,34 @@ S:::::::::::::::SS       T:::::::::T      i::::::i    CCC::::::::::::C
 
 STIC: Initialized with 1 process(es)
 file_check: ERROR, file  does not exist!
+```
+
+## Example inversion test
+We have included an example to test the code (stic/example/).
+The example is basically one spectrum from an observation of an active region on the Sun in the
+Ca II K line, Ca II 8542 \AA\ line, Fe I 6301 & 6302 \AA\ lines. The observations were
+acquired with the CRISP and CHROMIS instruments at the Swedish 1-m Solar Telescope.
+
+To run the example we first need link all the python tools that are included in the repository:
+
+```
+cd stic/example/
+ln -s ../pythontools/py2/* .
+```
+
+Now we can execute the script that prepares the data. This script takes the line profile in each of the
+spectral lines, and it stores them in a netCDF4 container so the code can read them. It also generates
+an ad-hoc initial model and the instrumental profiles of our instruments.
+
+```
+python prepare_data.py
+```
+
+The main files to change the behavior of STiC are input.cfg, keyword.input, atoms.inputm kurucz.input.
+
+Since our example is only one pixel, there is no need to run the parallel version.
+
+You can run the default example by simply typing:
+```
+mpiexec -n 1 ../src/STiC.x
 ```
