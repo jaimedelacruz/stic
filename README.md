@@ -42,7 +42,9 @@ It makes use of the following libraries: Eigen-3, FFTW-3, netCDF4-cxx4, openmpi-
 The code has been extensively run in Linux and OSX.
 
 ## Compilation instructions
-Assuming that all dependencies have been installed, you can install the code as follows:
+
+Very detailed compilation instructions for OSX and Linux can be found [here](http://dubshen.astro.su.se/~jaime/stic_compile.txt). However, we include a brief explanation,
+assuming that all dependencies have already been installed:
 
 We have prepared different makefiles for different platforms and operating systems.
 in your $HOME/.bashrc file and start a new terminal to make the changes effective).
