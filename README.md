@@ -1,9 +1,8 @@
 # STiC: the Stockholm inversion code
-Developed by J. de la Cruz Rodriguez with contributions from J. Leenaarts, S. Danilovic & H. Uitenbroek.
+Developed by J. de la Cruz Rodriguez, J. Leenaarts, S. Danilovic & H. Uitenbroek.
 
 STiC is a MPI-parallel non-LTE inversion code for observed full-Stokes observations.
 It allows inverting lines from multiple active atoms, including partial redistribution effects of scattered photons.
-
 
 ## Support
 The code is distributed "as it is".
@@ -129,7 +128,7 @@ ln -s ../pythontools/py2/* .
 
 Now we can execute the script that prepares the data. This script takes the line profile in each of the
 spectral lines, and it stores them in a netCDF4 container so the code can read them. It also generates
-an ad-hoc initial model and the instrumental profiles of our instruments.
+an ad-hoc initial model and the instrumental profiles of our instruments. The script is extensively commented.
 
 ```
 python prepare_data.py
