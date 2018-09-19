@@ -1,7 +1,7 @@
 import numpy as np
 import os
 import sys
-import ipdb as ip
+#import ipdb as ip
 
 def lphead(name, verbose = True):
     inam = 'lphead:'
