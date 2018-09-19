@@ -20,14 +20,14 @@ LINKER = $(MPCXX)
 #
 # OPTIMIZATION
 #
-OPTS = -O3 -march=native -lm -lpthread -Wa,-q
-CXXFLAGS = $(OPTS) -std=c++11 -Wno-literal-suffix
+OPTS = -O3 -I/opt/local/include/
+CXXFLAGS = $(OPTS) -std=c++11 
 CFLAGS = $(OPTS) 
 FFLAGS = $(OPTS)
 AR = ar
 OPENMP = -fopenmp
 
-LINKEROPTS =  -lgfortran
+LINKEROPTS =  -lgfortran 
 
 
 #
@@ -40,7 +40,7 @@ GSLPATH = /opt/local
 #
 # Mac related non-sense 
 #
-ifneq (,$(findstring Darwin,$(OS))) #
-  MACOSX_DEPLOYMENT_TARGET=10.6
-  export MACOSX_DEPLOYMENT_TARGET
-endif
+#ifneq (,$(findstring Darwin,$(OS))) #
+#  MACOSX_DEPLOYMENT_TARGET=10.6
+#  export MACOSX_DEPLOYMENT_TARGET
+#endif
