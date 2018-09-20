@@ -144,6 +144,11 @@ mpiexec -n 1 ../src/STiC.x
 ```
 ...and wait. The code will provide information of each Levenberg-Marquardt iteration as they are completed.
 
+Once the inversion is completed, you can visualize the result with the plot.py script:
+```
+python plot.py
+```
+
 ## Acknowledgements
 
 We are gratefull to N. Piskunov for allowing us to use his excellent EOS in our code.
