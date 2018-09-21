@@ -182,7 +182,9 @@ void Iterate_j(int NmaxIter, double iterLimit, double *dpopmax_out)
                             " for hydrogen active");
 	Error(ERROR_LEVEL_2, routineName, messageStr);
       }
-      Hydrostatic(N_MAX_HSE_ITER, HSE_ITER_LIMIT);
+      
+      if(atmos.atoms[0].mxchange > 1.e-2)
+	Hydrostatic(N_MAX_HSE_ITER, HSE_ITER_LIMIT);
     }
   }
   
@@ -311,11 +313,7 @@ double solveSpectrum(bool_t eval_operator, bool_t redistribute, int iter, bool_t
     for (nspect = 0;  nspect < spectrum.Nspect;  nspect++) {
       if (!redistribute ||
 	  (redistribute && containsPRDline(&spectrum.as[nspect]))) {
-	  // (redistribute && spectrum.linfo[nspect].is)) {
-
-	//if(synth_all || containsUnconvergedAtom(&spectrum.as[nspect]))
 	  dJ = Formal(nspect, eval_operator, redistribute, iter);
-	//else fprintf(stderr,"skipping lambda=%f\n", spectrum.lambda[nspect]);
 	if (dJ > dJmax) {
 	  dJmax = dJ;
 	  lambda_max = nspect;
