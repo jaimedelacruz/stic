@@ -761,7 +761,7 @@ void ceos::hydrostatic(int ndep, double *tau, double *t, double *Pg, double *rho
   store_partial_pressures(ndep, (int)0, xna, xne);
 
   //cmass[0] = (tau[0] / kappa_old) * RHOest;
-  cmass[0] =  Pg[0] / gravity; //(xna + xne) * (kb * t[0] / gravity);
+  cmass[0] =  0.0;//Pg[0] / gravity; //(xna + xne) * (kb * t[0] / gravity);
   kappa_old /= RHOest;
   
 
@@ -827,8 +827,8 @@ void ceos::hydrostatic(int ndep, double *tau, double *t, double *Pg, double *rho
 
 
   }
-
-  for(int kk=0; kk<ndep; kk++) cmass[kk] = log10(cmass[kk]);
+  double toff = exp(2.0 * log(cmass[1]) - log(cmass[2]));
+  for(int kk=0; kk<ndep; kk++) cmass[kk] = log10(toff+cmass[kk]);
   
   // cerr<<"ceos::hydrostatic: ITMAX="<<imax<<endl;
 }
@@ -1586,6 +1586,7 @@ void ceos::hydrostatic_cmass(int ndep, double *tau, double *t, double *Pg, doubl
   Pg[0] = gravity * cm;
   contOpacity_TPg(t[0], Pg[0], nw, &wav, &kappa, &dum);
   rho[0] = RHOest, nel[0] = xne;
+  store_partial_pressures(ndep, 0, xna, xne);
 
   z[0] = 0.0;
   tau[0] = 0.0; //kappa / rho[0] * cm, ltau[0] = log10(tau[0]);
@@ -1610,6 +1611,9 @@ void ceos::hydrostatic_cmass(int ndep, double *tau, double *t, double *Pg, doubl
     double dz =  2.0 * (cm - ocm) / (rho[k-1] + rho[k]);
     z[k] = z[k-1] - dz;
     tau[k] = tau[k-1] + dz * 0.5 * (kappa + kappa_old), ltau[k] = log10(tau[k]);
+
+    store_partial_pressures(ndep, k, xna, xne);
+
   }
 
   double toff = exp(2.0 * log(tau[1]) - log(tau[2]));
