@@ -34,7 +34,7 @@
 #include "error.h"
 #include "statistics.h"
 
-#define MAX_ELECTRON_ERROR         1.0E-4
+#define MAX_ELECTRON_ERROR         1.0E-3
 #define N_MAX_ELECTRON_ITERATIONS  100
 #define N_MAX_ELEMENT              26
 
@@ -158,7 +158,7 @@ void getfjk(Element *element, double ne, int k, double *fjk, double *dfjk)
          element and its partial derivative with ne. -- ------------- */
 
 
-  if (element->model  &&  element->model->NLTEpops) {
+  if (element->model &&  element->model->active && element->model == &atmos.atoms[0]) {
 
     /* --- If element has NLTE populations then use these -- -------- */
 

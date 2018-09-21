@@ -107,7 +107,7 @@ void distribute_nH()
 	for (k = 0;  k < Nspace;  k++)
 	  atmos.H->n[i][k] = atmos.H->nstar[i][k];
       }
-      atmos.H->NLTEpops = TRUE;
+      //  atmos.H->NLTEpops = TRUE;
     }
     
   } else {
