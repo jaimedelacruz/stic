@@ -59,7 +59,7 @@ void Iterate_j(int NmaxIter, double iterLimit, double *dpopmax_out)
 
   if (NmaxIter <= 0) return;
   getCPU(1, TIME_START, NULL);
-
+  
   /* --- Initialize structures for Ng acceleration of population
          convergence --                                  ------------ */
 
@@ -157,11 +157,15 @@ void Iterate_j(int NmaxIter, double iterLimit, double *dpopmax_out)
       break;
     }
     niter++;
-
+    
     // This helps to damp a bit the initial iterations 
-    if (input.solve_ne == ITERATION && ((dpopsmax < 1.e-1) || (niter+1 == (niter/2*2+1))))
-      Background_j(write_analyze_output=TRUE, equilibria_only=FALSE);
-
+    if (input.solve_ne == ITERATION){
+      if(!atmos.atoms[0].active)
+      	Background_j(write_analyze_output=TRUE, equilibria_only=FALSE);
+      else
+	if(atmos.atoms[0].active && (atmos.atoms[0].mxchange > 5.e-2) && (niter == (niter/2*2)))
+	  Background_j(write_analyze_output=TRUE, equilibria_only=FALSE);
+    }
 
     /* Update collisional radiative switching */
     if (input.crsw > 0)

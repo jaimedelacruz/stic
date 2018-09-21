@@ -203,32 +203,30 @@ double updatePopulations(int niter)
 {
   register int nact;
 
-  bool_t accel, quiet, hydrogen = FALSE;
+  bool_t accel, quiet;//, hydrogen = FALSE;
   double dpops, dpopsmax = 0.0;
   Atom *atom;
   Molecule *molecule;
 
-  if((atmos.atoms[0].active && !atmos.atoms[0].converged) || 1) hydrogen = TRUE;
+  //  if((atmos.atoms[0].active && !atmos.atoms[0].converged) || 1) hydrogen = TRUE;
   
   /* --- Update active atoms --                        -------------- */
 
   for (nact = 0;  nact < atmos.Nactiveatom;  nact++) {
     atom = atmos.activeatoms[nact];
     
-    if(!atom->converged || hydrogen){
-      
-      statEquil(atom, input.isum);
-      if(mpi.stop) return 1.;
-      
-      accel = Accelerate(atom->Ng_n, atom->n[0]);
-      if(mpi.stop) return 1.;
-      
-      sprintf(messageStr, " %s,", atom->ID);
-      dpops = MaxChange(atom->Ng_n, messageStr, quiet=FALSE);
-      Error(MESSAGE, NULL, (accel) ? " (accelerated)\n" : "\n");
-      atom->mxchange = dpops;
-      if(dpops <= input.iterLimit) atom->converged = TRUE;
-      } else dpops = atom->mxchange;
+    statEquil(atom, input.isum);
+    if(mpi.stop) return 1.;
+    
+    accel = Accelerate(atom->Ng_n, atom->n[0]);
+    if(mpi.stop) return 1.;
+    
+    sprintf(messageStr, " %s,", atom->ID);
+    dpops = MaxChange(atom->Ng_n, messageStr, quiet=FALSE);
+    Error(MESSAGE, NULL, (accel) ? " (accelerated)\n" : "\n");
+    
+    atom->mxchange = dpops;
+    
     dpopsmax = MAX(dpops, dpopsmax);
   }
   /* --- Update active molecules --                    -------------- */

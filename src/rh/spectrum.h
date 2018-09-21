@@ -56,7 +56,7 @@ typedef struct {
   double *Jlam;
   linf *linfo;
   AtomicLine **PRDlines;
-  int nPRDlines;
+  int nPRDlines; 
 } Spectrum;
 
 
