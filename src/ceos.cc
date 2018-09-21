@@ -1571,7 +1571,7 @@ void ceos::readAbund(std::string file)
 
 
 void ceos::hydrostatic_cmass(int ndep, double *tau, double *t, double *Pg, double *rho, double *nel,
-			     double *z, double *cmass, double *ltau){
+			     double *z, double *cmass, double *ltau, double &pgas_bound){
 
 
   const string inam = "ceos::hydrostatic_cmass: ";
@@ -1585,6 +1585,7 @@ void ceos::hydrostatic_cmass(int ndep, double *tau, double *t, double *Pg, doubl
   cm = pow(10.0, cmass[0]);
   Pg[0] = gravity * cm;
   contOpacity_TPg(t[0], Pg[0], nw, &wav, &kappa, &dum);
+  
   rho[0] = RHOest, nel[0] = xne;
   store_partial_pressures(ndep, 0, xna, xne);
 
@@ -1622,6 +1623,7 @@ void ceos::hydrostatic_cmass(int ndep, double *tau, double *t, double *Pg, doubl
   for(int k = 0; k < ndep; k++){
     tau[k] += toff;
     ltau[k] = log10(tau[k]);
+    //  fprintf(stderr,"%d %e %e %e\n", k, ltau[k], cmass[k], z[k]*1.e-5);
   }
   
   //   for(int k = 0; k<ndep; k++)
