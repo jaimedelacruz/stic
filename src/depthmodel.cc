@@ -336,7 +336,7 @@ void mdepth::hydrostatic(ceos &eos, int depth_m)
     eos.hydrostatic((int)ndep, &tau[0], &temp[0], &pgas[0], &rho[0], &nne[0], &pel[0],
 		    &z[0], &cmass[0], pgas[0], (float)1.e-5);
   else
-    eos.hydrostatic_cmass((int)ndep, tau, temp, pgas, rho, nne, z, cmass, ltau);
+    eos.hydrostatic_cmass((int)ndep, tau, temp, pgas, rho, nne, z, cmass, ltau, pgas[0]);
   
   
 }
