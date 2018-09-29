@@ -1174,7 +1174,7 @@ double atmos::fitModel2(mdepth_t &m, int npar, double *pars, int nobs, double *o
     double tmp = (obs[ww] - bestSyn[ww]) / weights.d[ww];
     sum += (tmp*tmp);
   }
-  fprintf(stderr,"Recomp chi2=%13.5f\n", sum/ndata);
+  //fprintf(stderr,"Recomp chi2=%13.5f\n", sum/ndata);
   memcpy(&obs[0], &bestSyn[0], ndata*sizeof(double));
   memcpy(&m.cub.d[0], &best_m.cub.d[0], m.ndep*14*sizeof(double));
   
