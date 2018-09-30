@@ -826,3 +826,17 @@ def readVALD(filename, writeto='vald_lines.cfg', stellar=True, width = 3.0, verb
     fo.close()
     
     return lines
+
+def writeInstProf(oname, var, pref=None):
+    ncfile1 = nf(oname,'w', format='NETCDF4')
+    ncfile1.createDimension('wav',var.size)
+    par1 = ncfile1.createVariable('iprof','f8',('wav'))
+    par1[:] = var
+
+
+    if(len(pref) == 3):
+        ncfile1.createDimension('np',len(pref))
+        par2 = ncfile1.createVariable('pref','f8',('np'))
+        par2[:] = np.float32(pref)
+
+    ncfile1.close()
