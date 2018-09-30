@@ -63,7 +63,7 @@ export CPU=i386
 
 Additionally, make openmpi aware of your compilers:
 ```
-export OMPI_CC=g++
+export OMPI_CC=gcc
 export OMPI_CXX=g++
 export OMPI_FC=gfortran
 
