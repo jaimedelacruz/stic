@@ -766,6 +766,37 @@ class profile:
         n.pweights[:,:,:] = self.pweights[t0:t1, y0:y1, x0:x1]
 
         return(n)
+    
+    def splitRegions(self):
+        nReg = 0
+        w = self.wav
+        dw = w[1]-w[0]
+        w0 = 0
+        m1 = []
+        odw = dw
+        nwav = w.size-1
+        ii = 1
+        while(ii < nwav):
+            odw = dw
+            dw = w[ii]-w[ii-1]
+            if(np.abs(odw-dw) > 1.e-4):
+                ddw = w[ii+1]-w[ii]
+                m1.append(self.extractWav(w0=w0,w1=ii))
+                w0=ii
+                dw = ddw
+
+                if(ddw > 1):
+                    m1.append(self.extractWav(w0=ii,w1=ii+1))
+                    ii+=1
+                    w0=ii
+                    dw = w[ii+1]-w[ii]
+                ii+=1
+            
+            else:
+                ii+=1
+            
+        m1.append(self.extractWav(w0=w0,w1=w.size))
+        return(m1)
 
 def readVALD(filename, writeto='vald_lines.cfg', stellar=True, width = 3.0, verbose=False):
     f = open(filename, 'r')
@@ -826,17 +857,3 @@ def readVALD(filename, writeto='vald_lines.cfg', stellar=True, width = 3.0, verb
     fo.close()
     
     return lines
-
-def writeInstProf(oname, var, pref=None):
-    ncfile1 = nf(oname,'w', format='NETCDF4')
-    ncfile1.createDimension('wav',var.size)
-    par1 = ncfile1.createVariable('iprof','f8',('wav'))
-    par1[:] = var
-
-
-    if(len(pref) == 3):
-        ncfile1.createDimension('np',len(pref))
-        par2 = ncfile1.createVariable('pref','f8',('np'))
-        par2[:] = np.float32(pref)
-
-    ncfile1.close()
