@@ -22,14 +22,14 @@ LINKER = $(MPCXX)
 #
 # OPTIMIZATION
 #
-OPTS = -O3 -march=native -fPIC -I/usr/include/tirpc
+OPTS = -O3 -march=native -fPIC  -I/usr/include/tirpc
 CXXFLAGS =  $(OPTS) -std=c++11
 CFLAGS =  $(OPTS) -DHAVE_F90 
 FFLAGS =   $(OPTS) 
 AR = gcc-ar
 OPENMP = -fopenmp 
 
-LINKEROPTS = -lgfortran -lm -lpthread -llapack #-lmpi_cxx #-ltirpc
+LINKEROPTS = -lgfortran -lm -lpthread #-ltirpc
 
 #
 # GSL, FFTW3 libs.
