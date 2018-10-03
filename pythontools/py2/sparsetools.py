@@ -797,8 +797,9 @@ class profile:
             
         m1.append(self.extractWav(w0=w0,w1=w.size))
         return(m1)
+    
 def writeInstProf(oname, var, pref=[]):
-    ncfile1 = nc(oname,'w', format='NETCDF4')
+    ncfile1 = nf(oname,'w', format='NETCDF4')
     ncfile1.createDimension('wav',var.size)
     par1 = ncfile1.createVariable('iprof','f8',('wav'))
     par1[:] = var
