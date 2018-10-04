@@ -596,7 +596,8 @@ class profile:
                     
     def __init__(self, filename = "", nx = 1, ny = 1, nw = 1, ns = 4, nt = 1, \
                  dtype = 'float64', verbose=True):
-                 
+        
+        self.nder = 0
         self.dtype = dtype
         self.verbose = verbose
 
@@ -647,12 +648,14 @@ class profile:
         nw = 0
         ns = 0
         nt = 0
+        
         for ii in nc_dims:
             if(ii == 'x'): nx = len(nc_fid.dimensions['x'])
             elif(ii == 'y'): ny = len(nc_fid.dimensions['y'])
             elif(ii == 'wav'): nw = len(nc_fid.dimensions['wav'])
             elif(ii == 'stokes'): ns = len(nc_fid.dimensions['stokes'])
             elif(ii == 'time'): nt = len(nc_fid.dimensions['time'])
+            elif(ii == 'vtype'): self.nder = len(nc_fid.dimensions['vtype'])
         
         self.setsize(nx, ny, nw, ns, nt)
 
@@ -671,6 +674,12 @@ class profile:
         if(len(np.where(nc_vars == 'pixel_weights')[0]) == 1):
             self.pweights[:,:,:] = nc_fid.variables['pixel_weights'][:]
             read+="[pixel_weights]"
+        if(len(np.where(nc_vars == 'derivatives')[0]) == 1):
+            self.rf =  nc_fid.variables['derivatives'][:]
+            read += '[derivatives]'
+        if(len(np.where(nc_vars == 'derivatives')[0]) == 1):
+            self.rf_type =  np.int32(nc_fid.variables['vidx'][:])
+            read += '[vidx]'
         print("profile::read: "+read)
         nc_fid.close()
         
