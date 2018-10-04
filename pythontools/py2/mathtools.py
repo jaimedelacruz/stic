@@ -60,7 +60,7 @@ def bezier2(x, y, xp, linear = False):
     # compute interpolated values
     res = np.zeros(n1)
     
-    for k in xrange(n-1):
+    for k in range(n-1):
         k1 = k+1
         idx = np.where((xp >= x[k]) & (xp < x[k1]))[0]
         if(len(idx) == 0):
@@ -106,7 +106,7 @@ def bezier3(x, y, xp, linear = False):
     # compute interpolated values
     res = np.zeros(n1)
     
-    for k in xrange(n-1):
+    for k in range(n-1):
         k1 = k+1
         idx = np.where((xp >= x[k]) & (xp < x[k1]))[0]
         if(len(idx) == 0):
