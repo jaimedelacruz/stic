@@ -26,10 +26,10 @@ class crh: public atmos{
   crhpop save_pop;
   
   /* --- Prototypes --- */
-  std::vector<double> get_max_limits(nodes_t &n);
-  std::vector<double> get_min_limits(nodes_t &n);
-  std::vector<double> get_scaling(nodes_t &n);
-  std::vector<double> get_steps(nodes_t &n);
+  std::vector<double> get_max_limits(nodes_t &n, int mode =1);
+  std::vector<double> get_min_limits(nodes_t &n, int mode = 1);
+  std::vector<double> get_scaling(nodes_t &n, int mode =1);
+  std::vector<double> get_steps(nodes_t &n, int mode = 1);
   bool synth(mdepth &m, double *syn, cprof_solver sol = bez_ltau, bool store_pops = true);
   void cleanup();
   void lambdaIDX(int nw, double *lambda);

@@ -24,7 +24,7 @@ const double crh::pstep[7] = {1.e-1 , 1.e-1, 1.0e-1, 2.0e-1, 2.0e-1, 1.0e-1, 1.0
 
 /* ----------------------------------------------------------------*/
 
-vector<double> crh::get_max_limits(nodes_t &n){
+vector<double> crh::get_max_limits(nodes_t &n, int mode){
 
   
   int nnodes = (int)n.nnodes, ntype = n.ntype.size(), kmx = std::min(nnodes, ntype);
@@ -44,7 +44,7 @@ vector<double> crh::get_max_limits(nodes_t &n){
     }
   }
   
-  if(n.nnodes == 0){
+  if(mode == 4 || n.nnodes ==0){
     mmax.resize(8);
     for(int ii=0; ii<6; ii++)mmax[ii] = pmax[ii];
     mmax[6] = 1.e32, mmax[7] = 1.32;
@@ -57,7 +57,7 @@ vector<double> crh::get_max_limits(nodes_t &n){
 /* ----------------------------------------------------------------*/
 
 
-vector<double> crh::get_min_limits(nodes_t &n){
+vector<double> crh::get_min_limits(nodes_t &n, int mode){
 
   int nnodes = (int)n.nnodes, ntype = n.ntype.size(), kmx = std::min(nnodes, ntype);
   
@@ -77,7 +77,7 @@ vector<double> crh::get_min_limits(nodes_t &n){
     }
   }
   
-  if(n.nnodes == 0){
+  if(n.nnodes == 0 || mode == 4){
     mmin.resize(8);
     for(int ii=0; ii<6; ii++)mmin[ii] = pmin[ii];
     
@@ -90,10 +90,11 @@ vector<double> crh::get_min_limits(nodes_t &n){
 
 /* ----------------------------------------------------------------*/
 
-vector<double> crh::get_scaling(nodes_t &n){
+vector<double> crh::get_scaling(nodes_t &n, int mode){
 
   int nnodes = (int)n.nnodes, ntype = n.ntype.size(), kmx = std::min(nnodes, ntype);
   //if(nnodes = ntype) return scal;
+  
   if(kmx > 0){
 
     scal.resize(nnodes);
@@ -110,7 +111,9 @@ vector<double> crh::get_scaling(nodes_t &n){
       else                              scal[k] = 1.0;
     }
   }
-  if(n.nnodes == 0){
+  //cerr<<n.nnodes<<endl;
+
+  if(n.nnodes == 0 || mode == 4){
     scal.resize(8);
     for(int ii=0; ii<6; ii++)scal[ii] = pscal[ii];
 
@@ -124,7 +127,7 @@ vector<double> crh::get_scaling(nodes_t &n){
 
 /* ----------------------------------------------------------------*/
 
-vector<double> crh::get_steps(nodes_t &n){
+vector<double> crh::get_steps(nodes_t &n, int mode){
 
   int nnodes = (int)n.nnodes;
   step.resize(nnodes);
@@ -208,10 +211,10 @@ crh::crh(iput_t &inpt, double grav): atmos(inpt, grav){
 
   // if(input.nodes.nnodes > 0){
     vector<double> dummy;
-    dummy = this->get_scaling(input.nodes);
-    dummy = this->get_max_limits(input.nodes);
-    dummy = this->get_min_limits(input.nodes);
-    dummy = this->get_max_change(input.nodes);
+    dummy = this->get_scaling(input.nodes, input.mode);
+    dummy = this->get_max_limits(input.nodes, input.mode);
+    dummy = this->get_min_limits(input.nodes, input.mode);
+    dummy = this->get_max_change(input.nodes, input.mode);
     //}
   
   

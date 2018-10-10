@@ -36,10 +36,10 @@ class atmos{
   // virtual void synth_grad(double *model,  double *out, double *dout,  double change = 1.e-3) = 0;
   //virtual double fitmodel(double *m, double *syn) = 0;
   virtual void cleanup() = 0;
-  virtual std::vector<double> get_max_limits(nodes_t &n){return mmax;};
-  virtual std::vector<double> get_min_limits(nodes_t &n){return step;};
-  virtual std::vector<double> get_steps(nodes_t &n){return mmin;};
-  virtual std::vector<double> get_scaling(nodes_t &n){return scal;};
+  virtual std::vector<double> get_max_limits(nodes_t &n, int mode = 1){return mmax;};
+  virtual std::vector<double> get_min_limits(nodes_t &n, int mode = 1){return step;};
+  virtual std::vector<double> get_steps(nodes_t &n, int mode = 1){return mmin;};
+  virtual std::vector<double> get_scaling(nodes_t &n, int mode = 1){return scal;};
   virtual void responseFunction(int npar, mdepth_t &m, double *pars, int nd, double *out, int pp, double *syn);
   virtual void responseFunctionFull(mdepth_t m, int nd, double *out, double *syn, int pp);
 
@@ -59,7 +59,7 @@ class atmos{
     return val;
   }
   void spectralDegrade(int ns, int npix, int ndata, double *obs);
-  virtual std::vector<double> get_max_change(nodes_t &n);
+  virtual std::vector<double> get_max_change(nodes_t &n, int mode=1);
 };
 //
 int getChi2(int nd, int npar1, double *pars1, double *syn_in, double *dev, double **derivs,

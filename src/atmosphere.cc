@@ -34,7 +34,7 @@ const double atmos::maxchange[7] = {7000., 7.0e5, 5.0e5, 600., 600., phyc::PI/5,
 inline double SQ(const double a){return a*a;};
 inline double CUB(const double a){return a*a*a;};
 
-vector<double> atmos::get_max_change(nodes_t &n){
+vector<double> atmos::get_max_change(nodes_t &n, int mode){
   
   int nnodes = (int)n.nnodes, ntype = n.ntype.size();
   if(nnodes != ntype) return maxc;
