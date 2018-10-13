@@ -380,9 +380,9 @@ C Make sure free electrons are the last species in the list.
 C
       do ispec=1,nlist-1
         if(splist(ispec).eq.'e-') then
-c          write(*,*) 'eqlist: "e-" may only occur at the end of the'
-c     &            // ' species list (SPLIST).'
-c          stop
+          write(*,*) 'eqlist: "e-" may only occur at the end of the'
+     &            // ' species list (SPLIST).'
+          stop
           eqlist=4
           return
         endif
@@ -1053,7 +1053,10 @@ C
         fac = 1.0
         Pgas = 2.0 * xntot * tk    
  1      niter=niter+1
-        if(niter .gt. 200) stop
+        if(niter .gt. 1000)then
+           write(*,*) "eos.f: too many iterations, exiting"
+           stop
+        endif
         Pg=Pgas
         
 C
@@ -1224,7 +1227,11 @@ c     *                Temp,Pgas,Pg,Pe,Pe_old,Pelec,niter,FAILED
 c          WRITE(*,*) 'T,Pgas,Pnew,XNA_in,XNA_out,XNE_in,XNE_out=',
 c     *                Temp,Pgas,Pnew,xna_old,xna,xne_old,xne,niter,
 c     *                FAILED
-          IF(niter.gt.MAXITER*10) STOP
+           IF(niter.gt.MAXITER*10) then
+              write(*,*) "eos.f: Too many iterations for Pe, exiting"
+              STOP
+              
+           endif
         END IF
 C
 C Adjust pressure according to the discrepancy in density 
