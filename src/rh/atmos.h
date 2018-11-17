@@ -42,7 +42,7 @@ typedef struct {
 
 typedef struct {
   char    ID[ATMOS_ID_WIDTH];
-  bool_t  moving, H_LTE, Stokes, hydrostatic;
+  bool_t  moving, H_LTE, Stokes, hydrostatic, ne_flag;
   int     Ndim, *N, Nspace, Nrays, Nelem, Natom, Nmolecule, Nrlk,
          *backgrrecno, Npf, NHydr, fd_background, NPRDactive,
           Nactiveatom, Nactivemol;
@@ -57,6 +57,8 @@ typedef struct {
   RLK_Line *rlk_lines;
   FILE   *fp_atmos;
   flags  *backgrflags;
+  struct Ng *ng_ne;
+
 } Atmosphere;
 
 /* --- Associated function prototypes --               -------------- */

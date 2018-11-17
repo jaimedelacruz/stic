@@ -58,7 +58,7 @@ struct AtomicLine {
     cStark, qcore, qwing, **rho_prd, *c_shift, *c_fraction, **gII;
   int    **id0, **id1;
   FILE    *fp_GII;
-  float  **frac;
+  double  **frac, rel_change;
   //double dum;
   double **Jgas;
   //unsigned int    *nc, *iprdh;
@@ -153,7 +153,7 @@ struct Molecule {
   int    *pt_index, *pt_count, Nelement, Nnuclei, Npf, Neqc, Nrt,
           charge, Nconfig, Nv, NJ, activeindex;
   double  Ediss, Tmin, Tmax, weight, *vbroad, *pf_coef, *eqc_coef,
-         *pf, **pfv, *n, **nv, **nvstar, *C_ul, **Gamma;
+    *pf, **pfv, *n, **nv, **nvstar, *C_ul, **Gamma;
   MolecularLine *mrt;
   struct Ng *Ng_nv;
   rhthread *rhth;

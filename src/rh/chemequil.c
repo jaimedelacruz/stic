@@ -364,9 +364,10 @@ void ChemicalEquilibrium(int NmaxIter, double iterLimit)
 
   /* --- Check whether active atom, if present, is in list of nuclei.
          If so print out a warning --                  -------------- */
-
+  /*
   for (nu = 0;  nu < Nnuclei;  nu++) {
     atom = nuclei[nu]->model;
+    
     if (atom && atom->active) {
       sprintf(messageStr, "\nReduced number density of"
 	      " active atom %s due to molecule%s\n  ",
@@ -380,7 +381,7 @@ void ChemicalEquilibrium(int NmaxIter, double iterLimit)
       Error(MESSAGE, routineName, messageStr);
     }
   }
-
+  */
   /* --- Clean up --                                   -------------- */
 
   free(f);     free(n);     free(a);

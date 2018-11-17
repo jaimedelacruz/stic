@@ -17,7 +17,7 @@
 #include "constant.h"
 #include "error.h"
 #include "statistics.h"
-
+#include "statequil_H.h"
 
 /* --- Function prototypes --                          -------------- */
 
@@ -243,3 +243,105 @@ void SetLTEQuantities(void)
 }
 /* ------- end ---------------------------- SetLTEQuantities.c ------ */
 
+void LTEpopsOne(Atom *atom, bool_t Debeye, int k)
+{
+  register int i, m;
+
+  char    labelStr[MAX_LINE_SIZE];
+  int     Z, dZ, *nDebeye, Nspace = atmos.Nspace;
+  double  cNe_T, dE_kT, dEion, dE, gi0, c1, sum, c2;
+
+  /* --- Computes LTE populations of a given atom.
+         Takes account of Debeye shielding and lowering of the ionization
+         potential when Debeye is set to TRUE:
+
+           dE_ion = -Z * (e^2/4PI*EPSILON_0) / D           [J]
+                D = sqrt(EPSILON_0/(2e^2)) * sqrt(kT/ne)   [m]
+ 
+    See: Mihalas (78), pp. 293-295
+
+       --                                              -------------- */
+
+  getCPU(3, TIME_START, NULL);
+
+  /* --- Depth-independent constants --               --------------- */
+
+  c1 = (HPLANCK/(2.0*PI*M_ELECTRON)) * (HPLANCK/KBOLTZMANN);
+
+  /* --- Determine the total lowering of ionization potential due
+         to Debeye shielding --                       --------------- */
+
+  if (Debeye) {
+    c2 = sqrt(8.0*PI/KBOLTZMANN) *
+      pow(SQ(Q_ELECTRON)/(4.0*PI*EPSILON_0), 1.5);
+    nDebeye = (int *) malloc(atom->Nlevel * sizeof(int));
+    for (i = 1;  i < atom->Nlevel;  i++) {
+      nDebeye[i] = 0;
+      Z = atom->stage[i];
+      for (m = 1;  m <= (atom->stage[i] - atom->stage[0]);  m++, Z++)
+	nDebeye[i] += Z;
+    }
+  }
+  /* --- Solve Saha-Boltzmann equilibrium equations --  ------------- */
+
+  //for (k = 0;  k < Nspace;  k++) {
+    if (Debeye) dEion = c2 * sqrt(atmos.ne[k] / atmos.T[k]);
+    cNe_T = 0.5*atmos.ne[k] * pow(c1/atmos.T[k], 1.5);
+    sum   = 1.0;
+
+    for (i = 1;  i < atom->Nlevel;  i++) {
+      dE  = atom->E[i] - atom->E[0];
+      gi0 = atom->g[i] / atom->g[0];
+      dZ  = atom->stage[i] - atom->stage[0];
+
+      if (Debeye)
+	dE_kT = (dE - nDebeye[i] * dEion) / (KBOLTZMANN * atmos.T[k]);
+      else
+	dE_kT = dE / (KBOLTZMANN * atmos.T[k]);
+      
+      atom->nstar[i][k] = gi0 * exp(-dE_kT);
+      for (m = 1;  m <= dZ;  m++) atom->nstar[i][k] /= cNe_T;
+      sum += atom->nstar[i][k];
+    }
+    atom->nstar[0][k] = atom->ntotal[k] / sum;
+
+    for (i = 1;  i < atom->Nlevel;  i++)
+      atom->nstar[i][k] *= atom->nstar[0][k];
+    //}
+
+  if (Debeye) free(nDebeye);
+
+  sprintf(labelStr, "LTEpops %2s", atom->ID);
+  getCPU(3, TIME_POLL, labelStr);
+}
+
+
+void SetLTEQuantitiesOne(Atom *atom, int k)
+{
+  register int n;
+
+  bool_t Debeye = TRUE;
+  // Atom *atom;
+
+  // for (n = 0;  n < atmos.Natom;  n++) {
+  //atom = &atmos.atoms[n];
+
+    /* --- Get LTE populations for each atom --        -------------- */
+
+  LTEpopsOne(atom, Debeye, k);
+  
+  if (atom->active) {
+    
+    /* --- Read the collisional data (in MULTI's GENCOL format).
+       After this we can close the input file for the active
+       atom. --                                  -------------- */
+    
+    CollisionRateOne(atom, atom->fp_input, k);
+    
+    /* --- Compute the fixed rates and store in Cij -- ------------ */
+    
+    if (atom->Nfixed > 0) FixedRateOne(atom, k);
+    // }
+    //}
+  }    
+}

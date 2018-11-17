@@ -938,3 +938,497 @@ void CollisionRate(struct Atom *atom, FILE *fp_atom)
   getCPU(3, TIME_POLL, labelStr);
 }
 /* ------- end ---------------------------- CollisionRate.c --------- */
+
+void CollisionRateOne(struct Atom *atom, FILE *fp_atom, int k)
+{
+  const char routineName[] = "CollisionRateOne";
+  register int  n, m, ii;
+
+  char    inputLine[MAX_LINE_SIZE], keyword[MAX_LINE_SIZE], *pointer,
+          labelStr[MAX_LINE_SIZE];
+  bool_t  hunt, exit_on_EOF;
+  int     nitem, i1, i2, i, j, ij, ji, Nlevel = atom->Nlevel, Nitem,
+          status;
+  long    Nspace = atmos.Nspace;
+  fpos_t  collpos;
+  double  dE, C0, *T, *coeff, C, Cdown, Cup, gij, *np, xj, fac, fxj;
+
+  int      Ncoef, Nrow;
+  double **cdi, **badi;
+  double   acolsh,tcolsh,aradsh,xradsh,adish,bdish,t0sh,t1sh,summrs,tg,cdn,cup;
+  double   ar85t1,ar85t2,ar85a,ar85b,ar85c,ar85d,t4;
+  double   de,zz,betab,cbar,dekt,dekti,wlog,wb, sumscl = 0.0;
+
+  getCPU(3, TIME_START, NULL);
+
+  C0 = ((E_RYDBERG/sqrt(M_ELECTRON)) * PI*SQ(RBOHR)) *
+    sqrt(8.0/(PI*KBOLTZMANN));
+  
+  if(atom->C == NULL)
+    atom->C = matrix_double(SQ(Nlevel), Nspace);
+  
+  for (ij = 0;  ij < SQ(Nlevel);  ij++) {
+    //for (k = 0;  k < Nspace;  k++) {
+    atom->C[ij][k] = 0.0;
+      // }
+  }
+  
+  fgetpos(fp_atom, &collpos);
+  
+  C = 0.0;//(double *) malloc(Nspace * sizeof(double));
+
+  T = coeff = NULL;
+  while ((status = getLine(fp_atom, COMMENT_CHAR,
+		  inputLine, exit_on_EOF=FALSE)) != EOF) {
+    strcpy(keyword, strtok(inputLine, " "));
+
+    if (!strcmp(keyword, "TEMP")) {
+
+      /* --- Read temperature grid --                  -------------- */
+
+      Nitem = atoi(strtok(NULL, " "));
+      T = (double *) realloc(T, Nitem*sizeof(double));
+      for (n = 0, nitem = 0;  n < Nitem;  n++) {
+        if ((pointer = strtok(NULL, " ")) == NULL) break;
+	nitem += sscanf(pointer, "%lf", T+n);
+      }
+    } else if (!strcmp(keyword, "OMEGA") || !strcmp(keyword, "CE") ||
+	       !strcmp(keyword, "CI")    || !strcmp(keyword, "CP") ||
+	       !strcmp(keyword, "CH0")   || !strcmp(keyword, "CH+")||
+	       !strcmp(keyword, "CH") ) {
+
+      /* --- Read level indices and collision coefficients -- ------- */
+
+      i1 = atoi(strtok(NULL, " "));
+      i2 = atoi(strtok(NULL, " "));
+      coeff = (double *) realloc(coeff, Nitem*sizeof(double));
+
+      for (n = 0, nitem = 0;  n < Nitem;  n++) {
+        if ((pointer = strtok(NULL, " ")) == NULL) break;
+	nitem += sscanf(pointer, "%lf", coeff+n);
+      }
+      /* --- Transitions i -> j are stored at index ji, transitions
+	     j -> i are stored under ij. --            -------------- */
+
+      i  = MIN(i1, i2);
+      j  = MAX(i1, i2);
+      ij = i*Nlevel + j;
+      ji = j*Nlevel + i;
+
+    } else if (!strcmp(keyword, "AR85-CHP") || !strcmp(keyword, "AR85-CHH")) {
+      
+      i1 = atoi(strtok(NULL, " "));
+      i2 = atoi(strtok(NULL, " "));
+      
+      Nitem = 6;
+      coeff = (double *) realloc(coeff, Nitem*sizeof(double));
+      
+      for (n = 0, nitem = 0;  n < Nitem;  n++) {
+        if ((pointer = strtok(NULL, " ")) == NULL) break;
+	nitem += sscanf(pointer, "%lf", coeff+n);
+      }
+
+      i  = MIN(i1, i2);
+      j  = MAX(i1, i2);
+      ij = i*Nlevel + j;
+      ji = j*Nlevel + i;
+
+   } else if (!strcmp(keyword, "AR85-CEA")  ||  !strcmp(keyword, "BURGESS")) {
+
+      i1 = atoi(strtok(NULL, " "));
+      i2 = atoi(strtok(NULL, " "));      
+
+      Nitem = 1;
+      coeff = (double *) realloc(coeff, Nitem*sizeof(double));
+      coeff[0] = atof(strtok(NULL, " "));    
+      nitem = 1;      
+
+      i  = MIN(i1, i2);
+      j  = MAX(i1, i2);
+      ij = i*Nlevel + j;
+      ji = j*Nlevel + i;
+
+    } else if (!strcmp(keyword, "SHULL82")) {
+      
+      i1 = atoi(strtok(NULL, " "));
+      i2 = atoi(strtok(NULL, " "));
+      
+      Nitem = 8;
+      coeff = (double *) realloc(coeff, Nitem*sizeof(double));
+      
+      for (n = 0, nitem = 0;  n < Nitem;  n++) {
+        if ((pointer = strtok(NULL, " ")) == NULL) break;
+	nitem += sscanf(pointer, "%lf", coeff+n);
+      }
+      
+      i  = MIN(i1, i2);
+      j  = MAX(i1, i2);
+      ij = i*Nlevel + j;
+      ji = j*Nlevel + i;
+
+    } else if (!strcmp(keyword,"BADNELL")) {
+
+      /* --- BADNELL recipe for dielectronic recombination:
+             Bhavna Rathore: 20 Jan 2014
+             --                                        -------------- */
+
+      i1 = atoi(strtok(NULL, " "));
+      i2 = atoi(strtok(NULL, " "));
+      Ncoef = atoi(strtok(NULL, " "));
+
+      Nrow  = 2;
+      Nitem = Nrow * Ncoef;
+      badi  = matrix_double(Nrow, Ncoef);
+
+      for (m = 0, nitem = 0;  m < Nrow;  m++) {
+	status = getLine(fp_atom, COMMENT_CHAR, inputLine,
+			 exit_on_EOF=FALSE);
+
+        badi[m][0] = atof(strtok(inputLine, " "));
+        nitem++;
+	for (n = 1;  n < Ncoef;  n++) {
+	  if ((pointer = strtok(NULL, " ")) == NULL) break;
+	  nitem += sscanf(pointer, "%lf", badi[m]+n);
+	}
+      }
+
+      i  = MIN(i1, i2);
+      j  = MAX(i1, i2);
+      ij = i*Nlevel + j;
+      ji = j*Nlevel + i;
+
+    } else if (!strcmp(keyword, "SUMMERS")) {
+
+      /* --- Switch for density dependent DR coefficent
+
+             Give default multiplication factor of summers density
+             dependence of dielectronic recombination:
+
+	     sumscl = 0.0 means there is no density dependence
+	     sumscl = 1.0 means full summers density dependence
+             --                                        -------------- */
+      Nitem = 1;
+      sumscl = atof(strtok(NULL, " "));
+      nitem = 1;
+
+    } else if (!strcmp(keyword, "AR85-CDI")) {
+	
+      i1 = atoi(strtok(NULL, " "));
+      i2 = atoi(strtok(NULL, " "));
+      Nrow = atoi(strtok(NULL, " "));
+      
+      if (Nrow > MSHELL) {
+	sprintf(messageStr, "Nrow: %i greater than mshell %i",
+		Nrow, MSHELL);
+	Error(ERROR_LEVEL_2, routineName, messageStr);
+      }
+
+      Nitem = Nrow * MSHELL;
+      cdi = matrix_double(Nrow, MSHELL);
+      
+      for (m = 0, nitem = 0;  m < Nrow;  m++) {
+	status = getLine(fp_atom, COMMENT_CHAR, inputLine, exit_on_EOF=FALSE);
+	
+        cdi[m][0] = atof(strtok(inputLine, " "));
+        nitem++;
+	for (n = 1;  n < MSHELL;  n++) {
+	  if ((pointer = strtok(NULL, " ")) == NULL) break;
+	  nitem += sscanf(pointer, "%lf", cdi[m]+n);
+	}
+      }
+
+      i  = MIN(i1, i2);
+      j  = MAX(i1, i2);
+      ij = i*Nlevel + j;
+      ji = j*Nlevel + i;
+
+    } else if (strstr(keyword, "END")) {
+      break;
+    } else {
+      sprintf(messageStr, "[%s] Unknown keyword: !%s!", atom->ID,keyword);
+      Error(ERROR_LEVEL_1, routineName, messageStr);
+    }
+
+    if (nitem != Nitem) {
+      sprintf(messageStr, "\n Read %d, not %d items (keyword = %s)\n",
+	      nitem, Nitem, keyword);
+      Error(ERROR_LEVEL_2, routineName, messageStr);
+    }
+    /* --- Spline interpolation in temperature T for all spatial
+           locations. Linear if only 2 interpolation points given - - */
+
+    if (!strcmp(keyword, "OMEGA") || !strcmp(keyword, "CE") ||
+	!strcmp(keyword, "CI")    || !strcmp(keyword, "CP") ||
+	!strcmp(keyword, "CH0")   || !strcmp(keyword, "CH+")||
+	!strcmp(keyword, "CH") ) {
+
+      if (Nitem > 2) {
+	splineCoef(Nitem, T, coeff);
+	splineEval(1, &atmos.T[k], &C, hunt=TRUE);
+      } else
+	Linear(Nitem, T, coeff, 1, &atmos.T[k], &C, hunt=TRUE);
+    }
+
+    if (!strcmp(keyword, "OMEGA")) {
+
+      /* --- Collisional excitation of ions --         -------------- */ 
+
+      //for (k = 0;  k < Nspace;  k++) {
+      Cdown = C0 * atmos.ne[k] * C /
+	(atom->g[j] * sqrt(atmos.T[k]));
+      atom->C[ij][k] += Cdown;
+      atom->C[ji][k] += Cdown * atom->nstar[j][k]/atom->nstar[i][k];
+      // }
+    } else if (!strcmp(keyword, "CE")) {      
+
+      /* --- Collisional excitation of neutrals --     -------------- */ 
+
+      gij = atom->g[i] / atom->g[j];
+      //for (k = 0;  k < Nspace;  k++) {
+      Cdown = C * atmos.ne[k] * gij * sqrt(atmos.T[k]);
+      atom->C[ij][k] += Cdown;
+      atom->C[ji][k] += Cdown * atom->nstar[j][k]/atom->nstar[i][k];
+      //}
+    } else if (!strcmp(keyword, "CI")) {      
+
+      /* --- Collisional ionization --                 -------------- */
+      
+      dE = atom->E[j] - atom->E[i];
+      //for (k = 0;  k < Nspace;  k++) {
+        Cup = C * atmos.ne[k] *
+	  exp(-dE/(KBOLTZMANN*atmos.T[k])) * sqrt(atmos.T[k]);
+	atom->C[ji][k] += Cup;
+	atom->C[ij][k] += Cup * atom->nstar[i][k]/atom->nstar[j][k];
+	//  }
+    } else if (!strcmp(keyword, "CP")) {
+
+      /* --- Collisions with protons --                -------------- */
+
+      np = atmos.H->n[atmos.H->Nlevel-1];
+      // for (k = 0;  k < Nspace;  k++) {
+        Cdown = np[k] * C;
+	atom->C[ij][k] += Cdown;
+	atom->C[ji][k] += Cdown * atom->nstar[j][k]/atom->nstar[i][k];
+	//   }
+    } else if (!strcmp(keyword, "CH")) {
+
+      /* --- Collisions with neutral hydrogen --       -------------- */
+
+      //   for (k = 0;  k < Nspace;  k++) {
+        Cup = atmos.H->n[0][k] * C;
+	atom->C[ji][k] += Cup;
+	atom->C[ij][k] += Cup * atom->nstar[i][k]/atom->nstar[j][k];
+	//  }
+    } else if (!strcmp(keyword, "CH0")) {
+
+      /* --- Charge exchange with neutral hydrogen --  -------------- */
+
+      //   for (k = 0;  k < Nspace;  k++)
+      atom->C[ij][k] += atmos.H->n[0][k] * C;
+
+    } else if (!strcmp(keyword, "CH+")) {
+
+      /* --- Charge exchange with protons --           -------------- */
+
+      np = atmos.H->n[atmos.H->Nlevel-1];
+      // for (k = 0;  k < Nspace;  k++)
+	atom->C[ji][k] += np[k] * C;
+
+    } else if (!strcmp(keyword, "SHULL82")) {
+      
+      acolsh = coeff[0];
+      tcolsh = coeff[1];
+      aradsh = coeff[2];
+      xradsh = coeff[3];
+      adish  = coeff[4];
+      bdish  = coeff[5];
+      t0sh   = coeff[6];
+      t1sh   = coeff[7];
+      
+      // for (k = 0;  k < Nspace;  k++) {
+
+	summrs = sumscl * summers(i, j, atmos.ne[k], atom) +
+	  (1.0 - sumscl);
+	tg = atmos.T[k];
+	
+	cdn = aradsh * pow(tg/1.E4, -xradsh) +
+	  summrs * adish /tg/sqrt(tg) * exp(-t0sh/tg) * 
+	  (1.0 + bdish * (exp(-t1sh/tg)));
+	
+	cup = acolsh * sqrt(tg) * exp( -tcolsh / tg) / 
+	  (1.0 + 0.1 * tg / tcolsh);
+	
+	/* --- Convert coefficient from cm^3 s^-1 to m^3 s^-1 -- ---- */
+
+	cdn *= atmos.ne[k] * CUBE(CM_TO_M);
+	cup *= atmos.ne[k] * CUBE(CM_TO_M);
+
+	/* --- 3-body recombination (high density limit) -- -------- */
+
+	cdn += cup * atom->nstar[i][k] / atom->nstar[j][k];
+	
+	atom->C[ij][k] += cdn;
+	atom->C[ji][k] += cup;
+	// }
+    } else if (!strcmp(keyword, "BADNELL")) {
+
+      /* --- Fit for dielectronic recombination from Badnell
+
+	     Bhavna Rathore Jan-14
+
+	     First line coefficients are the energies in K (ener in Chianti)
+	     Second line coefficients are the coefficients (coef in Chianti)
+             --                                        -------------- */
+
+      //   for (k = 0;  k < Nspace;  k++) {
+	summrs = sumscl*summers(i, j, atmos.ne[k], atom) + (1.0-sumscl);
+	tg = atmos.T[k];
+
+      	cdn = 0.0;
+	for (ii=0;  ii < Ncoef;  ii++) {
+	  cdn += badi[1][ii] * exp(-badi[0][ii] / tg);
+	}
+	cdn *= pow(tg, -1.5) ;
+
+	/* --- Convert coefficient from cm^3 s^-1 to m^3 s^-1 -- ---- */
+
+	cdn *= atmos.ne[k] * summrs * CUBE(CM_TO_M);
+	cup  = cdn * atom->nstar[j][k]/atom->nstar[i][k];
+
+	/* --- 3-body recombination (high density limit) -- --------- */
+
+	cdn += cup * atom->nstar[i][k] / atom->nstar[j][k];
+	
+	atom->C[ij][k] += cdn;
+	atom->C[ji][k] += cup;
+	//  }
+      freeMatrix((void **) badi);
+
+    } else if (!strcmp(keyword, "AR85-CDI")) {
+      
+      /* --- Direct collionisional ionization --       -------------- */
+
+      // for (k = 0;  k < Nspace;  k++) {	
+	cup = 0.0;
+	tg  = atmos.T[k];
+	
+	for (m = 0;  m < Nrow;  m++) {
+	  
+	  xj  = cdi[m][0] * EV / (KBOLTZMANN * tg);
+	  fac = exp(-xj) * sqrt(xj);
+	  
+	  fxj = cdi[m][1] + cdi[m][2] * (1.0+xj) + 
+	    (cdi[m][3] -xj*(cdi[m][1]+cdi[m][2]*(2.0+xj)))*fone(xj) + 
+	    cdi[m][4]*xj*ftwo(xj);
+	  
+	  fxj = fxj * fac;
+	  fac = 6.69E-7 / pow(cdi[m][0], 1.5);
+	  cup += fac * fxj * CUBE(CM_TO_M);
+	}
+	if (cup < 0) cup = 0.0;
+
+	cup *= atmos.ne[k];
+	cdn = cup * atom->nstar[i][k]/atom->nstar[j][k];	  
+	
+	atom->C[ij][k] += cdn;
+	atom->C[ji][k] += cup;
+	//}
+      freeMatrix((void **) cdi);
+
+    } else if (!strcmp(keyword,"AR85-CEA") ) {
+          
+      /* --- Autoionization --                         -------------- */
+
+      // for (k = 0;  k < Nspace;  k++) {
+	fac = ar85cea(i, j, k, atom);
+	cup = coeff[0]*fac*atmos.ne[k];
+	atom->C[ji][k] += cup;
+	//  }	  
+      
+    } else if (!strcmp(keyword, "AR85-CHP")) {
+      
+      /* --- Charge transfer with ionized hydrogen -- --------------- */
+
+      ar85t1 = coeff[0];
+      ar85t2 = coeff[1];
+      ar85a  = coeff[2];
+      ar85b  = coeff[3];
+      ar85c  = coeff[4];
+      ar85d  = coeff[5];
+      
+      // for (k = 0;  k < Nspace;  k++) {
+	if (atmos.T[k] >= ar85t1  &&  atmos.T[k] <= ar85t2) {
+
+	  t4 = atmos.T[k] / 1.0E4;
+	  cup = ar85a * 1e-9 * pow(t4,ar85b) * exp(-ar85c*t4) *
+	    exp(-ar85d*EV/KBOLTZMANN/atmos.T[k])*atmos.H->n[atmos.H->Nlevel-1][k] *
+	    CUBE(CM_TO_M);
+	  atom->C[ji][k] += cup;
+	}
+	//      }
+  } else if (!strcmp(keyword, "AR85-CHH")) {
+      
+      /* --- Charge transfer with neutral hydrogen --  -------------- */
+      
+      ar85t1 = coeff[0];
+      ar85t2 = coeff[1];
+      ar85a  = coeff[2];
+      ar85b  = coeff[3];
+      ar85c  = coeff[4];
+      ar85d  = coeff[5];
+      
+      // for (k = 0;  k < Nspace;  k++) {	
+	if (atmos.T[k] >= ar85t1  &&  atmos.T[k] <= ar85t2) {
+
+	  t4 = atmos.T[k] / 1.0E4;
+	  cdn = ar85a * 1E-9 * pow(t4, ar85b) * (1.0 + ar85c*exp(ar85d * t4)) * 
+	    atmos.H->n[0][k] * CUBE(CM_TO_M);
+	  atom->C[ij][k] += cdn;
+	}
+	//}
+    } else if (!strcmp(keyword, "BURGESS")) {
+      
+      /* --- Electron impact ionzation following Burgess & Chidichimo 1982,
+	     MNRAS, 203, 1269-1280 
+             --                                        -------------- */
+      
+      de = (atom->E[j] - atom->E[i]) / EV;
+      zz = atom->stage[i];
+      betab = 0.25 * ( sqrt( (100.0*zz +91.0) / (4.0*zz+3.0) ) -5.0 );
+      cbar = 2.3;
+      
+      //      for (k = 0;  k < Nspace;  k++) {
+	dekt = de * EV / (KBOLTZMANN * atmos.T[k]);
+	dekt = MIN(500, dekt);
+	dekti = 1.0 / dekt;
+        wlog = log(1.0 + dekti);
+	wb = pow(wlog, betab / (1.0 + dekti));
+	cup = 2.1715E-8 * cbar * pow(13.6/de, 1.5) * sqrt(dekt) *
+          E1(dekt) * wb * atmos.ne[k] * CUBE(CM_TO_M);
+	
+        /* --- Add fudge factor --                     -------------- */
+
+	cup *= coeff[0];
+	cdn = cup * atom->nstar[i][k]/atom->nstar[j][k];
+	
+	atom->C[ji][k] += cup;
+	atom->C[ij][k] += cdn;
+	//  }
+    }
+  }
+  
+  if (status == EOF) {
+    sprintf(messageStr, "Reached end of datafile before all data was read");
+    Error(ERROR_LEVEL_1, routineName, messageStr);
+  }
+  /* --- Clean up --                                   -------------- */
+
+  //  free(C);
+  free(T);
+  free(coeff);
+  
+  fsetpos(fp_atom, &collpos);
+
+  //sprintf(labelStr, "Collision Rate %2s", atom->ID);
+  // getCPU(3, TIME_POLL, labelStr);
+}

@@ -41,6 +41,8 @@
 #include <ctype.h>
 #include <stdlib.h>
 #include <string.h>
+#define _GNU_SOURCE
+#include <pthread.h>
 
 #include "rh.h"
 #include "atom.h"
@@ -431,9 +433,11 @@ void setnesolution(char *value, void *pointer)
     nesolution = NONE;
   else if (!strcmp(value, "ONCE"))
     nesolution = ONCE;
-  else if (!strcmp(value, "ITERATION")) {
+  else if (!strcmp(value, "ITERATION_EOS")) {
+    nesolution = ITERATION_EOS;
+  } else if (!strcmp(value, "ITERATION")){
     nesolution = ITERATION;
-  } else {
+  }else {
     sprintf(messageStr,
              "Invalid value for keyword SOLVE_NE: %s", value);
     Error(ERROR_LEVEL_2, routineName, messageStr);

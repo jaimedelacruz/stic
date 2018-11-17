@@ -333,9 +333,15 @@ void adjustStokesMode()
 	  /* --- First free up the space used in field-free
                  calculation --                        -------------- */
 	  
-	  if (!input.limit_memory) freeMatrix((void **) line->phi);
-	  free(line->wphi);
-
+	  if (!input.limit_memory){
+	    freeMatrix((void **) line->phi);
+	    line->phi = NULL;
+	  }
+	  if(line->wphi){
+	    free(line->wphi);
+	    line->wphi = NULL;
+	  }
+	  
 	  Profile(line);
 	}
       }

@@ -111,7 +111,8 @@
 
   KURUCZ_PF_DATA = Atoms/pf_Kurucz.input
   KURUCZ_DATA = kurucz.input
-#  SOLVE_NE = ITERATION
+  SOLVE_NE = ITERATION_EOS
+#  EOS_ITER_LIMIT = 1.E-2
 
 # Set HYDROGEN_LTE = TRUE if hydrogen in the background has to be
 # treated with LTE populations (KEYWORD_DEFAULT). Default is FALSE
@@ -178,7 +179,7 @@
 # Input Stokes mode (KEYWORD_OPTIONAL). 
 # Options are: NO_STOKES, FIELD_FREE, POLARIZATION_FREE, and FULL_STOKES.
 
-  STOKES_MODE = POLARIZATION_FREE
+  STOKES_MODE = FIELD_FREE
   
 # Include magneto-optical effects (KEYWORD_DEFAULT). Default is TRUE.
 

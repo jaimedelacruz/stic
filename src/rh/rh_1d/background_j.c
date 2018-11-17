@@ -312,11 +312,11 @@ void init_Background_j(){
 
 void Background_j(bool_t write_analyze_output, bool_t equilibria_only)
 {
-  const char routineName[] = "Background_p";
+  const char routineName[] = "Background_j";
   register int k, nspect, n, mu, to_obs;
   
   static int ne_iter = 0;
-  bool_t  do_fudge, fromscratch;
+  bool_t  do_fudge;
   int     index, Nfudge, NrecStokes;
   double *chi, *eta, *scatt, wavelength, *thomson, *chi_ai, *eta_ai, *sca_ai,
     Hmin_fudge, scatt_fudge, metal_fudge, *lambda_fudge, **fudge,
@@ -329,12 +329,9 @@ void Background_j(bool_t write_analyze_output, bool_t equilibria_only)
 
   getCPU(2, TIME_START, NULL);
 
-  if (input.solve_ne == ONCE  || input.solve_ne == ITERATION ) {
-    fromscratch = (input.solve_ne == ONCE  ||
-		   (input.solve_ne == ITERATION  &&  ne_iter == 0)) ?
-      TRUE : FALSE;
-    Solve_ne(atmos.ne, fromscratch);
-    ne_iter++;
+  if (input.solve_ne == ONCE ) {
+    //    fromscratch = TRUE; //(input.solve_ne == ONCE  ||
+    Solve_ne(atmos.ne, TRUE);
   }
   SetLTEQuantities();
 

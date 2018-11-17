@@ -34,7 +34,7 @@ extern "C" {
   
   typedef struct{
     int nactive, ndep, nw;
-    double *J, *J20, *lambda, *tau_ref;
+    double *J, *J20, *lambda, *tau_ref, *ne_dep;
     crhatom *pop;
   } crhpop;
   
@@ -45,7 +45,7 @@ extern "C" {
     char filename[300];
   } MPI_t;
   
-  void save_populations(crhpop *save_pop);
+  void save_populations(crhpop *save_pop, double *ne_lte);
   void read_populations(crhpop *save_pop, int flag);
   void clean_saved_populations(crhpop *save_pop_ref);
   void UpdateAtmosDep(void);

@@ -157,7 +157,6 @@ double Formal(int nspect, bool_t eval_operator, bool_t redistribute, int iter)
 
     for (mu = 0;  mu < Nrays;  mu++) {
       wmu  = 0.5 * geometry.wmu[mu];
-      // wmu255 = wmu / 65535.;
       if (input.backgr_pol) {
 	musq = SQ(geometry.muz[mu]);
 	threemu1 = TWOSQRTTWO * (3.0*musq - 1.0);
@@ -309,21 +308,6 @@ double Formal(int nspect, bool_t eval_operator, bool_t redistribute, int iter)
 	      } // spatial location
 
 	    } else {
-	      /* for (k = 0;  k < Nspace;  k++)  { */
-			
-	      /* 	lamuk = nspect * (atmos.Nrays*2*Nspace)  */
-	      /* 	  + mu * (2*Nspace) + to_obs * (Nspace) + k; */
-		
-	      /*  	//idx0 = (lamuk==0) ? 0 : spectrum.nc[lamuk-1]; */
-	      /* 	idx0 = spectrum.nc[lamuk-1]; // now nc has an element "-1" set to zero; */
-
-		
-	      /* 	for ( idx = idx0 ; idx <  spectrum.nc[lamuk] ; idx++ )  */
-	      /* 	  spectrum.Jgas[ spectrum.iprdh[idx]][k] += wmu255 *  (double)(spectrum.cprdh[idx]) * I[k]; */
-	      /* 	  //spectrum.Jgas[ spectrum.iprdh[idx]][k] += wmu *  (spectrum.cprdh[idx]) * I[k]; */
-	      /* 	//	idx0 = spectrum.nc[lamuk]; */
-	      /* }   */
-
 
 	      if(spectrum.linfo[nspect].is){
 		ww = spectrum.linfo[nspect].idx;
@@ -333,7 +317,7 @@ double Formal(int nspect, bool_t eval_operator, bool_t redistribute, int iter)
 		  idx0 = (long int)spectrum.nc[lamuk-1]; idx1 = (long int)spectrum.nc[lamuk];
 
 		  for ( idx = idx0 ; idx <  idx1 ; idx++ ){
-		    spectrum.Jgas[ spectrum.iprdh[idx] ][k] += wmu * I[k] * ((double)spectrum.cprdh[idx]);
+		    spectrum.Jgas[ spectrum.iprdh[idx] ][k] += wmu * I[k] * (spectrum.cprdh[idx]);
 		  }
 		}
 	      }

@@ -40,6 +40,7 @@
 #include <fcntl.h>
 #include <stdlib.h>
 #include <math.h>
+#include <string.h>
 
 #include "rh.h"
 #include "atom.h"
@@ -89,25 +90,34 @@ void Profile(AtomicLine *line)
          profile ratio rho should be kept, and should not be 
          reinitialized. --                             -------------- */
 
-  if (line->PRD && line->rho_prd == NULL) {
-    if (input.PRD_angle_dep)
-      Nlamu = 2*atmos.Nrays * line->Nlambda;
-    else
-      Nlamu = line->Nlambda;
-
-    line->rho_prd = matrix_double(Nlamu, atmos.Nspace);
-    for (la = 0;  la < Nlamu;  la++) {
-      for (k = 0;  k < atmos.Nspace;  k++)
-	line->rho_prd[la][k] = 1.0;
+  if (line->PRD){//&& line->rho_prd == NULL) {
+    if(line->rho_prd == NULL){
+      if (input.PRD_angle_dep)
+	Nlamu = 2*atmos.Nrays * line->Nlambda;
+      else
+	Nlamu = line->Nlambda;
+      if(!line->rho_prd) freeMatrix((void**)line->rho_prd);
+	line->rho_prd = matrix_double(Nlamu, atmos.Nspace);
+      //else memset(line->rho_prd,0,Nlamu*atmos.Nspace*sizeof(double));
+      
+      for (la = 0;  la < Nlamu;  la++) {
+	for (k = 0;  k < atmos.Nspace;  k++)
+	  line->rho_prd[la][k] = 1.0;
+      }
     }
-    line->Qelast = (double *) malloc(atmos.Nspace * sizeof(double));
+    if(!line->Qelast) line->Qelast = (double *) calloc(atmos.Nspace, sizeof(double));
+    else memset(line->Qelast,0,atmos.Nspace*sizeof(double));    
+    
   }
 
+  
+  
   vbroad = atom->vbroad;
   adamp  = (double *) calloc(atmos.Nspace, sizeof(double));
   if (line->Voigt) Damping(line, adamp);
 
-  line->wphi = (double *) calloc(atmos.Nspace, sizeof(double));
+  if(!line->wphi) line->wphi = (double *) calloc(atmos.Nspace, sizeof(double));
+  else memset(line->wphi, 0,atmos.Nspace*sizeof(double));
 
   if (line->polarizable && (input.StokesMode > FIELD_FREE)) {
     Larmor = (Q_ELECTRON / (4.0*PI*M_ELECTRON)) * (line->lambda0*NM_TO_M);
@@ -133,7 +143,7 @@ void Profile(AtomicLine *line)
 
     if (line->polarizable && (input.StokesMode > FIELD_FREE)) {
       NrecStokes = (input.magneto_optical) ? 7 : 4;
-      phi = (double *) malloc(NrecStokes*atmos.Nspace * sizeof(double));
+      phi = (double *) calloc(NrecStokes*atmos.Nspace, sizeof(double));
 
       /* --- Assign pointers to subarrays of phi --    -------------- */
 
@@ -148,27 +158,42 @@ void Profile(AtomicLine *line)
       }
     } else {
       NrecStokes = 1;
-      phi = (double *) malloc(atmos.Nspace * sizeof(double));
+      phi = (double *) calloc(atmos.Nspace, sizeof(double));
     }
   } else {
     if (atmos.moving || 
 	(line->polarizable && (input.StokesMode > FIELD_FREE))) {
       Nlamu = 2*atmos.Nrays*line->Nlambda;
-      line->phi = matrix_double(Nlamu, atmos.Nspace);
+      
+      if(!line->phi) line->phi = matrix_double(Nlamu, atmos.Nspace);
+      else memset(line->phi[0], 0, Nlamu*atmos.Nspace*sizeof(double));
 
       if (line->polarizable && (input.StokesMode > FIELD_FREE)) {
-	line->phi_Q = matrix_double(Nlamu, atmos.Nspace);
-	line->phi_U = matrix_double(Nlamu, atmos.Nspace);
-	line->phi_V = matrix_double(Nlamu, atmos.Nspace);
-	     		      
+	if(!line->phi_Q) line->phi_Q = matrix_double(Nlamu, atmos.Nspace);
+	else memset(line->phi_Q[0], 0, Nlamu*atmos.Nspace*sizeof(double));
+
+	if(!line->phi_U) line->phi_U = matrix_double(Nlamu, atmos.Nspace);
+	else memset(line->phi_U[0], 0, Nlamu*atmos.Nspace*sizeof(double));
+	
+	if(!line->phi_V) line->phi_V = matrix_double(Nlamu, atmos.Nspace);
+	else memset(line->phi_V[0], 0, Nlamu*atmos.Nspace*sizeof(double));
+
 	if (input.magneto_optical) {
-	  line->psi_Q = matrix_double(Nlamu, atmos.Nspace);
-	  line->psi_U = matrix_double(Nlamu, atmos.Nspace);
-	  line->psi_V = matrix_double(Nlamu, atmos.Nspace);
+	  if(!line->psi_Q) line->psi_Q = matrix_double(Nlamu, atmos.Nspace);
+	  else memset(line->psi_Q[0], 0, Nlamu*atmos.Nspace*sizeof(double));
+
+	  if(!line->psi_U) line->psi_U = matrix_double(Nlamu, atmos.Nspace);
+	  else memset(line->psi_U[0], 0, Nlamu*atmos.Nspace*sizeof(double));
+	  
+	  if(!line->psi_V) line->psi_V = matrix_double(Nlamu, atmos.Nspace);
+	  else memset(line->psi_V[0], 0, Nlamu*atmos.Nspace*sizeof(double));
+
 	}
       }
     } else
-      line->phi = matrix_double(line->Nlambda, atmos.Nspace);
+       if(!line->phi) line->phi = matrix_double(line->Nlambda, atmos.Nspace);
+       else memset(line->phi[0], 0, line->Nlambda*atmos.Nspace*sizeof(double));
+    
   }
 
   if (line->polarizable && (input.StokesMode > FIELD_FREE)) {
@@ -176,8 +201,8 @@ void Profile(AtomicLine *line)
     /* --- Temporary storage for inner loop variables, vB is the
            Zeeman splitting due to the local magnetic field -- ------ */  
 
-    vB = (double *) malloc(atmos.Nspace * sizeof(double));
-    sv = (double *) malloc(atmos.Nspace * sizeof(double));
+    vB = (double *) calloc(atmos.Nspace, sizeof(double));
+    sv = (double *) calloc(atmos.Nspace, sizeof(double));
 
     for (k = 0;  k < atmos.Nspace;  k++) {
       vB[k] = Larmor * atmos.B[k] / vbroad[k];
@@ -380,7 +405,9 @@ void MolecularProfile(MolecularLine *mrt)
 
   getCPU(3, TIME_START, NULL);
 
-  mrt->wphi = (double *) calloc(atmos.Nspace, sizeof(double));
+  if(!mrt->wphi) mrt->wphi = (double *) calloc(atmos.Nspace, sizeof(double));
+  else           memset((double*)mrt->wphi,0,atmos.Nspace*sizeof(double));
+    
   adamp = (double *) calloc(atmos.Nspace, sizeof(double));
   if (mrt->Voigt) MolecularDamping(mrt, adamp);
 
@@ -397,10 +424,13 @@ void MolecularProfile(MolecularLine *mrt)
     }
     /* --- Initialize permanent storage for line profiles -- -------- */
 
-    mrt->phi = matrix_double(2*atmos.Nrays * mrt->Nlambda, atmos.Nspace);
-  } else
-    mrt->phi = matrix_double(mrt->Nlambda, atmos.Nspace);
-
+    if(!mrt->phi) mrt->phi = matrix_double(2*atmos.Nrays * mrt->Nlambda, atmos.Nspace);
+    else          memset(mrt->phi[0], 0, 2*atmos.Nrays * mrt->Nlambda* atmos.Nspace*sizeof(double));
+    
+  } else{
+    if(!mrt->phi)  mrt->phi = matrix_double(mrt->Nlambda, atmos.Nspace);
+    else           memset(mrt->phi, 0, mrt->Nlambda*atmos.Nspace*sizeof(double));
+  }
   /* --- Temporary storage for Doppler width scaling -- ------------- */  
 
   sv = (double *) malloc(atmos.Nspace * sizeof(double));

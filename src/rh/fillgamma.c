@@ -49,7 +49,7 @@ void initGammaAtom(Atom *atom, double cswitch)
 
   for (ij = 0;  ij < SQ(atom->Nlevel);  ij++) {
     for (k = 0;  k < atmos.Nspace;  k++)
-      atom->Gamma[ij][k] = atom->C[ij][k] * cswitch;
+      atom->Gamma[ij][k] = 0.0;//atom->C[ij][k] * cswitch;
   }
 }
 /* ------- end ---------------------------- initGammaAtom.c --------- */

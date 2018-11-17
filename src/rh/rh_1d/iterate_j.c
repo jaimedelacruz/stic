@@ -51,8 +51,8 @@ void Iterate_j(int NmaxIter, double iterLimit, double *dpopmax_out)
   const char routineName[] = "Iterate";
   register int niter, nact;
 
-  bool_t    eval_operator, write_analyze_output, equilibria_only;
-  int       Ngorder;
+  bool_t    eval_operator, write_analyze_output, equilibria_only, old_ne_flag = FALSE;
+  int       Ngorder, nsum = 0;
   double    dpopsmax, PRDiterlimit, cswitch;
   Atom     *atom;
   Molecule *molecule;
@@ -75,7 +75,11 @@ void Iterate_j(int NmaxIter, double iterLimit, double *dpopmax_out)
     molecule->Ng_nv = NgInit(molecule->Nv*atmos.Nspace, input.Ngdelay,
 			     input.Ngorder, input.Ngperiod, molecule->nv[0]);
   }
+  
+  if(input.solve_ne >= ITERATION_EOS)
+    atmos.ng_ne = NgInit(atmos.Nspace, input.Ngdelay, input.Ngorder,input.Ngperiod, atmos.ne );
 
+  
   /* --- Start of the main iteration loop --             ------------ */
 
   niter = 1;
@@ -107,12 +111,16 @@ void Iterate_j(int NmaxIter, double iterLimit, double *dpopmax_out)
     solveSpectrum(eval_operator=TRUE, FALSE, niter, FALSE);
 
     /* --- Solve statistical equilibrium equations --  -------------- */
-
-    if(((niter+1) == input.Ngdelay) && (dpopsmax > 1.e-2)){
+    
+    if(((niter+1) == input.Ngdelay) && (dpopsmax > input.eos_iter_limit)){
+      nsum = 1;
+      if(input.solve_ne >= ITERATION_EOS && atmos.ne_flag) nsum = 5;
+      
       for(nact = 0;  nact < atmos.Nactiveatom;  nact++){
-	atmos.activeatoms[nact]->Ng_n->Ndelay += 1;	
+	atmos.activeatoms[nact]->Ng_n->Ndelay += nsum;	
       }
-      input.Ngdelay++;
+      if(input.solve_ne >= ITERATION_EOS) atmos.ng_ne->Ndelay += nsum;
+      input.Ngdelay+=nsum;
     }
     
     sprintf(messageStr, "\n -- Iteration %3d\n", niter);
@@ -120,6 +128,9 @@ void Iterate_j(int NmaxIter, double iterLimit, double *dpopmax_out)
     dpopsmax = updatePopulations(niter);
     if (mpi.stop) return;
 
+    
+    old_ne_flag = atmos.ne_flag;
+    
     if (atmos.NPRDactive > 0) {
       
       /* --- Redistribute intensity in PRD lines if necessary -- ---- */
@@ -158,14 +169,6 @@ void Iterate_j(int NmaxIter, double iterLimit, double *dpopmax_out)
     }
     niter++;
     
-    // This helps to damp a bit the initial iterations 
-    if (input.solve_ne == ITERATION){
-      if(!atmos.atoms[0].active)
-      	Background_j(write_analyze_output=TRUE, equilibria_only=FALSE);
-      else
-	if(atmos.atoms[0].active && (atmos.atoms[0].mxchange > 5.e-2) && (niter == (niter/2*2)))
-	  Background_j(write_analyze_output=TRUE, equilibria_only=FALSE);
-    }
 
     /* Update collisional radiative switching */
     if (input.crsw > 0)
@@ -183,8 +186,8 @@ void Iterate_j(int NmaxIter, double iterLimit, double *dpopmax_out)
 	Error(ERROR_LEVEL_2, routineName, messageStr);
       }
       
-      if(atmos.atoms[0].mxchange > 1.e-2)
-	Hydrostatic(N_MAX_HSE_ITER, HSE_ITER_LIMIT);
+      // if(atmos.atoms[0].mxchange > 1.e-2)
+      Hydrostatic(N_MAX_HSE_ITER, HSE_ITER_LIMIT);
     }
   }
   
@@ -200,7 +203,11 @@ void Iterate_j(int NmaxIter, double iterLimit, double *dpopmax_out)
     freeMatrix((void **) molecule->Gamma);
     NgFree(molecule->Ng_nv);
   }
-
+  if(input.solve_ne >= ITERATION_EOS){
+    NgFree(atmos.ng_ne);
+    atmos.ng_ne = NULL;
+  }
+  
   getCPU(1, TIME_POLL, "Iteration Total");
 }
 /* ------- end ---------------------------- Iterate.c --------------- */
@@ -244,70 +251,11 @@ double solveSpectrum(bool_t eval_operator, bool_t redistribute, int iter, bool_t
   // zero out J in gas parcel's frame
   if (spectrum.updateJ && input.PRD_angle_dep == PRD_ANGLE_APPROX
       && atmos.Nrays > 1  && atmos.NPRDactive > 0){
-  /* for (k = 0;  k < atmos.Nspace;  k++) { */
-  /*   for (nspect = 0;  nspect < spectrum.Nspect;  nspect++) { */
-  /*     spectrum.Jgas[nspect][k] = 0.0; */
-  /*     } */
-  /*   } */
-    //for(nt=0;nt<spectrum.nJlam; nt++){
       memset(&spectrum.Jgas[0][0],0,spectrum.nJlam*atmos.Nspace*sizeof(double));
-      // }
-    
+
   }
 
   
-  
-  /* if (input.Nthreads > 1) { */
-
-  /*   /\* --- If input.Nthreads positive then solve Nthreads wavelengths */
-  /*          concurrently in separate threads --         -------------- *\/ */
-
-  /*   ti = (threadinfo *) malloc(input.Nthreads * sizeof(threadinfo)); */
-  /*   for (nt = 0;  nt < input.Nthreads;  nt++) { */
-  /*     ti[nt].eval_operator = eval_operator; */
-  /*     ti[nt].redistribute  = redistribute; */
-  /*     ti[nt].iter = iter; */
-  /*   } */
-  /*   thread_id = (pthread_t *) malloc(input.Nthreads * sizeof(pthread_t)); */
-
-  /*   /\* --- Thread management is very simple. Submit a batch of as many */
-  /*          as input.Nthreads at the same time, then wait till all of */
-  /*          these have finished. There is no check on successful */
-  /*          submission nor completion. --               -------------- *\/ */
-
-  /*   for (nspect = 0;  nspect < spectrum.Nspect;  nspect += input.Nthreads) { */
-  /*     if (nspect + input.Nthreads <= spectrum.Nspect) */
-  /* 	Nthreads = input.Nthreads; */
-  /*     else */
-  /* 	Nthreads = (spectrum.Nspect % input.Nthreads); */
-
-  /*     /\* --- Start batch of concurrent threads --      -------------- *\/ */
-
-  /*     for (nt = 0;  nt < Nthreads;  nt++) { */
-  /* 	ti[nt].nspect = nspect + nt; */
-  /* 	if (!redistribute || */
-  /* 	    (redistribute && containsPRDline(&spectrum.as[nspect+nt]))) { */
-  /* 	  pthread_create(&thread_id[nt], &input.thread_attr, */
-  /* 			 Formal_pthread, &ti[nt]); */
-  /* 	} else */
-  /* 	  thread_id[nt] = 0; */
-  /*     } */
-  /*     /\* --- Let the finished threads of the batch join again -- ---- *\/ */
-
-  /*     for (nt = 0;  nt < Nthreads;  nt++) { */
-  /* 	if (thread_id[nt]) { */
-  /* 	  pthread_join(thread_id[nt], NULL); */
-  /* 	  if (ti[nt].dJ > dJmax) { */
-  /* 	    dJmax = ti[nt].dJ; */
-  /* 	    lambda_max = nspect + nt; */
-  /* 	  } */
-  /* 	} */
-  /*     } */
-  /*   } */
-  /*   free(thread_id); */
-  /*   free(ti); */
-  /* } else { */
-      
     /* --- Else call the solution for wavelengths sequentially -- --- */
       
     for (nspect = 0;  nspect < spectrum.Nspect;  nspect++) {

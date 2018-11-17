@@ -179,17 +179,14 @@ void readInput()
      setboolValue},
     {"N_THREADS", "0", FALSE, KEYWORD_OPTIONAL, &input.Nthreads,
      setThreadValue},
-
-
-    /* --- PRD from Tiago's version --- */
     {"COLLRAD_SWITCH",     "0.0", FALSE, KEYWORD_OPTIONAL, &input.crsw,
      setdoubleValue},
     {"COLLRAD_SWITCH_INI", "1.0", FALSE, KEYWORD_OPTIONAL, &input.crsw_ini,
      setdoubleValue},
     {"PRD_SWITCH",     "0.0", FALSE, KEYWORD_OPTIONAL, &input.prdsw,
      setdoubleValue},     
-
-    
+    {"EOS_ITER_LIMIT",  "1.E-2", FALSE, KEYWORD_OPTIONAL, &input.eos_iter_limit,
+     setdoubleValue},   
     {"LIMIT_MEMORY", "FALSE", FALSE, KEYWORD_DEFAULT, &input.limit_memory,
      setboolValue},
     {"ALLOW_PASSIVE_BB", "TRUE", FALSE, KEYWORD_DEFAULT,

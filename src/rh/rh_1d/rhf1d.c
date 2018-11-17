@@ -94,12 +94,12 @@ bool_t rhf1d(float muz, int rhs_ndep, double *rhs_T, double *rhs_rho,
 {
   
   bool_t write_analyze_output, equilibria_only, quiet = ((iverbose <= 1)? TRUE : FALSE);
-  int    niter, nact, i, sNgperiod, sNgdelay, sPRDNITER;
+  int    niter, nact, i, sNgperiod, sNgdelay, sPRDNITER,k;
   static int save_Nrays;
   static double save_muz, save_mux, save_muy, save_wmu;
   static enum StokesMode oldMode;
 
-  double dpopmax;
+  double dpopmax, *ne_lte = NULL;
   static Atom *atom;
   static Molecule *molecule;
  
@@ -175,6 +175,12 @@ bool_t rhf1d(float muz, int rhs_ndep, double *rhs_T, double *rhs_rho,
     atmos.Stokes = TRUE;
   hydrostat[0] = (int)atmos.hydrostatic;
 
+  ne_lte = (double*)calloc(atmos.Nspace,sizeof(double));
+  memcpy(ne_lte, atmos.ne, atmos.Nspace*sizeof(double));
+
+ 
+
+  
   /* --- Init atomic/molecular models, extra lambda 
      positions and background opac. Allocated only in the first call --- */
   
@@ -193,14 +199,19 @@ bool_t rhf1d(float muz, int rhs_ndep, double *rhs_T, double *rhs_rho,
   }
   
   firsttime = FALSE;
-
+  
+  if(input.solve_ne >= ITERATION_EOS){
+    if(atmos.atoms[0].active) atmos.ne_flag = TRUE;
+    if(save_pop->ne_dep)
+      for(k=0;k<atmos.Nspace;++k) atmos.ne[k] *= save_pop->ne_dep[k];
+  }
   
   /* --- Reallocate stuff and compute background opac --- */
   
   UpdateAtmosDep();
   Background_j(write_analyze_output=FALSE, equilibria_only=FALSE);
   //convertScales(&atmos, &geometry);
-  if(atmos.H->NLTEpops) hydrostat[0] = TRUE;
+  //if(atmos.H->NLTEpops) hydrostat[0] = TRUE;
 
   //for(i=0;i<atmos.Nspace;i++) printf("[%3d] %e\n", i, geometry.tau_ref[i]);
   
@@ -255,9 +266,10 @@ bool_t rhf1d(float muz, int rhs_ndep, double *rhs_T, double *rhs_rho,
   /* --- Store populations if needed --- */
 
   if(savpop > 0 && converged)
-    save_populations(save_pop);
-  // exit(0);
+    save_populations(save_pop, ne_lte);
 
+  free(ne_lte); ne_lte = NULL;
+  
   /* --- Compute output ray --- */
   if(converged){
     atmos.Nrays     = 1;
@@ -379,6 +391,7 @@ void clean_saved_populations(crhpop *save_pop){
     free(save_pop->J);
     if(input.backgr_pol) free(save_pop->J20);
     free(save_pop->tau_ref);
+    if(save_pop->ne_dep) free(save_pop->ne_dep);
     
     save_pop->pop = NULL;
     save_pop->lambda = NULL;
@@ -391,7 +404,7 @@ void clean_saved_populations(crhpop *save_pop){
 }
 
 
-void save_populations(crhpop *save_pop){
+void save_populations(crhpop *save_pop, double *ne_lte){
 
   Atom *atom;
   int    niter, nact, save_Nrays, nactotal, ii, kr, nprd;
@@ -413,7 +426,8 @@ void save_populations(crhpop *save_pop){
   //
   save_pop->J =   (double*) malloc(spectrum.Nspect* atmos.Nspace*sizeof(double));
   save_pop->tau_ref = (double*) malloc(atmos.Nspace*sizeof(double));
-  
+  save_pop->ne_dep = (double*) calloc(atmos.Nspace, sizeof(double));
+
   
   if(input.backgr_pol)
     save_pop->J20 = (double*) malloc(spectrum.Nspect* atmos.Nspace*sizeof(double));
@@ -421,6 +435,7 @@ void save_populations(crhpop *save_pop){
     save_pop->J20 = NULL;
 
   memcpy(save_pop->tau_ref, geometry.tau_ref, sizeof(double)*atmos.Nspace);
+  for(k=0;k<atmos.Nspace; ++k) save_pop->ne_dep[k] = atmos.ne[k]/ne_lte[k];
   
   
   /* --- copy J, J20 and lambda ---*/

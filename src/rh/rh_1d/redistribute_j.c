@@ -76,7 +76,6 @@ void Redistribute_j(int NmaxIter, double iterLimit, double iprec)
     drhomaxa = 0.0;
     for (nact = 0;  nact < atmos.Nactiveatom;  nact++) {
       atom = atmos.activeatoms[nact];
-      //if(atom->converged) continue;
       
       drhomax = 0.0;
       for (kr = 0;  kr < atom->Nline;  kr++) {

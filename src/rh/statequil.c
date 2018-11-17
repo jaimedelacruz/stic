@@ -26,6 +26,8 @@
 #include "error.h"
 #include "rh_1d/rhf1d.h"
 #include "inputs.h"
+#include "statequil_H.h"
+#include "background.h"
 
 
 /* --- Function prototypes --                          -------------- */
@@ -64,7 +66,7 @@ void statEquil(Atom *atom, int isum)
     for (i = 0, ij = 0;  i < Nlevel;  i++) {
       n_k[i] = atom->n[i][k];
       for (j = 0;  j < Nlevel;  j++, ij++)
-	Gamma_k[i][j] = atom->Gamma[ij][k];
+	Gamma_k[i][j] = atom->Gamma[ij][k] + atom->C[ij][k]; // Now the collisional rates are not added in initGamma
     }
 
     if (isum == -1) {
@@ -203,21 +205,39 @@ double updatePopulations(int niter)
 {
   register int nact;
 
-  bool_t accel, quiet;//, hydrogen = FALSE;
-  double dpops, dpopsmax = 0.0;
+  bool_t accel, quiet, hydrogen = FALSE;
+  double dpops, dpopsmax = 0.0, dnemax = 0.0;
   Atom *atom;
   Molecule *molecule;
 
-  //  if((atmos.atoms[0].active && !atmos.atoms[0].converged) || 1) hydrogen = TRUE;
+  if(input.solve_ne >= ITERATION_EOS){
+    if(input.solve_ne == ITERATION || atmos.ne_flag) hydrogen = TRUE;
+  }
+
   
   /* --- Update active atoms --                        -------------- */
 
-  for (nact = 0;  nact < atmos.Nactiveatom;  nact++) {
+  for (nact = atmos.Nactiveatom-1;  nact >= 0;  --nact) {
     atom = atmos.activeatoms[nact];
+    dnemax = 0.0;
     
-    statEquil(atom, input.isum);
-    if(mpi.stop) return 1.;
-    
+    if(hydrogen && nact == 0){
+      atmos.ne_flag = TRUE;
+      statEquil_H(atom, input.isum, niter);
+      //
+      accel = Accelerate(atmos.ng_ne, atmos.ne);
+      //
+      sprintf(messageStr, " Ne,");
+      dnemax = MaxChange(atmos.ng_ne, messageStr, quiet=FALSE);
+      Error(MESSAGE, NULL, (accel) ? " (accelerated)\n" : "\n");
+      //
+      Background_j(FALSE, FALSE); // The LTE populations are recomputed here and collisional rates.
+      getProfiles(); // Stark damping must be updated, and profiles re-computed
+    }else{
+      if(nact==0) atmos.ne_flag = FALSE;
+      statEquil(atom, input.isum);
+      if(mpi.stop) return 1.;
+    }
     accel = Accelerate(atom->Ng_n, atom->n[0]);
     if(mpi.stop) return 1.;
     
@@ -226,6 +246,9 @@ double updatePopulations(int niter)
     Error(MESSAGE, NULL, (accel) ? " (accelerated)\n" : "\n");
     
     atom->mxchange = dpops;
+    if(atmos.atoms[0].active && nact ==0 && dnemax < input.eos_iter_limit) atmos.ne_flag = FALSE;
+
+
     
     dpopsmax = MAX(dpops, dpopsmax);
   }
