@@ -87,7 +87,7 @@ typedef struct {
   int    isum, Ngdelay, Ngorder, Ngperiod, NmaxIter,
     PRD_NmaxIter, PRD_Ngdelay, PRD_Ngorder, PRD_Ngperiod,
     NmaxScatter, Nthreads, NlambdaIter;
-  double iterLimit, PRDiterLimit, metallicity, eos_iter_limit;
+  double iterLimit, PRDiterLimit, metallicity, eos_iter_limit, ng_start_limit;
 
   double crsw, crsw_ini;
   double prdswitch, prdsw;

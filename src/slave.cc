@@ -149,37 +149,28 @@ void do_slave(int myrank, int nprocs, char hostname[]){
 
 	
 	/* --- Call equation of state or hydrostatic equilibrium ? --- */
+	if(input.use_eos){
+	  if(input.thydro) it.getPressureScale(input.nodes.depth_t, input.boundary, atmos->eos);
+	  else it.fill_densities(atmos->eos, input.keep_nne, 0, it.ndep-1);
+	}
 	
-	//if(input.thydro) it.getPressureScale(input.nodes.depth_t, input.boundary, atmos->eos);
-	//else it.fill_densities(atmos->eos, input.keep_nne, 0, it.ndep-1);
-
-
 	/* --- Optimize depth scale? --- */
 	
-	//it.optimize_depth(atmos->eos, input.tcut, 5);
-	//if(input.tcut > 0)
-	// it.optimize_depth(atmos->eos, input.tcut, 11);
-	  //it.optimize_depth_ltau(atmos->eos, input.tcut);
-	
-	
-		
-	/* --- Call equation of state or hydrostatic equilibrium ? --- */
-	
-	//	if(input.thydro) it.getPressureScale(input.nodes.depth_t, input.boundary, atmos->eos);
-	//else it.fill_densities(atmos->eos, input.keep_nne, 0, it.ndep-1);
+	if(input.tcut > 0)
+	  it.optimize_depth(atmos->eos, input.tcut, 11);
 	
 	
 	/* --- Get scales (depth_t has cmass and z switched compared to getScales) --- */
 	
 	//if     (input.nodes.depth_t == 0) it.getScales(atmos->eos, 0); // LTAU500
 	//else if(input.nodes.depth_t == 1) it.getScales(atmos->eos, 2); // CMASS
-	//	else if(input.nodes.depth_t == 2) it.getScales(atmos->eos, 1); // Z
+	//else if(input.nodes.depth_t == 2) it.getScales(atmos->eos, 1); // Z
 	
 	
 	
 	/* --- Synthesize spectra --- */
 	  
-	bool conv = atmos->synth(it, &obs(pixel,0,0), (cprof_solver)input.solver);
+	bool conv = atmos->synth(it, &obs(pixel,0,0), 0, (cprof_solver)input.solver);
 	atmos->cleanup();
 	
 	/* --- If not converged, printout message --- */
@@ -250,7 +241,7 @@ void do_slave(int myrank, int nprocs, char hostname[]){
 
 	
 	/* --- Synthesize spectra --- */
-	atmos->synth(it, &obs(pixel,0,0), (cprof_solver)input.solver);
+	atmos->synth(it, &obs(pixel,0,0), 0, (cprof_solver)input.solver);
 
 	
 	if(compute_derivatives){
@@ -300,24 +291,18 @@ void do_slave(int myrank, int nprocs, char hostname[]){
 	  it.tau[kk] = pow(10.0, it.ltau[kk]); 
 	
 	
-	/* --- Optimize depth scale? --- */
-
-	//it.optimize_depth(atmos->eos, input.tcut, 5);
-	//if(input.tcut > 0)
-	//  it.optimize_depth_ltau(atmos->eos, input.tcut);
-
-	
 	/* --- Call equation of state or hydrostatic equilibrium ? --- */
 	
-	if(input.thydro) it.getPressureScale(input.nodes.depth_t, input.boundary, atmos->eos);
-	else it.fill_densities(atmos->eos, input.keep_nne, 0, it.ndep-1);
-
-
-	/* --- Get scales (depth_t has cmass and z switched compared to getScales) --- */
+	if(input.use_eos){
+	  if(input.thydro) it.getPressureScale(input.nodes.depth_t, input.boundary, atmos->eos);
+	  else it.fill_densities(atmos->eos, input.keep_nne, 0, it.ndep-1);
+	}
 	
-	if     (input.nodes.depth_t == 0) it.getScales(atmos->eos, 0); // LTAU500
-	else if(input.nodes.depth_t == 1) it.getScales(atmos->eos, 2); // CMASS
-	else if(input.nodes.depth_t == 2) it.getScales(atmos->eos, 1); // Z
+	/* --- Optimize depth scale? --- */
+	
+	if(input.tcut > 0)
+	  it.optimize_depth(atmos->eos, input.tcut, 7);
+
 	
 	/* --- Update instrumental profile if needed --- */
 	
@@ -326,7 +311,7 @@ void do_slave(int myrank, int nprocs, char hostname[]){
 	
 	/* --- Synthesize spectra --- */
 	
-	bool conv = atmos->synth(it, &obs(pixel,0,0), (cprof_solver)input.solver, true);
+	bool conv = atmos->synth(it, &obs(pixel,0,0), 0, (cprof_solver)input.solver, true);
 	
 	/* --- If not converged, printout message --- */
 	if(!conv) {

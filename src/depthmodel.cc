@@ -1,6 +1,7 @@
 #include <vector>
 #include <string>
 #include <iostream>
+#include <cstdio>
 #include <cmath>
 #include "depthmodel.h"
 #include "interpol.h"
@@ -13,6 +14,19 @@ using namespace std;
 /* --- Default boundary condition (if none provided) --- */
 
 const double mdepth::boundary_pgas_default = 7.e-1;
+
+/* ------------------------------------------------------ */
+
+void mdepth::to_txt(const std::string &fname)
+{
+  FILE *fout = fopen(fname.c_str(), "w");
+  for(int ii=0; ii<ndep; ++ii){
+    for(int ss = 0; ss< 13; ++ss)
+      fprintf(fout, "%e  ", cub(ss,ii));
+    fprintf(fout, "\n");
+  }
+  fclose(fout);
+}
 
 /* ------------------------------------------------------ */
 

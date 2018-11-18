@@ -354,10 +354,8 @@ void newtrap(double **dFF, double *F, double *var, int nlev)
 
 void statEquil_H(Atom *atom, int isum, int mali_iter)
 {
-  static const double TOLF = 1.e-4;
-  static const double TOLMIN = 1.e-6;
-  static const double TOLX = 1.e-3;
-  static const double vdamp = 5.0;
+  static const double TOLX = 1.e-5;
+  static const double vdamp = 10.0;
   static const double tiny_ne = 10.e6; // in M^{-3}, 10.in CGS.
   static const double tmax_update = 300000.0; 
   int max_iter;
@@ -417,7 +415,6 @@ void statEquil_H(Atom *atom, int isum, int mali_iter)
     // --- Iterate --- //
     
     while(niter < max_iter){
-      //F = 0.0, RHS =0.0, dFF = 0.0;
       memset(RHS, 0, npar*sizeof(double));
       memset(&dFF[0][0], 0, npar*npar*sizeof(double));
       memcpy(Gamma_k[0], Gamma_rad[0], Nlevel2*sizeof(double));
@@ -466,28 +463,28 @@ void statEquil_H(Atom *atom, int isum, int mali_iter)
       for(kr=0; kr<Nlevel; ++kr)
 	atom->n[kr][k] *= (1.0 + RHS[kr]/(1.0+vdamp_var*fabs(RHS[kr]))); 
 
-      atmos.ne[k] *= (1 + RHS[npar-1]/(1.0+vdamp_var*fabs(RHS[npar-1])));
+      atmos.ne[k] *= (1.0 + RHS[npar-1]/(1.0+vdamp_var*fabs(RHS[npar-1])));
 
 
       
       // --- update parameters --- //
             
-      lte_positive = 1, nlte_positive = 1;
+      nlte_positive = 1;
       for(j=0; j<Nlevel; ++j){
 	if(atom->n[j][k]     < 0.0) nlte_positive = 0;
       }
     
       
-      if((atmos.ne[k] < tiny_ne) || !lte_positive || !nlte_positive){
+      if((atmos.ne[k] < tiny_ne) || !nlte_positive){
 	rst_vdamp = 1;
       }
       
-      if(rst_vdamp && vdamp_var < 7.0){
+      if(rst_vdamp && vdamp_var < (vdamp+1.0)){
 	for(j=0; j<Nlevel; ++j)
 	  var[j] = npre[j];
 	var[npar-1] = nepre;
 	
-	vdamp_var = 10.0;
+	vdamp_var = vdamp*3.0;
 	rst_vdamp = 0;
 	niter = 0;
 	max_iter = 3000;
@@ -516,7 +513,7 @@ void statEquil_H(Atom *atom, int isum, int mali_iter)
   } // k
   
   for(k=0;k<atmos.Nspace;k++){
-    if(!converged[k]) fprintf(stderr,"[%3d] Not converged!\n", k);
+    if(!converged[k]) fprintf(stderr,"statEquil_H: NR iterations not converged [%d]\n", k);
   }
 
   freeMatrix((void **) Gamma_k);

@@ -185,7 +185,7 @@ double clte::lte_opac(double temp, double n_u, double gf, double elow, double nu
 // -------------------------------------------------------------------------
 // Synthesize profiles given a depth-stratified model
 // -------------------------------------------------------------------------
-bool clte::synth(mdepth &m, double *syn, cprof_solver sol, bool store_pops){
+bool clte::synth(mdepth &m, double *syn, int computing_derivatives, cprof_solver sol, bool store_pops){
   string inam = "clte::synth: ";
   
   int ndep =   m.ndep;

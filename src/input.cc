@@ -112,7 +112,8 @@ iput_t read_input(std::string filename, bool verbose){
   memset(input.nodes.regul_type, 0, 7*sizeof(int));
   const double tmp[7] = {1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0};
   memcpy(input.nodes.rewe, tmp, 7*sizeof(double));
-
+  input.use_eos = 0;
+  input.inv_depth_opt = 0;
   
   // Open File and read
   std::ifstream in(filename, std::ios::in | std::ios::binary);
@@ -156,6 +157,14 @@ iput_t read_input(std::string filename, bool verbose){
       }
       else if(key == "randomize_velocity_gradients"){
 	input.vgrad = atoi(field.c_str());
+	set = true;
+      }
+      else if(key == "synthesize_lte_eos"){
+	input.use_eos = atoi(field.c_str());
+	set = true;
+      }
+      else if(key == "optimize_depth_inversion"){
+	input.inv_depth_opt = atoi(field.c_str());
 	set = true;
       }
       else if(key == "temperature_cut"){

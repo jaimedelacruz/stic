@@ -125,7 +125,7 @@ void atmos::responseFunction(int npar, mdepth_t &m_in, double *pars, int nd, dou
 	m.getPressureScale(input.nodes.depth_t, input.boundary, eos);
 	//m.nne_enhance(input.nodes, npar, &ipars[0], eos);
 
-      synth(m, &out[0], (cprof_solver)input.solver, store_pops);
+	synth(m, &out[0], 1, (cprof_solver)input.solver, store_pops);
     }
 
     
@@ -144,7 +144,7 @@ void atmos::responseFunction(int npar, mdepth_t &m_in, double *pars, int nd, dou
       m.getPressureScale(input.nodes.depth_t, input.boundary, eos);
 	//m.nne_enhance(input.nodes, npar, &ipars[0], eos);
 
-      synth(m, &spec[0], (cprof_solver)input.solver, store_pops);
+      synth(m, &spec[0], 1, (cprof_solver)input.solver, store_pops);
     }
 
     /* --- Compute finite difference --- */
@@ -193,7 +193,7 @@ void atmos::responseFunction(int npar, mdepth_t &m_in, double *pars, int nd, dou
     m.getPressureScale(input.nodes.depth_t, input.boundary, eos);
     //m.nne_enhance(input.nodes, npar, &ipars[0], eos);
       
-    synth(m, &out[0], (cprof_solver)input.solver, store_pops);
+    synth(m, &out[0], 1, (cprof_solver)input.solver, store_pops);
     
     /* --- Finite differences ---*/
     
@@ -869,7 +869,7 @@ int getChi2(int npar1, int nd, double *pars1, double *syn_in, double *dev, doubl
   
   memset(&atm.isyn[0], 0, nd*sizeof(double));
   //  for(int ii=0; ii<m.ndep;ii++) fprintf(stderr,"%e %e %e %e %e\n", m.cmass[ii], m.temp[ii], m.v[ii], m.vturb[ii], m.pgas[ii]);
-  bool conv = atm.synth( m , &atm.isyn[0], (cprof_solver)atm.input.solver, true);  
+  bool conv = atm.synth( m , &atm.isyn[0], 0, (cprof_solver)atm.input.solver, true);  
   
   
   if(!conv){
@@ -1241,13 +1241,13 @@ void atmos::responseFunctionFull(mdepth_t m, int nd, double *out_in, double *syn
 	memcpy(&syup[0],syn, nd*sizeof(double));
       }else{
 	m.cub(pp,kk) = pval + up;
-	
+	/*
 	if(pp == 7){
 	  eos.nne_from_T_rho_nne(m.temp[kk], m.pgas[kk],  m.rho[kk], m.nne[kk]);
 	  eos.store_partial_pressures(m.ndep, kk, eos.xna, m.nne[kk]);
 	}
-	  
-	synth(m, &syup[0], (cprof_solver)input.solver, store_pops);
+	*/
+	synth(m, &syup[0], 1, (cprof_solver)input.solver, store_pops);
 	
       }
 
@@ -1260,12 +1260,13 @@ void atmos::responseFunctionFull(mdepth_t m, int nd, double *out_in, double *syn
       }else{
 	m.cub(pp,kk) = pval + down;
 
-	
+	/*
 	if(pp == 7){
 	  eos.nne_from_T_rho_nne(m.temp[kk], m.pgas[kk],  m.rho[kk], m.nne[kk]);
 	  eos.store_partial_pressures(m.ndep, kk, eos.xna, m.nne[kk]);
 	}
-	synth(m, &sydow[0], (cprof_solver)input.solver, store_pops);
+	*/
+	synth(m, &sydow[0], 1, (cprof_solver)input.solver, store_pops);
       }
 
       
@@ -1303,21 +1304,23 @@ void atmos::responseFunctionFull(mdepth_t m, int nd, double *out_in, double *syn
       }
       m.cub(pp,kk) += per;
 
-      
+      /*
       if(pp == 7){
 	eos.nne_from_T_rho_nne(m.temp[kk], m.pgas[kk],  m.rho[kk], m.nne[kk]);
 	eos.store_partial_pressures(m.ndep, kk, eos.xna, m.nne[kk]);
       }
+      */
 	
-      synth(m, &out[kk][0], (cprof_solver)input.solver, store_pops);
+      synth(m, &out[kk][0], 1, (cprof_solver)input.solver, store_pops);
 
       m.cub(pp, kk) = pval;
-      
+
+      /*
       if(pp == 7){
 	eos.nne_from_T_rho_nne(m.temp[kk], m.pgas[kk],  m.rho[kk], m.nne[kk]);
 	eos.store_partial_pressures(m.ndep, kk, eos.xna, m.nne[kk]);
       }
-      
+      */
       
       per = 1.0/per;
       for(int ww=0;ww<nd;ww++) out[kk][ww] = (out[kk][ww]-syn[ww]) * per;

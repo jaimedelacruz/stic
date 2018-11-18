@@ -112,9 +112,9 @@ void Iterate_j(int NmaxIter, double iterLimit, double *dpopmax_out)
 
     /* --- Solve statistical equilibrium equations --  -------------- */
     
-    if(((niter+1) == input.Ngdelay) && (dpopsmax > input.eos_iter_limit)){
+    if(((niter+1) == input.Ngdelay) && (dpopsmax > input.ng_start_limit)){
       nsum = 1;
-      if(input.solve_ne >= ITERATION_EOS && atmos.ne_flag) nsum = 5;
+      if(input.solve_ne >= ITERATION_EOS && atmos.ne_flag) nsum = 4;
       
       for(nact = 0;  nact < atmos.Nactiveatom;  nact++){
 	atmos.activeatoms[nact]->Ng_n->Ndelay += nsum;	

@@ -55,6 +55,7 @@ class mdepth{
   void hydrostatic(ceos &eos, int depth_t);
   void optimize_depth(ceos &eos, float tcut, int smooth = 0);
   void optimize_depth_ltau(ceos &eos, float tcut);
+  void to_txt(const std::string &fname);
 
   
   mdepth& operator= ( mdepth &m);

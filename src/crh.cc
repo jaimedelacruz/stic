@@ -228,23 +228,22 @@ crh::crh(iput_t &inpt, double grav): atmos(inpt, grav){
 
 /* ----------------------------------------------------------------*/
 
-bool crh::synth(mdepth_t &m_in, double *syn, cprof_solver sol, bool save_pops){
+bool crh::synth(mdepth_t &m_in, double *syn, int computing_derivatives, cprof_solver sol, bool save_pops){
 
   static int ncall = 0, npix = 0;
   ncall++;
 
   /* --- Copy model, RH seems to tamper with the model --- */
   
-  //mdepth m(m_in.ndep);
-  //m.cub.d = m_in.cub.d;
-  //memcpy(&m.cub.d[0], &m_in.cub.d[0], m.ndep*14*sizeof(double));
   mdepth m = m_in;
-
   
-  // --- Testing --- //
+  // --- Testing: optimize depth scale --- //
   
-  //m.optimize_depth(eos, 150000., 5);
-
+  if(input.inv_depth_opt && (input.tcut <= 0.0)){
+    double tmax = m.temp[0];
+    m.optimize_depth(this->eos, tmax, m.ndep/5);
+  }
+  
   /* --- Init vectors --- */
   
   float xa=0.0, xe=0.0;
@@ -253,7 +252,8 @@ bool crh::synth(mdepth_t &m_in, double *syn, cprof_solver sol, bool save_pops){
   part.resize(m.ndep,0.0);
   nhtot.resize(m.ndep,0.0);
   double *B = new double [m.ndep], *inc = new double [m.ndep];
-
+  
+  
   
   
   /* --- Init storage for RH spectra --- */
@@ -300,7 +300,6 @@ bool crh::synth(mdepth_t &m_in, double *syn, cprof_solver sol, bool save_pops){
     if(std::isnan(inc[kk])) inc[kk] = 0.0;
 
 
-    //fprintf(stderr,"%e %e %e %e %e %e\n", m_in.cmass[kk], m.temp[kk], m.v[kk], m.vturb[kk], m.pgas[kk], m_in.pgas[kk]);
   }
 
   int savep = 0, hydrostat = 0;
@@ -312,7 +311,7 @@ bool crh::synth(mdepth_t &m_in, double *syn, cprof_solver sol, bool save_pops){
   bool conv = rhf1d(input.mu, m.ndep, &m.temp[0], &m.rho[0], &m.nne[0], &m.vturb[0], &m.v[0],
 		     &B[0], &inc[0], &m.azi[0], &m.z[0], &nhtot[0], &m.tau[0],
 		    &m.cmass[0], 4.44, (bool_t)true, &sp, &save_pop, nlambda, &lambda[0],
-		    input.myrank, savep, (int)input.verbose, &hydrostat);
+		    input.myrank, savep, (int)input.verbose, &hydrostat, computing_derivatives);
   
   delete [] B;
   delete [] inc;
@@ -362,9 +361,6 @@ bool crh::synth(mdepth_t &m_in, double *syn, cprof_solver sol, bool save_pops){
   
   if(hydrostat > 0){
     for(int kk = 0; kk < m.ndep; kk++){
-
-      //fprintf(fout, "%e %e\n", m_in.nne[kk], m.nne[kk]*1.e-6);
-
       
       m.pgas[kk] = (nhtot[kk] * eos.totalAbund / eos.ABUND[0] + m.nne[kk]) *
 	phyc::BK * m_in.temp[kk] * 1.e-6;
