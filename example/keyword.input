@@ -63,6 +63,7 @@
   NG_DELAY  = 15
   NG_ORDER  = 2
   NG_PERIOD = 7
+  NG_START_LIMIT = 7.0E-3
 
 # PRD specific parameters. PRD_N_MAX_ITER is the maximum number of
 # PRD iterations per main iteration. PRD_ITER_LIMIT is the convergence
@@ -80,7 +81,7 @@
   PRD_NG_DELAY   = 0
   PRD_NG_ORDER   = 0
   PRD_NG_PERIOD  = 0
-
+  
 # If PRD_ANGLE_DEP is set to TRUE angle-dependent PRD is used
 # (KEYWORD_DEFAULT). The default is FALSE.
 
@@ -111,8 +112,8 @@
 
   KURUCZ_PF_DATA = Atoms/pf_Kurucz.input
   KURUCZ_DATA = kurucz.input
-  SOLVE_NE = ITERATION_EOS
-#  EOS_ITER_LIMIT = 1.E-2
+  SOLVE_NE = ITERATION
+#  EOS_ITER_LIMIT = 1.E-3
 
 # Set HYDROGEN_LTE = TRUE if hydrogen in the background has to be
 # treated with LTE populations (KEYWORD_DEFAULT). Default is FALSE

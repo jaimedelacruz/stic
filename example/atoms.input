@@ -4,7 +4,7 @@
 # Metals
 #  model file             ACTIVE/PASSIVE  INITIAL_SOLUTION   population file
  
-  Atoms/H_4.atom		PASSIVE		  LTE_POPULATIONS
+  Atoms/H_4.atom		ACTIVE		  LTE_POPULATIONS
   Atoms/C.atom	     		PASSIVE     	  LTE_POPULATIONS
   Atoms/O.atom          	PASSIVE      	  LTE_POPULATIONS   pops.O.out
   Atoms/SiIV.atom	      	PASSIVE     	  LTE_POPULATIONS   pops.SI.out

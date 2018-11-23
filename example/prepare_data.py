@@ -232,7 +232,7 @@ if __name__ == "__main__":
     
     taumin = -7.8
     taumax= 1.0
-    dtau = 0.2
+    dtau = 0.14
     ntau = int((taumax-taumin)/dtau) + 1
     tau = np.arange(ntau, dtype='float64')/(ntau-1.0) * (taumax-taumin) + taumin
 
