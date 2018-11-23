@@ -174,7 +174,8 @@ bool_t rhf1d(float muz, int rhs_ndep, double *rhs_T, double *rhs_rho,
   if (input.StokesMode > NO_STOKES)
     atmos.Stokes = TRUE;
   hydrostat[0] = (int)atmos.hydrostatic;
-
+  if(input.solve_ne >= ITERATION_EOS) hydrostat[0] = 1;
+  
   ne_lte = (double*)calloc(atmos.Nspace,sizeof(double));
   memcpy(ne_lte, atmos.ne, atmos.Nspace*sizeof(double));
 
