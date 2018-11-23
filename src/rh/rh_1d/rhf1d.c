@@ -202,7 +202,7 @@ bool_t rhf1d(float muz, int rhs_ndep, double *rhs_T, double *rhs_rho,
   
   if(input.solve_ne >= ITERATION_EOS){
     if(atmos.atoms[0].active) atmos.ne_flag = TRUE;
-    if(save_pop->ne_dep){
+    if(save_pop && save_pop->ne_dep){
       double *tmp1 = (double*)calloc(atmos.Nspace,sizeof(double));
       hermitian_interpolation((int)atmos.Nspace, save_pop->tau_ref, save_pop->ne_dep,
 			      (int)atmos.Nspace, geometry.tau_ref, tmp1, 1);
@@ -229,7 +229,7 @@ bool_t rhf1d(float muz, int rhs_ndep, double *rhs_T, double *rhs_rho,
     getProfiles();
     initSolution_j( myrank, savpop);
 
-    //if(computing_derivatives || (input.solve_ne < ITERATION_EOS))
+    if(computing_derivatives || (input.solve_ne < ITERATION_EOS))
        read_populations(save_pop,0);
 
     if((savpop == 0) && 1){
@@ -399,7 +399,10 @@ void clean_saved_populations(crhpop *save_pop){
     free(save_pop->J);
     if(input.backgr_pol) free(save_pop->J20);
     free(save_pop->tau_ref);
-    if(save_pop->ne_dep) free(save_pop->ne_dep);
+    if(save_pop->ne_dep){
+      free(save_pop->ne_dep);
+      save_pop->ne_dep = NULL;
+    }
     
     save_pop->pop = NULL;
     save_pop->lambda = NULL;
