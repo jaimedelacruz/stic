@@ -203,8 +203,9 @@ crh::crh(iput_t &inpt, double grav): atmos(inpt, grav){
   // lambda.push_back(inv_convl(5000.0));
 
   /* --- Init saved pop --- */
-  save_pop.pop = NULL;
-  save_pop.nactive = 0;
+  memset(&save_pop, 0, sizeof(crhpop));
+  //save_pop.pop = NULL;
+  //save_pop.nactive = 0;
 
 
   /* --- Init limits for inversion if nodes are present --- */

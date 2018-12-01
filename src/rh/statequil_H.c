@@ -252,8 +252,8 @@ void charge_eq(double **dFF, double *F, double *var, double **w,  double **c,
   for (n = 1;  n < atmos.Nelem;  n++) 
     Nmaxstage = MAX(atmos.elements[n].Nstage, Nmaxstage);
   
-  fjk  = (double *) malloc(Nmaxstage * sizeof(double));
-  dfjk = (double *) malloc(Nmaxstage * sizeof(double));
+  fjk  = (double *) calloc(Nmaxstage , sizeof(double));
+  dfjk = (double *) calloc(Nmaxstage , sizeof(double));
 
   
   for (n = 1;  n < atmos.Nelem;  n++) {
@@ -321,15 +321,11 @@ void particle_cons(double **dFF, double *F, double *var, double tot, int nlev)
     }
 
   F[pos1] = 1.0;
+  for( kr = 0; kr<nlev; ++kr) F[pos1] -= var[kr]/tot;
   
-  for( kr = 0; kr<nlev; ++kr)
-    F[pos1] -= var[kr]/tot;
-  
-  //for(kr = 0; kr<npar; ++kr)
   dFF[pos1][npar-1] = 0.0;
   
-  for(kr = 0; kr<nlev; ++kr)
-    dFF[pos1][kr] = -1.0 / tot;
+  for(kr = 0; kr<nlev; ++kr) dFF[pos1][kr] = -1.0 / tot;
 }
 
 
@@ -512,9 +508,9 @@ void statEquil_H(Atom *atom, int isum, int mali_iter)
 
   } // k
   
-  for(k=0;k<atmos.Nspace;k++){
-    if(!converged[k]) fprintf(stderr,"statEquil_H: NR iterations not converged [%d]\n", k);
-  }
+  //for(k=0;k<atmos.Nspace;k++){
+    //if(!converged[k]) fprintf(stderr,"statEquil_H: NR iterations not converged [%d]\n", k);
+    //}
 
   freeMatrix((void **) Gamma_k);
   freeMatrix((void **) dFF);
