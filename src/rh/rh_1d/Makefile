@@ -3,7 +3,7 @@ GEOMETRY = ONE_D_PLANE
 
 include ../../makefiles/makefile.$(CPU).$(OS)
 
-RHINC = -I../
+RHINC = -I../ -I../../
 
 ## --- Define groups of object files --                -------------- ##
 

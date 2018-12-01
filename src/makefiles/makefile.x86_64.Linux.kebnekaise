@@ -36,4 +36,4 @@ LINKEROPTS=-I/hpc2n/eb/software/Compiler/intel/2017.1.132-GCC-5.4.0-2.26/impi/20
 # GSL, FFTW3 libs.
 # Any unix system should have this installed in /usr.
 #
-GSLPATH = /usr
+GSLPATH = #/usr
