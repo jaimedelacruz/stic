@@ -203,7 +203,7 @@ void statEquilMolecule(struct Molecule *molecule, int isum)
 
 double updatePopulations(int niter)
 {
-  register int nact;
+  register int nact, ii;
 
   bool_t accel, quiet, hydrogen = FALSE;
   double dpops, dpopsmax = 0.0, dnemax = 0.0;
@@ -231,6 +231,13 @@ double updatePopulations(int niter)
       dnemax = MaxChange(atmos.ng_ne, messageStr, quiet=FALSE);
       Error(MESSAGE, NULL, (accel) ? " (accelerated)\n" : "\n");
       //
+
+      // --- Deallocate collisional rates, they will be re-allocated inside Background_h -> seLTE.
+      for(ii=0; ii< atmos.Nactiveatom-1; ++ii){
+	freeMatrix((void**)atmos.activeatoms[ii]->C);
+	atmos.activeatoms[ii]->C = NULL;
+      }
+      
       Background_j(FALSE, FALSE); // The LTE populations are recomputed here and collisional rates.
       getProfiles(); // Stark damping must be updated, and profiles re-computed
     }else{

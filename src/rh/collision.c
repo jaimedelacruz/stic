@@ -458,7 +458,7 @@ void CollisionRate(struct Atom *atom, FILE *fp_atom)
           status;
   long    Nspace = atmos.Nspace;
   fpos_t  collpos;
-  double  dE, C0, *T, *coeff, *C, Cdown, Cup, gij, *np, xj, fac, fxj;
+  double  dE, C0, *T, *coeff, *C=NULL, Cdown, Cup, gij, *np, xj, fac, fxj;
 
   int      Ncoef, Nrow;
   double **cdi, **badi;
@@ -471,7 +471,9 @@ void CollisionRate(struct Atom *atom, FILE *fp_atom)
   C0 = ((E_RYDBERG/sqrt(M_ELECTRON)) * PI*SQ(RBOHR)) *
     sqrt(8.0/(PI*KBOLTZMANN));
 
-  atom->C = matrix_double(SQ(Nlevel), Nspace);
+  if(atom->C == NULL)
+    atom->C = matrix_double(SQ(Nlevel), Nspace);
+  
   for (ij = 0;  ij < SQ(Nlevel);  ij++) {
     for (k = 0;  k < Nspace;  k++) {
       atom->C[ij][k] = 0.0;
@@ -964,8 +966,8 @@ void CollisionRateOne(struct Atom *atom, FILE *fp_atom, int k)
   C0 = ((E_RYDBERG/sqrt(M_ELECTRON)) * PI*SQ(RBOHR)) *
     sqrt(8.0/(PI*KBOLTZMANN));
   
-  if(atom->C == NULL)
-    atom->C = matrix_double(SQ(Nlevel), Nspace);
+  //if(atom->C == NULL)
+  //  atom->C = matrix_double(SQ(Nlevel), Nspace);
   
   for (ij = 0;  ij < SQ(Nlevel);  ij++) {
     //for (k = 0;  k < Nspace;  k++) {
