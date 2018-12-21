@@ -1231,7 +1231,7 @@ void clm::compute_trial3(double *res, double **rf, double lambda,
        evaporation.
        --- */
     
-    diag[yy] = std::max(A(yy,yy), diag[yy]*0.5);
+    diag[yy] = std::max(A(yy,yy), diag[yy]*0.4);
 
     if(dregul.to_reg){
       for(int xx=0;xx<npar;xx++) A(yy,xx) += LL(yy,xx);
