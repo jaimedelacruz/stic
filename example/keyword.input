@@ -112,7 +112,7 @@
 
   KURUCZ_PF_DATA = Atoms/pf_Kurucz.input
   KURUCZ_DATA = kurucz.input
-  SOLVE_NE = ITERATION
+#  SOLVE_NE = ITERATION
 #  EOS_ITER_LIMIT = 1.E-3
 
 # Set HYDROGEN_LTE = TRUE if hydrogen in the background has to be

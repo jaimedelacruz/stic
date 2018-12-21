@@ -208,7 +208,7 @@ if __name__ == "__main__":
     ntw= 25
     f=fpi.crisp(8542.0)
     tw = (np.arange(ntw)-ntw//2)*dw 
-    tr = f.dual_fpi(tw, erh = -0.02)
+    tr = f.dual_fpi(tw, erh = -0.025)
     tr /= tr.sum()
     writeInstProf('8542.nc', tr,  [8542.091, 9.0, 2.0])
 
@@ -219,7 +219,7 @@ if __name__ == "__main__":
     ntw= 45 
     f=fpi.crisp(6302.0)
     tw = (np.arange(ntw)-ntw//2)*dw 
-    tr = f.dual_fpi(tw, erh=-0.01)
+    tr = f.dual_fpi(tw, erh=-0.015)
     tr /= tr.sum()
     writeInstProf('6302.nc', tr,  [6302.1, 4.4, 2.0])
     

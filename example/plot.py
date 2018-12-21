@@ -88,7 +88,7 @@ ax6.set_title('|B_hor| [G]')
 ax6.set_xlabel(r'Log $\tau_{500}$')
 
 ax7.plot(dep, m.azi.squeeze() * 180/3.1415926, 'k-')
-ax7.set_ylim(-7,7)
+ax7.set_ylim(0,180)
 ax7.set_title('B_azi [deg]')
 ax7.set_xlabel(r'Log $\tau_{500}$')
 
