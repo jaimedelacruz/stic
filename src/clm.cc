@@ -1144,10 +1144,7 @@ void clm::compute_trial3(double *res, double **rf, double lambda,
      dregul[npar] = gamma * gamma;
 
      --- */
-  
-  //double sclfac = 1.0 - double(iit)/double(miter);
-  //fprintf(stderr,"sclfac=%f\n", sclfac);
-  
+
   /* --- Init Eigen-3 arrays --- */
   
   Matrix<double,Dynamic, Dynamic, RowMajor> A(npar, npar), LL(npar,npar);//, Ap(npar,npar);
@@ -1197,10 +1194,12 @@ void clm::compute_trial3(double *res, double **rf, double lambda,
     for(int yy = 0; yy<npar; yy++){
       for(int xx = 0; xx<npar; xx++){
 	
-	//for(int jj=0; jj<npen; jj++)
-	//tmp1[jj] = dregul.dreg[jj][xx] * dregul.dreg[jj][yy]; // L.t # L = L # L.t
+	for(int jj=0; jj<npen; jj++)
+	  tmp1[jj] = dregul.dreg[jj][xx] * dregul.dreg[jj][yy]; // L.t # L = L # L.t
 	
-	LL(yy,xx) = dregul.LL[yy][xx];//sumarr(tmp1, npen);
+	LL(yy,xx) = sumarr(tmp1, npen);
+
+	//LL(yy,xx) = dregul.LL[yy][xx];//sumarr(tmp1, npen);
 
       }//xx
       
@@ -1232,7 +1231,7 @@ void clm::compute_trial3(double *res, double **rf, double lambda,
        evaporation.
        --- */
     
-    diag[yy] = std::max(A(yy,yy), diag[yy]*0.6);
+    diag[yy] = std::max(A(yy,yy), diag[yy]*0.5);
 
     if(dregul.to_reg){
       for(int xx=0;xx<npar;xx++) A(yy,xx) += LL(yy,xx);
@@ -1241,8 +1240,10 @@ void clm::compute_trial3(double *res, double **rf, double lambda,
 
     
     /* --- Damp the diagonal of A --- */
-    
-    A(yy,yy) += lambda * A(yy,yy);
+    if(dregul.to_reg)
+      A(yy,yy) += lambda * (diag[yy] + LL(yy,yy));//A(yy,yy);
+    else
+      A(yy,yy) += lambda * diag[yy];
     //if(!dregul.to_reg)
     //A(yy,yy) += lambda * diag[yy];
 
@@ -1263,7 +1264,7 @@ void clm::compute_trial3(double *res, double **rf, double lambda,
      The SVD is computed with Eigen3 instead of LaPack.
      --- */
   //Ap = A;
-  //JacobiSVD<matrixXd,ColPivHouseholderQRPreconditioner> svd(A, ComputeThinU | ComputeThinV);
+  //JacobiSVD<Matrix<double,Dynamic, Dynamic, RowMajor>,ColPivHouseholderQRPreconditioner> svd(A, ComputeThinU | ComputeThinV);
   BDCSVD<Matrix<double,Dynamic, Dynamic, RowMajor>> svd(A,Eigen::ComputeThinU | Eigen::ComputeThinV);
 
 

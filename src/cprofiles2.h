@@ -44,7 +44,7 @@ class cprofiles{
   /* 
      --- Voigt-Faraday profiles implemented here to make inlining easier for the compiler --- 
   */
-  inline void voigt_complex(const double a, const double v, double &vgt, double &far){
+  inline void voigt_complex(const double &a, const double &v, double &vgt, double &far){
     double sav = fabs(v) + a;
     std::complex<double> tav(a, -v);
     std::complex<double> uav = tav*tav;
@@ -669,6 +669,45 @@ class cprofiles{
     delete [] dtau;
   }
 
+  inline void bez3_coeff(double const &dt, double &alpha, double &beta, double &gamma, double &theta, double &eps)
+  {
+    /* ---
+       
+       Integration coeffs. for cubic Bezier interpolants
+       Use Taylor expansion if dtau is small
+       
+     --- */
+  
+    const double dt2 = dt*dt, dt3 = dt2 * dt;//,  dt4;
+    if(dt < 0.05){
+      eps =   1.0 - dt + 0.50 * dt2 - dt3 *  0.166666666666666666666666667;
+      alpha = 0.25 * dt - 0.20 * dt2 + dt3 * 0.083333333333333333333333333;// - dt4 / 840.0;
+      beta  = 0.25 * dt - 0.05 * dt2 + dt3 * 0.008333333333333333333333333;//  - dt4 / 42.0;
+      gamma = 0.25 * dt - 0.15 * dt2 + dt3 * 0.050;// - dt4 / 210.0;
+      theta = 0.25 * dt - 0.10 * dt2 + dt3 * 0.025;// - dt4 / 84.0;
+      return;
+    }else{
+      if((dt > 17.)){
+	eps = 0.0;
+	alpha = 6.0 / dt3;
+	beta = 1.0 - (alpha)*(1.0-dt) - 3.0/dt;
+	gamma = alpha*(dt-3.0);
+	theta = 3.0*(alpha + (dt-4.0)/dt2);
+	return;
+      }else{
+	eps = exp(-dt);
+	alpha = -(-6.0+(6.0+6.0*dt+3.0*dt2+dt3)*(eps))/dt3;
+	beta  = (-6.0 + dt*(6.0+dt*(dt-3.0)) +6.0*(eps)) / dt3;
+	gamma = 3.0 * (2.0*dt-6.0 + eps*(6.0+dt*(dt+4.0))) / dt3;
+	theta = 3.0 * (-2.0*(eps)*(dt+3.0) +6.0+(dt-4.0)*dt) / dt3;
+	return;
+      }
+    }
+  }
+  
+
+
+  
   //-------------------------------------------------------------------------
   // Delo-Bezier formal solver, using z as input
   // REFERENCE: de la Cruz Rodriguez & Piskunov (2013)
@@ -812,30 +851,10 @@ class cprofiles{
 
     
       /* --- Integration coeffs. and exponential --- */
-      double dt = dtau[ku];
-      double dt2 = dt * dt;
-      double dt3 = dt2 * dt;
-      double dt03 = dt / 3.0;
-      double eps, alp, bet, gam, mu;
+      double dt = dtau[ku], dt03 = dt/3.0;
+      double eps=0.0, alp=0.0, bet=0.0, gam=0.0, thet=0.0;
       //
-      if(dt >= 1.e-2){
-	//
-	eps = exp(-dt);
-	//
-	alp = (-6.0 + 6.0 * dt - 3.0 * dt2 + dt3 + 6.0 * eps)        / dt3;
-	bet = (6.0 + (-6.0 - dt * (6.0 + dt * (3.0 + dt))) * eps)    / dt3;
-	gam = 3.0 * (6.0 + (-4.0 + dt)*dt - 2.0 * (3.0 + dt) * eps)  / dt3;
-	mu  = 3.0 * ( eps * (6.0 + dt2 + 4.0 * dt) + 2.0 * dt - 6.0) / dt3;
-      }else{ // Taylor expansion of the exponential
-	//
-	double dt4 = dt2 * dt2;
-	eps = 1.0 - dt + 0.5 * dt2 - dt3 / 6.0 + dt4 / 24.0;
-	//
-	alp = 0.25 * dt - 0.05 * dt2 + dt3 / 120.0 - dt4 / 840.0;
-	bet = 0.25 * dt - 0.20 * dt2 + dt3 / 12.0  - dt4 / 42.0; 
-	gam = 0.25 * dt - 0.10 * dt2 + dt3 * 0.025 - dt4 / 210.0; 
-	mu  = 0.25 * dt - 0.15 * dt2 + dt3 * 0.05  - dt4 / 84.0; 
-      }    
+      bez3_coeff(dt, bet, alp, thet, gam, eps);
     
       m4m(Ku, Ku, tmpa); //  Ku^2
       m4m(K0, K0, A);    //  K0^2
@@ -844,19 +863,19 @@ class cprofiles{
       for(int j = 0; j<4; j++){
 	for(int i = 0; i<4; i++){
 	  A[j][i] = phyc::ident[j][i] + alp * K0[j][i] - gam * -(dt03 * (A[j][i] + dK_0[j][i] + K0[j][i]) + K0[j][i]);
-	  tmpa[j][i] = eps * phyc::ident[j][i] - bet * Ku[j][i] + mu * (dt03 * (tmpa[j][i] + dK_u[j][i] + Ku[j][i]) - Ku[j][i]);
-	  tmpb[j][i] = bet * phyc::ident[j][i] + mu * (phyc::ident[j][i] - dt03*Ku[j][i]);
+	  tmpa[j][i] = eps * phyc::ident[j][i] - bet * Ku[j][i] + thet * (dt03 * (tmpa[j][i] + dK_u[j][i] + Ku[j][i]) - Ku[j][i]);
+	  tmpb[j][i] = bet * phyc::ident[j][i] + thet * (phyc::ident[j][i] - dt03*Ku[j][i]);
 	  tmpc[j][i] = alp * phyc::ident[j][i] + gam* (phyc::ident[j][i] + dt03*K0[j][i]);
 	}
       }
 
-      // Here I am doing tmpa*stk + tmpb * Su + tmpc * S0 + (gam * dS0 - mu * dSu) * dtau / 3.0
+      // Here I am doing tmpa*stk + tmpb * Su + tmpc * S0 + (gam * dS0 - thet * dSu) * dtau / 3.0
       for(int i = 0; i<4; i++){
 	v0[i] = 0.0;
 	for(int j = 0; j<4; j++){
 	  v0[i] += tmpa[i][j] * stk[j] + tmpb[i][j] * Su[j] + tmpc[i][j] * S0[j];
 	}
-	v0[i] += dt03 * (gam * dSv[k][i] - mu * dSv[ku][i]);
+	v0[i] += dt03 * (gam * dSv[k][i] - thet * dSv[ku][i]);
       }
       m4inv(A); // Invert "A"
 
