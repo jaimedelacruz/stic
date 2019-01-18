@@ -87,7 +87,7 @@ void var_int(int n, double *x, double *y, double *xx, int k0, int k1, bool use_l
 
 /* ------------------------------------------------------ */
 
-void mdepth::optimize_depth(ceos &eos, float tcut, int smooth)
+void mdepth::optimize_depth(eoswrap &eos, float tcut, int smooth)
 {
   static const double grph=2.26e-24, crhmbf=2.9256e-17;
 
@@ -201,7 +201,7 @@ void mdepth::optimize_depth(ceos &eos, float tcut, int smooth)
 
 /* ------------------------------------------------------ */
 
-void mdepth::optimize_depth_ltau(ceos &eos, float tcut)
+void mdepth::optimize_depth_ltau(eoswrap &eos, float tcut)
 {
   static const double grph=2.26e-24, crhmbf=2.9256e-17;
 
@@ -340,10 +340,10 @@ mdepth::mdepth(const  mdepth &m)
 
 /* ------------------------------------------------------------------ */
 
-//void ceos::hydrostatic_cmass(int ndep, double *tau, double *t, double *Pg, double *rho, double *nel,
+//void eoswrap::hydrostatic_cmass(int ndep, double *tau, double *t, double *Pg, double *rho, double *nel,
 //			     double *z, double *cmass, double *ltau
 
-void mdepth::hydrostatic(ceos &eos, int depth_m)
+void mdepth::hydrostatic(eoswrap &eos, int depth_m)
 {
 
   if(depth_m == 0)   
@@ -374,7 +374,7 @@ void mdepth::nodes2depth(int n, double *x, double *y, int nn, double *xx, double
   }
 }
 
-void mdepth::nne_enhance(nodes_t &nodes, int n, double *pars, ceos &eos){
+void mdepth::nne_enhance(nodes_t &nodes, int n, double *pars, eoswrap &eos){
 
   /* --- are we inverting the nne enhancement? --- */
   
@@ -517,7 +517,7 @@ void mdepth::expand(nodes_t &n, double *p, int interpol, int mtype){
   return;
 }
 
-void mdepth::fill_densities(ceos &eos, int keep_nne, int k0, int k1){
+void mdepth::fill_densities(eoswrap &eos, int keep_nne, int k0, int k1){
 
   /* --- which scale do we have? --- */
   
@@ -562,7 +562,7 @@ void mdepth::fill_densities(ceos &eos, int keep_nne, int k0, int k1){
   
   */
 }
-void mdepth::getScales(ceos &eos, int bound){
+void mdepth::getScales(eoswrap &eos, int bound){
 
   vector<double> kappa;
   kappa.resize(ndep);
@@ -642,7 +642,7 @@ void mdepth::getScales(ceos &eos, int bound){
 }
 
 
-void mdepth::fixBoundary(int boundary, ceos &eos){
+void mdepth::fixBoundary(int boundary, eoswrap &eos){
   
   if(boundary == 0) pgas[0] = boundary_pgas_default;
   else if(boundary == 1) nne[0] = eos.nne_from_T_Pg(temp[0], pgas[0],  rho[0]);
@@ -652,7 +652,7 @@ void mdepth::fixBoundary(int boundary, ceos &eos){
   
 }
 
-void mdepth::getPressureScale(int depth_t, int boundary, ceos &eos){
+void mdepth::getPressureScale(int depth_t, int boundary, eoswrap &eos){
 
   /* --- If pgas was not given, convert rho or nne or pel to pgas --- */
   
@@ -1048,7 +1048,7 @@ int mdepthall::read_model2(std::string &filename, int tstep, bool require_tau){
 
    return bound;
 }
-
+/*
 void mdepthall::convertBoundary(int bound, bool verbose){
 
   string inam = "depthall::convertBoundary: ";
@@ -1083,7 +1083,7 @@ void mdepthall::convertBoundary(int bound, bool verbose){
   if(verbose) cout << endl;
   
 }
-
+*/
 void mdepthall::expand(int n, double *x, double *y, int nn, double *xx, double *yy, int interpolation){
 
   if     (n == 1)                for(int kk=0;kk<nn;kk++) yy[kk] = y[0];

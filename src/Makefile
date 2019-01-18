@@ -13,7 +13,7 @@ MNAME = $(shell uname -n)
 STMAC = STiC_$(MNAME).x
 
 FFILES = eos_math_special.o eos_eqns.o eos.o 
-OFILES_SPARSE = input.o clm.o cop.o ceos.o comm.o depthmodel.o  spectral.o fpigen.o fpi.o atmosphere.o clte.o crh.o io.o slave.o master_sparse.o main_sparse.o 
+OFILES_SPARSE = input.o clm.o cop.o witt.o ceos.o comm.o depthmodel.o  spectral.o fpigen.o fpi.o atmosphere.o clte.o crh.o io.o slave.o master_sparse.o main_sparse.o 
 
 FDENS = cop.o ceos.o io.o depthmodel.o fillDensities.o
 

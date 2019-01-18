@@ -70,7 +70,7 @@ struct iput{
   unsigned long buffer_size, buffer_size1;
   int nt, ny, nx, ns, npar, npack, mode, nInv, inst_len, atmos_len, ab_len,
     nw_tot, boundary, ndep, solver, centder, thydro, dint, keep_nne, svd_split, random_first, depth_model,
-    use_geo_accel, nresp, getResponse[8], delay_bracket, vgrad, verbose, use_eos, inv_depth_opt;
+    use_geo_accel, nresp, getResponse[8], delay_bracket, vgrad, verbose, use_eos, inv_depth_opt, eos_type;
   double mu, chi2_thres, sparse_threshold, dpar, init_step, marquardt_damping, svd_thres,  tcut;
   std::string imodel, omodel, iprof, oprof, myid, instrument,
     atmos_type, wavelet_type, oatmos, abfile;

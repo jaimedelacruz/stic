@@ -8,6 +8,7 @@
 #include "input.h"
 #include "interpol.h"
 #include "ceos.h"
+#include "eoswrap.h"
 #include "cmemt.h"
 
 //-------------------------------------------
@@ -46,15 +47,15 @@ class mdepth{
   void setsize(int n);
   void nodes2depth(int n, double *x, double *y, int nn, double *xx, double *yy, int interpol, bool extrapolate);
   void expand(nodes_t &nodes, double *p, int interpol, int mtype = 0);
-  void fixBoundary(int boundary, ceos &eos);
-  void nne_enhance(nodes_t &nodes, int n, double *pars, ceos &eos);
-  void getPressureScale(int depth_t, int boundary, ceos &eos);
-  void getScales(ceos &eos, int bound);
+  void fixBoundary(int boundary, eoswrap &eos);
+  void nne_enhance(nodes_t &nodes, int n, double *pars, eoswrap &eos);
+  void getPressureScale(int depth_t, int boundary, eoswrap &eos);
+  void getScales(eoswrap &eos, int bound);
   void zero(void);
-  void fill_densities(ceos &eos, int keep_nne, int k0, int k1);
-  void hydrostatic(ceos &eos, int depth_t);
-  void optimize_depth(ceos &eos, float tcut, int smooth = 0);
-  void optimize_depth_ltau(ceos &eos, float tcut);
+  void fill_densities(eoswrap &eos, int keep_nne, int k0, int k1);
+  void hydrostatic(eoswrap &eos, int depth_t);
+  void optimize_depth(eoswrap &eos, float tcut, int smooth = 0);
+  void optimize_depth_ltau(eoswrap &eos, float tcut);
   void to_txt(const std::string &fname);
 
   
@@ -75,12 +76,12 @@ class mdepthall{
   mat<double> temp, nne, rho, pgas, bl, bh,
     azi, v, vturb, ltau, z, pel, boundary;
   int ndep, btype;
-  ceos eos;
+  // ceos eos;
   mat<double> cub;
 
   
   
- mdepthall(int iny, int inx, int indep): eos(4.44){
+  mdepthall(int iny, int inx, int indep){//: eos(4.44){
     setsize(iny, inx, indep);
   }
   mdepthall(){};

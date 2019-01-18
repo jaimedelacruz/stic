@@ -240,10 +240,10 @@ bool crh::synth(mdepth_t &m_in, double *syn, int computing_derivatives, cprof_so
   
   // --- Testing: optimize depth scale --- //
   
-  if(input.inv_depth_opt && (input.tcut <= 0.0)){
-    double tmax = m.temp[0];
-    m.optimize_depth(this->eos, tmax, m.ndep/5);
-  }
+  //if(input.inv_depth_opt && (input.tcut <= 0.0)){
+  //  double tmax = m.temp[0];
+  // m.optimize_depth(*(this->eos), tmax, m.ndep/5);
+  //}
   
   /* --- Init vectors --- */
   
@@ -279,7 +279,7 @@ bool crh::synth(mdepth_t &m_in, double *syn, int computing_derivatives, cprof_so
     //eos.read_partial_pressures(kk, frac, part, xa, xe);
     
     double xna = m.pgas[kk] / (phyc::BK * m.temp[kk]) - m.nne[kk];
-    nhtot[kk] = xna * eos.ABUND[0] / eos.totalAbund * 1.e6; // nHtot based on abundance
+    nhtot[kk] = xna * eos->ABUND[0] / eos->tABUND * 1.e6; // nHtot based on abundance
     //nhtot[kk] = m.rho[kk] / (phyc::AMU * eos.avmol) *  eos.ABUND[0] / eos.totalAbund * 1.e6;
     
     /* --- Convert units to SI --- */
@@ -299,7 +299,7 @@ bool crh::synth(mdepth_t &m_in, double *syn, int computing_derivatives, cprof_so
       inc[kk] = acos(m.bl[kk] * 1.0e-4 / B[kk]);
     else inc[kk] = 0.0;
     if(std::isnan(inc[kk])) inc[kk] = 0.0;
-
+    // fprintf(stderr,"[%3d] %e %e %e %e\n",kk,m_in.z[kk]*1.e-5,m_in.rho[kk], m_in.nne[kk], m_in.pgas[kk]);
 
   }
 
@@ -363,7 +363,7 @@ bool crh::synth(mdepth_t &m_in, double *syn, int computing_derivatives, cprof_so
   if(hydrostat > 0){
     for(int kk = 0; kk < m.ndep; kk++){
       
-      m.pgas[kk] = (nhtot[kk] * eos.totalAbund / eos.ABUND[0] + m.nne[kk]) *
+      m.pgas[kk] = (nhtot[kk] * eos->tABUND / eos->ABUND[0] + m.nne[kk]) *
 	phyc::BK * m_in.temp[kk] * 1.e-6;
       
       if(kk > 0) m_in.pgas[kk] = m.pgas[kk]; // preserve pgas at the boundary otherwise the inversion can be unstable

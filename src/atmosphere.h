@@ -1,8 +1,8 @@
 #ifndef ATMOSPHERE_H
 #define ATMOSPHERE_H
 //
-#include <vector>
 #include <string>
+#include <vector>
 #include <cstring>
 #include <cmath>
 #include "input.h"
@@ -12,7 +12,7 @@
 #include "spectral.h"
 #include "depthmodel.h"
 #include "clm.h"
-#include "ceos.h"
+#include "eoswrap.h"
 //
 class atmos{
  public: 
@@ -26,11 +26,14 @@ class atmos{
   double *obs;
   double *w;
   mdepth_t *imodel;
-  ceos eos;
+  eoswrap *eos;
   
   atmos(){};
- atmos(iput_t &inpt, double grav = 4.44): eos(inpt.lines, inpt.abfile, grav), inst(NULL){};
-  virtual ~atmos(){};
+  //atmos(iput_t &inpt, double grav = 4.44): eos(inpt.lines, inpt.abfile, grav), inst(NULL){};
+  atmos(iput_t &inpt, double grav = 4.44);
+
+  ~atmos(){if(eos) delete eos;}
+  //virtual ~atmos(){};
   // virtual void init(iput_t &input) = 0;
   virtual bool synth(mdepth_t &m, double *out, int computing_derivatives = 0, cprof_solver sol = bez_ltau, bool store_pops = true) = 0;
   // virtual void synth_grad(double *model,  double *out, double *dout,  double change = 1.e-3) = 0;

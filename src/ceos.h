@@ -11,6 +11,7 @@
 #include <string>
 #include "input.h"
 #include "cmemt.h"
+#include "eoswrap.h"
 
 /* Interface for Fortran routines */
 extern "C" {
@@ -46,25 +47,20 @@ extern "C" {
 }
 
 
-struct iabund{
-  char elem[3];
-  float abund;
-};
-
 
 /* class definition */
-class ceos{
+class ceos: public eoswrap{
  private:
   
   
  public:
   // Atomic data (see implementation file)
-  static const int   MAX_ELEM = 99;
+  //static const int   MAX_ELEM = 99;
 
   static const float AMASS[MAX_ELEM];
   static const char  ELEMEN[MAX_ELEM][3];
   static const float ABUND_default[MAX_ELEM];
-  float ABUND[MAX_ELEM];
+  //float ABUND[MAX_ELEM];
   int NELEM, NLIST, NLINES;
 
   

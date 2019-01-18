@@ -11,6 +11,7 @@
 #include "ceos.h"
 #include "input.h"
 #include "cop.h"
+#include "eoswrap.h"
 //
 using namespace std;
 
@@ -198,7 +199,7 @@ void ceos::initEOS(vector<line_t> &lines){
 }
 
 
-ceos::ceos(double grav){
+ceos::ceos(double grav):eoswrap(){
 
   string inam = "ceos::ceos: ";
   gravity = pow(10.0, grav);
@@ -227,7 +228,7 @@ ceos::ceos(double grav){
 
 
 
-ceos::ceos(vector<line_t> &lines, double grav){
+ceos::ceos(vector<line_t> &lines, double grav):eoswrap(){
 
   string inam = "ceos::ceos: ";
   gravity = pow(10.0, grav);
@@ -251,7 +252,7 @@ ceos::ceos(vector<line_t> &lines, double grav){
   
 }
 
-ceos::ceos(vector<line_t> &lines, vector<iabund> &ab, double grav){
+ceos::ceos(vector<line_t> &lines, vector<iabund> &ab, double grav):eoswrap(){
 
   string inam = "ceos::ceos: ";
   gravity = pow(10.0, grav);
@@ -275,7 +276,7 @@ ceos::ceos(vector<line_t> &lines, vector<iabund> &ab, double grav){
 }
 
 
-ceos::ceos(vector<line_t> &lines, std::string &abfile, double grav){
+ceos::ceos(vector<line_t> &lines, std::string &abfile, double grav):eoswrap(){
 
   string inam = "ceos::ceos: ";
   gravity = pow(10.0, grav);
@@ -328,7 +329,7 @@ void ceos::initAbundances(vector<iabund> &ab, bool verbose)
   
   for(int ii = 0; ii<MAX_ELEM; ii++) ABUND[ii] /= sum;
   totalAbund = 1.0;//sum;///ABUND[0];
-
+  this->tABUND = 1.0;
    
   //
   // Estimate average molecular weight, excluding electrons?

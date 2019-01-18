@@ -150,14 +150,14 @@ void do_slave(int myrank, int nprocs, char hostname[]){
 	
 	/* --- Call equation of state or hydrostatic equilibrium ? --- */
 	if(input.use_eos){
-	  if(input.thydro) it.getPressureScale(input.nodes.depth_t, input.boundary, atmos->eos);
-	  else it.fill_densities(atmos->eos, input.keep_nne, 0, it.ndep-1);
+	  if(input.thydro) it.getPressureScale(input.nodes.depth_t, input.boundary, *(atmos->eos));
+	  else it.fill_densities(*(atmos->eos), input.keep_nne, 0, it.ndep-1);
 	}
 	
 	/* --- Optimize depth scale? --- */
 	
 	if(input.tcut > 0)
-	  it.optimize_depth(atmos->eos, input.tcut, 11);
+	  it.optimize_depth(*(atmos->eos), input.tcut, 11);
 	
 	
 	/* --- Get scales (depth_t has cmass and z switched compared to getScales) --- */
@@ -234,7 +234,7 @@ void do_slave(int myrank, int nprocs, char hostname[]){
 	  it.tau[kk] = pow(10.0, it.ltau[kk]); 
 
 	/* --- get pressure scale assuming hydrostatic eq. --- */
-	it.getPressureScale(input.nodes.depth_t, input.boundary, atmos->eos); // Hydrostatic eq. to derive pressure scale
+	it.getPressureScale(input.nodes.depth_t, input.boundary, *(atmos->eos)); // Hydrostatic eq. to derive pressure scale
 	//it.nne_enhance(input.nodes, input.npar, &pars(pixel,0), atmos->eos);
 
 	memcpy(&pgas_saved[0], &it.pgas[0], input.ndep*sizeof(double)); // Store pgas
@@ -294,14 +294,14 @@ void do_slave(int myrank, int nprocs, char hostname[]){
 	/* --- Call equation of state or hydrostatic equilibrium ? --- */
 	
 	if(input.use_eos){
-	  if(input.thydro) it.getPressureScale(input.nodes.depth_t, input.boundary, atmos->eos);
-	  else it.fill_densities(atmos->eos, input.keep_nne, 0, it.ndep-1);
+	  if(input.thydro) it.getPressureScale(input.nodes.depth_t, input.boundary, *(atmos->eos));
+	  else it.fill_densities(*(atmos->eos), input.keep_nne, 0, it.ndep-1);
 	}
 	
 	/* --- Optimize depth scale? --- */
 	
 	if(input.tcut > 0)
-	  it.optimize_depth(atmos->eos, input.tcut, 7);
+	  it.optimize_depth(*(atmos->eos), input.tcut, 7);
 
 	
 	/* --- Update instrumental profile if needed --- */

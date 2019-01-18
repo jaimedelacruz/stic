@@ -19,7 +19,9 @@
 #include <random>
 #include "atmosphere.h"
 #include "spectral.h"
+#include "eoswrap.h"
 #include "ceos.h"
+#include "witt.h"
 #include "input.h"
 #include "physical_consts.h"
 #include "interpol.h"
@@ -33,6 +35,17 @@ const double atmos::maxchange[7] = {7000., 7.0e5, 5.0e5, 600., 600., phyc::PI/5,
 
 inline double SQ(const double a){return a*a;};
 inline double CUB(const double a){return a*a*a;};
+
+atmos::atmos(iput_t &inpt, double grav): eos(NULL), inst(NULL)
+{
+  if(inpt.eos_type == 0) eos = new ceos(inpt.lines, inpt.abfile, grav);
+  else                   eos = new eos::witt(inpt.lines, inpt.abfile, grav);
+  
+}
+
+
+
+
 
 vector<double> atmos::get_max_change(nodes_t &n, int mode){
   
@@ -122,7 +135,7 @@ void atmos::responseFunction(int npar, mdepth_t &m_in, double *pars, int nd, dou
       /* -- recompute Hydro Eq. ? --- */
       
       //if(input.nodes.ntype[pp] == temp_node && input.thydro == 1)
-	m.getPressureScale(input.nodes.depth_t, input.boundary, eos);
+	m.getPressureScale(input.nodes.depth_t, input.boundary, *eos);
 	//m.nne_enhance(input.nodes, npar, &ipars[0], eos);
 
 	synth(m, &out[0], 1, (cprof_solver)input.solver, store_pops);
@@ -141,7 +154,7 @@ void atmos::responseFunction(int npar, mdepth_t &m_in, double *pars, int nd, dou
       checkBounds(m);
 
       // if(input.nodes.ntype[pp] == temp_node && input.thydro == 1)
-      m.getPressureScale(input.nodes.depth_t, input.boundary, eos);
+      m.getPressureScale(input.nodes.depth_t, input.boundary, *eos);
 	//m.nne_enhance(input.nodes, npar, &ipars[0], eos);
 
       synth(m, &spec[0], 1, (cprof_solver)input.solver, store_pops);
@@ -190,7 +203,7 @@ void atmos::responseFunction(int npar, mdepth_t &m_in, double *pars, int nd, dou
     checkBounds(m);
 
     //  if((input.nodes.ntype[pp] == temp_node) && (input.thydro == 1))
-    m.getPressureScale(input.nodes.depth_t, input.boundary, eos);
+    m.getPressureScale(input.nodes.depth_t, input.boundary, *eos);
     //m.nne_enhance(input.nodes, npar, &ipars[0], eos);
       
     synth(m, &out[0], 1, (cprof_solver)input.solver, store_pops);
@@ -850,7 +863,7 @@ int getChi2(int npar1, int nd, double *pars1, double *syn_in, double *dev, doubl
     mdepth &m1 = *atm.imodel->ref_m;
     m1.expand(atm.input.nodes, &ipars[0], atm.input.dint, atm.input.depth_model);
     atm.checkBounds(m1);
-    m1.getPressureScale(atm.input.nodes.depth_t, atm.input.boundary, atm.eos);
+    m1.getPressureScale(atm.input.nodes.depth_t, atm.input.boundary, *atm.eos);
     delete [] ipars;
     
     return 0;
@@ -861,7 +874,7 @@ int getChi2(int npar1, int nd, double *pars1, double *syn_in, double *dev, doubl
   
   m.expand(atm.input.nodes, &ipars[0], atm.input.dint, atm.input.depth_model);
   atm.checkBounds(m);
-  m.getPressureScale(atm.input.nodes.depth_t, atm.input.boundary, atm.eos);
+  m.getPressureScale(atm.input.nodes.depth_t, atm.input.boundary, *atm.eos);
   
   
   
@@ -1126,7 +1139,7 @@ double atmos::fitModel2(mdepth_t &m, int npar, double *pars, int nobs, double *o
       if(depth_per){
 	imodel->ref_m->expand(input.nodes, &ipars[0], input.dint, input.depth_model);
 	checkBounds(*imodel->ref_m);
-	imodel->ref_m->getPressureScale(input.nodes.depth_t, input.boundary, eos);
+	imodel->ref_m->getPressureScale(input.nodes.depth_t, input.boundary, *eos);
       }
     }
     
@@ -1273,12 +1286,13 @@ void atmos::responseFunctionFull(mdepth_t m, int nd, double *out_in, double *syn
       // --- restore value --- //
       
       m.cub(pp,kk) = pval;
-      
+
+      /*
       if(pp == 7){
 	eos.nne_from_T_rho_nne(m.temp[kk], m.pgas[kk],  m.rho[kk], m.nne[kk]);
 	eos.store_partial_pressures(m.ndep, kk, eos.xna, m.nne[kk]);
       }
-      
+      */
       // --- compute response ---//
 
       up += down;

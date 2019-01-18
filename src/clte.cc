@@ -215,18 +215,18 @@ bool clte::synth(mdepth &m, double *syn, int computing_derivatives, cprof_solver
   /* --- Loop in height and get things that depend on the EOS --- */
   for(int k = 0; k<ndep; k++){
 
-    eos.read_partial_pressures(k, frac, part, na, ne);
+    eos->read_partial_pressures(k, frac, part, na, ne);
     
     /* --- Campute contop. for all lambdas --- */
-    eos.contOpacity(m.temp[k], nw,  &lambda[0], &prof.mki[k][0], &scatt[0], frac, na, ne);
+    eos->contOpacity(m.temp[k], nw,  &lambda[0], &prof.mki[k][0], &scatt[0], frac, na, ne);
 
     
     /* --- Store output for later, remember that eos.fract is in fact 
        partial number density / partition function (must multiply by pf) to get the number
        density. We must run with mode 0 or the routines in contop.f90 do not work 
        --- */
-    double nh = frac[eos.IXH1-1] * part[eos.IXH1-1];
-    double nhe = frac[eos.IXHE1-1] * part[eos.IXHE1-1];
+    double nh = frac[eos->IXH1-1] * part[eos->IXH1-1];
+    double nhe = frac[eos->IXHE1-1] * part[eos->IXHE1-1];
     
     /* --- Loop regions and compute profiles for each wavelength--- */
     for(auto &it: input.regions){
