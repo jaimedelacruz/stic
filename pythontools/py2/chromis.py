@@ -8,8 +8,8 @@ def dual_fpi(wav, ang = 0.0, erh = 0.0, erl = 0.0):
     
     # Reflectivities
     if(w0 < 4010):
-        thr = 0.90 + erh
-        tlr = 0.80 + erl
+        thr = 0.778 + erh
+        tlr = 0.656 + erl
     else:
         thr = 0.91 + erh
         tlr = 0.80 + erl
