@@ -197,7 +197,7 @@ if __name__ == "__main__":
     dw =  ca_k.wav[1]-ca_k.wav[0]
     ntw= 25 # Always an odd number < ca_k.wav.size
     tw1 = (np.arange(ntw)-ntw//2)*dw + 3934.0
-    tr1 = cr.dual_fpi(tw1, erh = -0.1)
+    tr1 = cr.dual_fpi(tw1)
     tr1 /= tr1.sum()
     # Stores the FPI profile and the parameters of the prefilter
     writeInstProf('3934.nc', tr1, [ca_k.wav[ick[39//2]], 4.5, 3.0]) 
