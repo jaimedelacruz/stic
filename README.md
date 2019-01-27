@@ -23,7 +23,7 @@ including all references) to acknowledge all the work that has been done by diff
 *The inversion engine of STiC includes an equation of state extracted from the SME code (Valenti & Piskunov 2016).*
 
 The references can be found here:
-* [de la Cruz Rodriguez et al. (submitted)](https://arxiv.org/abs/1810.08441)
+* [de la Cruz Rodriguez et al. in press A&A](https://arxiv.org/abs/1810.08441)
 * [de la Cruz Rodriguez et al. (2016)](http://adsabs.harvard.edu/abs/2016ApJ...830L..30D)
 * [de la Cruz Rodriguez et al. (2013)](http://adsabs.harvard.edu/abs/2013ApJ...764...33D)
 * [Uitenbroek (2001)](http://adsabs.harvard.edu/abs/2001ApJ...557..389U)
