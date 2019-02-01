@@ -15,7 +15,7 @@ OBS =  solveLinearCXX.o abundance.o accelerate.o background.o backgropac_xdr.o b
 	$(FC) $(CFLAGS) -c  $< -o $@
 
 %.o: %.cc *.h
-	$(CXX) $(RHINC) $(CXXFLAGS) -c  $< -o $@
+	$(CXX) -I../ $(RHINC) $(CXXFLAGS) -c  $< -o $@
 
 objects: $(OBS)
 
