@@ -31,6 +31,71 @@ const double clte::lte_const = PI*EE*EE/(ME*CC); // In units of freq.
 // -------------------------------------------------------------------------
 // Get scaling of parameters (only for inversions)
 // -------------------------------------------------------------------------
+vector<double> clte::get_max_limits(nodes_t &n, int mode){
+
+  
+  int nnodes = (int)n.nnodes, ntype = n.ntype.size(), kmx = std::min(nnodes, ntype);
+  if(kmx > 0){
+
+    mmax.resize(nnodes);
+    
+    for(int k = 0; k<kmx; k++){
+      if     (n.ntype[k] == temp_node ) mmax[k] = pmax[0];
+      else if(n.ntype[k] == v_node    ) mmax[k] = pmax[1];
+      else if(n.ntype[k] == vturb_node) mmax[k] = pmax[2];
+      else if(n.ntype[k] == bl_node    ) mmax[k] = pmax[3];
+      else if(n.ntype[k] == bh_node  ) mmax[k] = pmax[4];
+      else if(n.ntype[k] == azi_node  ) mmax[k] = pmax[5];
+      else if(n.ntype[k] == pgas_node ) mmax[k] = pmax[6];
+      else                              mmax[k] = 0;
+    }
+  }
+  
+  if(mode == 4 || n.nnodes ==0){
+    mmax.resize(8);
+    for(int ii=0; ii<6; ii++)mmax[ii] = pmax[ii];
+    mmax[6] = 1.e32, mmax[7] = 1.32;
+  }
+  
+  
+  return mmax;
+}
+
+/* ----------------------------------------------------------------*/
+
+
+vector<double> clte::get_min_limits(nodes_t &n, int mode){
+
+  int nnodes = (int)n.nnodes, ntype = n.ntype.size(), kmx = std::min(nnodes, ntype);
+  
+  if(kmx > 0){
+
+    mmin.resize(nnodes);
+  
+    for(int k = 0; k<kmx; k++){
+      if     (n.ntype[k] == temp_node ) mmin[k] = pmin[0];
+      else if(n.ntype[k] == v_node    ) mmin[k] = pmin[1];
+      else if(n.ntype[k] == vturb_node) mmin[k] = pmin[2];
+      else if(n.ntype[k] == bl_node    ) mmin[k] = pmin[3];
+      else if(n.ntype[k] == bh_node  ) mmin[k] = pmin[4];
+      else if(n.ntype[k] == azi_node  ) mmin[k] = pmin[5];
+      else if(n.ntype[k] == pgas_node ) mmin[k] = pmin[6];
+      else                              mmin[k] = 0;
+    }
+  }
+  
+  if(n.nnodes == 0 || mode == 4){
+    mmin.resize(8);
+    for(int ii=0; ii<6; ii++)mmin[ii] = pmin[ii];
+    
+    mmin[6] = 0.0, mmin[7] = 0.0;
+  }
+  
+  
+  return mmin;
+}
+
+/*
 vector<double> clte::get_max_limits(nodes_t &n){
 
   int nnodes = (int)n.nnodes;
@@ -65,23 +130,42 @@ vector<double> clte::get_min_limits(nodes_t &n){
   }
   return mmin;
 }
-vector<double> clte::get_scaling(nodes_t &n){
+*/
+vector<double> clte::get_scaling(nodes_t &n, int mode){
 
-  int nnodes = (int)n.nnodes;
-  scal.resize(nnodes);
+  int nnodes = (int)n.nnodes, ntype = n.ntype.size(), kmx = std::min(nnodes, ntype);
+  //if(nnodes = ntype) return scal;
+  
+  if(kmx > 0){
 
-  for(int k = 0; k<nnodes; k++){
-    if     (n.ntype[k] == temp_node ) scal[k] = pscal[0];
-    else if(n.ntype[k] == v_node    ) scal[k] = pscal[1];
-    else if(n.ntype[k] == vturb_node) scal[k] = pscal[2];
-    else if(n.ntype[k] == bl_node    ) scal[k] = pscal[3];
-    else if(n.ntype[k] == bh_node  ) scal[k] = pscal[4];
-    else if(n.ntype[k] == azi_node  ) scal[k] = pscal[5];
-    else if(n.ntype[k] == pgas_node ) scal[k] = pscal[6];
-    else                              scal[k] = 1.0;
+    scal.resize(nnodes);
+
+  
+    for(int k = 0; k<kmx; k++){
+      if     (n.ntype[k] == temp_node ) scal[k] = pscal[0];
+      else if(n.ntype[k] == v_node    ) scal[k] = pscal[1];
+      else if(n.ntype[k] == vturb_node) scal[k] = pscal[2];
+      else if(n.ntype[k] == bl_node    ) scal[k] = pscal[3];
+      else if(n.ntype[k] == bh_node  ) scal[k] = pscal[4];
+      else if(n.ntype[k] == azi_node  ) scal[k] = pscal[5];
+      else if(n.ntype[k] == pgas_node ) scal[k] = pscal[6];
+      else                              scal[k] = 1.0;
+    }
   }
+  //cerr<<n.nnodes<<endl;
+
+  if(n.nnodes == 0 || mode == 4){
+    scal.resize(8);
+    for(int ii=0; ii<6; ii++)scal[ii] = pscal[ii];
+
+    scal[6] = 0.0, scal[7] = 0.0;
+
+  }
+  
+  
   return scal;
 }
+
 vector<double> clte::get_steps(nodes_t &n){
 
   int nnodes = (int)n.nnodes;
@@ -162,14 +246,11 @@ clte::clte(iput_t &inpt, double grav): atmos(inpt, grav){
 
   /* --- Init limits for inversion if nodes are present --- */
 
-  if(input.nodes.nnodes > 0){
-    vector<double> dummy;
-    dummy = this->get_scaling(input.nodes);
-    dummy = this->get_max_limits(input.nodes);
-    dummy = this->get_min_limits(input.nodes);
-    dummy = this->get_max_change(input.nodes);
-  }
-  
+  vector<double> dummy;
+  dummy = this->get_scaling(input.nodes, input.mode);
+  dummy = this->get_max_limits(input.nodes, input.mode);
+  dummy = this->get_min_limits(input.nodes, input.mode);
+  dummy = this->get_max_change(input.nodes, input.mode);
   
 }
 

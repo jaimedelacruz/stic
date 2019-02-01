@@ -72,7 +72,7 @@ class ceos: public eoswrap{
 
   // EOS book keeping
   double avmol, wsum, asum, gravity, totalAbund;
-  int    IXH1,IXH2,IXHMIN,IXHE1,IXHE2,IXHE3,IXC1,IXAL1,IXSI1, 
+  int   IXH2,IXHMIN,IXHE2,IXHE3,IXC1,IXAL1,IXSI1, 
          IXSI2,IXCA1,IXCA2,IXMG1,IXMG2,IXFE1,IXN1,IXO1;
 
   std::vector<float> fract, pf, potion, xamass;

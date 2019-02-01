@@ -109,6 +109,7 @@ iput_t read_input(std::string filename, bool verbose){
   input.delay_bracket = 0;
   input.vgrad = 0;
   input.eos_type = 0;
+  input.ab_len = 0;
   memset(input.getResponse, 0, 8*sizeof(int));
   memset(input.nodes.regul_type, 0, 7*sizeof(int));
   const double tmp[7] = {1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0};

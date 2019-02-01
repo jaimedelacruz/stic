@@ -108,7 +108,7 @@ void comm_send_parameters(iput_t &input){
   tempo = input.abfile;
   //if(tempo.size() == 0) tempo = " ";
   status = MPI_Bcast(const_cast<char *>(tempo.c_str()), tempo.size()+1, MPI_CHAR, 0, MPI_COMM_WORLD);
-  
+
   // Line structs
   if(nline > 0){
     for (int ll = 0;ll<nline;ll++) {
@@ -117,6 +117,7 @@ void comm_send_parameters(iput_t &input){
       status = MPI_Bcast(&input.lines[ll].anum,     4,    MPI_INT, 0, MPI_COMM_WORLD); 
     }
   }
+
   // Regions
   for (int ll = 0;ll<nregions;ll++){
     status = MPI_Bcast(&input.regions[ll].w0, 3,   MPI_DOUBLE, 0, MPI_COMM_WORLD); 
@@ -130,7 +131,6 @@ void comm_send_parameters(iput_t &input){
     status = MPI_Bcast(&tmp, 1,   MPI_INT, 0, MPI_COMM_WORLD);
     status = MPI_Bcast(const_cast<char *>(input.regions[ll].inst.c_str()), tmp,   MPI_CHAR, 0, MPI_COMM_WORLD);
   }
-
   if(input.mode == 1 || input.mode == 3){
     // nodes in temp
     int nnodes = (int)input.nodes.temp.size();
@@ -190,8 +190,8 @@ void comm_recv_parameters(iput_t &input){
   status = MPI_Bcast(&nline,     1,    MPI_INT, 0, MPI_COMM_WORLD);
   status = MPI_Bcast(&nregions,  1,    MPI_INT, 0, MPI_COMM_WORLD);
   status = MPI_Bcast(&input.buffer_size,  2,    MPI_UNSIGNED_LONG, 0, MPI_COMM_WORLD);
-
   status = MPI_Bcast(&input.nt, 38,    MPI_INT, 0, MPI_COMM_WORLD); // We are getting 15 ints from the struct!
+
   status = MPI_Bcast(&input.nodes.regul_type, 8,    MPI_INT, 0, MPI_COMM_WORLD); // We are getting 15 ints from the struct!
   status = MPI_Bcast(&input.nodes.rewe, 9,    MPI_DOUBLE, 0, MPI_COMM_WORLD); // We are getting 15 ints from the struct!
 
@@ -229,22 +229,18 @@ void comm_recv_parameters(iput_t &input){
 
   { // abund type
     input.abfile.clear();
-    char buf[input.ab_len+1];
-    status = MPI_Bcast(buf,     input.ab_len+1,    MPI_CHAR, 0, MPI_COMM_WORLD);
-    input.abfile = removeSpaces(string(buf));
+    std::vector<char> buf(input.ab_len+2, 0);
+    status = MPI_Bcast(&buf[0],     input.ab_len+1,    MPI_CHAR, 0, MPI_COMM_WORLD);
+    input.abfile = removeSpaces(string(&buf[0]));
   }
-
 
   if(nline > 0){
     for (int ll = 0;ll<nline;ll++){
-      char bla[8];
-      status = MPI_Bcast(bla, 8,   MPI_CHAR, 0, MPI_COMM_WORLD); // We are getting 23 chars
-      strcpy(&input.lines[ll].elem[0], &bla[0]);
+      status = MPI_Bcast(input.lines[ll].elem, 8,   MPI_CHAR, 0, MPI_COMM_WORLD); // We are getting 23 chars
       status = MPI_Bcast(&input.lines[ll].Jup,     19, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-      status = MPI_Bcast(&input.lines[ll].anum,     4,    MPI_INT, 0, MPI_COMM_WORLD); 
+      status = MPI_Bcast(&input.lines[ll].anum,     4,    MPI_INT, 0, MPI_COMM_WORLD);
     }
   }
-
   // Regions
   for (int ll = 0;ll<nregions;ll++){
     status = MPI_Bcast(&input.regions[ll].w0, 3,   MPI_DOUBLE, 0, MPI_COMM_WORLD);

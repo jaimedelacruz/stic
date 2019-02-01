@@ -48,9 +48,9 @@ class clte: public atmos{
  inline double lte_opac(double temp, double n_u, double gf, double elow, double nu0);
  //void synth(mdepth_t &m, mat<double> &syn, cprof_solver sol = bez_z);
   bool synth(mdepth &m, double *syn, int computing_derivatives=0, cprof_solver sol = bez_ltau, bool store_pops = true);
- std::vector<double> get_max_limits(nodes_t &n);
- std::vector<double> get_min_limits(nodes_t &n);
- std::vector<double> get_scaling(nodes_t &n);
+  std::vector<double> get_max_limits(nodes_t &n, int mode);
+  std::vector<double> get_min_limits(nodes_t &n, int mode);
+ std::vector<double> get_scaling(nodes_t &n, int mode);
  std::vector<double> get_steps(nodes_t &n);
  void cleanup(void){};
  void checkBounds(mdepth_t &m);
