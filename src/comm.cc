@@ -222,9 +222,10 @@ void comm_recv_parameters(iput_t &input){
   }
   { // Atmos type
     input.atmos_type.clear();
-    char buf[input.atmos_len+1];
-    status = MPI_Bcast(buf,     input.atmos_len+1,    MPI_CHAR, 0, MPI_COMM_WORLD);
-    input.atmos_type = removeSpaces(string(buf));
+    std::vector<char> buf(input.atmos_len+2, 0);
+    //char buf[input.atmos_len+1];
+    status = MPI_Bcast(&buf[0],     input.atmos_len+1,    MPI_CHAR, 0, MPI_COMM_WORLD);
+    input.atmos_type = removeSpaces(string(&buf[0]));
   }
 
   { // abund type
@@ -249,16 +250,18 @@ void comm_recv_parameters(iput_t &input){
     {
       int tmp = 0;
       status = MPI_Bcast(&tmp, 1,   MPI_INT, 0, MPI_COMM_WORLD);
-      char buf[tmp];
+      //char buf[tmp];
+      std::vector<char> buf(tmp+2, 0);
       status = MPI_Bcast(&buf[0], tmp, MPI_CHAR, 0, MPI_COMM_WORLD);
-      input.regions[ll].ifile =  removeSpaces(string(buf));
+      input.regions[ll].ifile =  removeSpaces(string(&buf[0]));
     }
     {
       int tmp = 0;
       status = MPI_Bcast(&tmp, 1,   MPI_INT, 0, MPI_COMM_WORLD);
-      char buf[tmp];
+      //char buf[tmp];
+      std::vector<char> buf(tmp+2, 0);
       status = MPI_Bcast(&buf[0], tmp, MPI_CHAR, 0, MPI_COMM_WORLD);
-      input.regions[ll].inst =  removeSpaces(string(buf));
+      input.regions[ll].inst =  removeSpaces(string(&buf[0]));
     }
 
   } // ll
