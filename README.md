@@ -14,7 +14,7 @@ Although we encourage people to submit bug-reports, dedicated support will only 
 If you have used STiC in your research, please add the following description in the manuscript (or a very similar one,
 including all references) to acknowledge all the work that has been done by different scientists over the past years:
 
-*STiC (de la Cruz Rodriguez et al. 2018; de la Cruz et al. 2016) is a MPI-parallel non-LTE inversion code*
+*STiC (de la Cruz Rodriguez et al. 2019; de la Cruz et al. 2016) is a MPI-parallel non-LTE inversion code*
 *that utilises a modified version of RH (Uitenbroek 2001) to solve the atom population*
 *densities assuming statistical equililibrium and plane-parallel geometry and it allows including partial*
 *redistribution effects of scattered photons (Leenaarts et al. 2012). The radiative transport equation is*
@@ -23,7 +23,7 @@ including all references) to acknowledge all the work that has been done by diff
 *The inversion engine of STiC includes an equation of state extracted from the SME code (Valenti & Piskunov 2016).*
 
 The references can be found here:
-* [de la Cruz Rodriguez et al. in press A&A](https://arxiv.org/abs/1810.08441)
+* [de la Cruz Rodriguez et al. (2019)](https://doi.org/10.1051/0004-6361/201834464)
 * [de la Cruz Rodriguez et al. (2016)](http://adsabs.harvard.edu/abs/2016ApJ...830L..30D)
 * [de la Cruz Rodriguez et al. (2013)](http://adsabs.harvard.edu/abs/2013ApJ...764...33D)
 * [Uitenbroek (2001)](http://adsabs.harvard.edu/abs/2001ApJ...557..389U)
