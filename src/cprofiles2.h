@@ -149,6 +149,7 @@ class cprofiles{
   }
   
   /* --- matrix multiplication --- */
+  
   void m4m(mat4 &a, mat4 &b, mat4 &c){
     memset(&c[0][0],0,sizeof(double)*16);
     
@@ -188,6 +189,57 @@ class cprofiles{
     return;
   }
 
+
+  template <typename T> inline void solveLinearGauss4x4(T A[4][4], T B[4])
+    {
+      // --- Inplace simple Gaussian elimination with partial pivoting --- //
+      // --- A and B are modified insider the routine, and B contains the --- //
+      // --- solution of the system as output --- //
+            
+      for(int i=0; i<4; i++){
+	
+	// Find pivot
+	T maxel = std::abs(A[i][i]), tmp;
+	int maxrow = i;
+	bool swapme = false;
+
+	for (int k=i+1; k<4; k++){
+	  tmp = std::abs(A[k][i]);
+	  if(tmp > maxel){
+	    maxel = tmp;
+	    maxrow = k;
+	    swapme = true;
+	  }
+	}
+	
+	// swap
+	if(swapme){
+	  for (int k=i; k<4;k++) std::swap(A[maxrow][k],A[i][k]);  
+	  std::swap(B[maxrow],B[i]); 
+	}
+	
+	// Set to zero relevant columns
+	for (int k=i+1; k<4; k++){
+	  tmp = -A[k][i]/A[i][i];
+	  A[k][i] = 0.0;
+	  for (int j=i+1; j<4; j++) {
+	    A[k][j] += tmp * A[i][j];
+	  }
+	  B[k] += tmp*B[i];
+	}
+      } // i
+      
+      // Solve upper triagonal system
+      
+      for (int i=3; i>=0; i--) {
+	B[i] /= A[i][i];
+	for (int k=i-1;k>=0; k--) {
+	  B[k] -= A[k][i] * B[i];
+	}
+      } // i
+      
+    }
+  
   //----------------------------------------------------------------
   // Constructor
   //----------------------------------------------------------------
@@ -357,15 +409,16 @@ class cprofiles{
   }
 
   //----------------------------------------------------------------
-  // Plank function at a given frequency fora given temperature
+  // Plank function at a given frequency for a given temperature
   //----------------------------------------------------------------
   double plank_nu(const double nu, const double temp){
   
-    double c1 = (2.0 * phyc::HH * nu*nu*nu) / (phyc::CC*phyc::CC) ;
+    constexpr const double c = (2.0 * phyc::HH ) / (phyc::CC*phyc::CC);
+    const double c1 = c *  nu*nu*nu;
     double x = phyc::HH * nu / (phyc::BK * temp);
 
-    if(x < 80.0) return c1 / (exp(x) - 1.0);
-    else return         c1  * exp(-x);
+    return c1 / (exp(x) - 1.0);
+    //else return         c1  * exp(-x);
   }
 
   //----------------------------------------------------------------
@@ -498,7 +551,6 @@ class cprofiles{
     double v  = (line.nu0 - nu)  / dlnu;
     double va = line.nu0 * vel   / (phyc::CC * dlnu);
     double vb = LARMOR * bfield  / dlnu;
-
   
     for(int ii=0;ii<line.nZ; ii++){      
     
@@ -507,7 +559,7 @@ class cprofiles{
       double voi=0, far=0;
       voigt_complex(damping, v - va + vb * line.splitting[ii], voi, far);
     
-      voigt[line.iL[ii]] += voi * line.strength[ii];
+      voigt[line.iL[ii]]   +=       voi * line.strength[ii];
       faraday[line.iL[ii]] += 2.0 * far * line.strength[ii]; // L = 2 * F
     
     }
@@ -516,13 +568,14 @@ class cprofiles{
        In Gray 2005, the sqrt(pi) is compensated with the pi 
        factor in the absorption coeff., but we keep it for readability
        --- */
-    dlnu = 1.0 / (dlnu*phyc::SQPI);
+
+    dlnu = phyc::ISQRTPI / dlnu;
     //
     for(int ii = 0; ii<3; ii++){
       voigt[ii] *= dlnu;
       faraday[ii] *= dlnu;
     }
-    //
+    
   }
 
   // -------------------------------------------------------------------------
@@ -658,8 +711,10 @@ class cprofiles{
 	vec1[i] += cu * Su[i] + c0 * S0[i];
       }
     
-      m4v(mat2, vec1, stk); // Matrix x vector
-    
+      //m4v(mat2, vec1, stk); // Matrix x vector
+      memcpy(stk, vec1, 4*sizeof(double));
+      solveLinearGauss4x4(mat2,stk);
+      
       /* --- Copy variables to upwind arrays for next height ---*/
       memcpy(&Su[0],    &S0[0],     4*sizeof(double));
       memcpy(&Ku[0][0], &K0[0][0], 16*sizeof(double));
@@ -877,12 +932,13 @@ class cprofiles{
 	}
 	v0[i] += dt03 * (gam * dSv[k][i] - thet * dSv[ku][i]);
       }
-      m4inv(A); // Invert "A"
+      //m4inv(A); // Invert "A"
 
     
       /* --- Get new intensity at depth k --- */
-      m4v(A, v0, stk); 
-
+      //m4v(A, v0, stk); 
+      memcpy(stk, v0, 4*sizeof(double));
+      solveLinearGauss4x4(A,stk);
     
       /* --- Copy variables for next interval --- */
       memcpy(&Su[0], &S0[0],      4 * sizeof(double)); // central point -> upwind
