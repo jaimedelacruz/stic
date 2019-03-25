@@ -158,3 +158,5 @@ JdlCR is supported by grants from the Swedish Research Council (2015-03994), the
 SD and JdlCR are supported by a grant from the Swedish Civil Contingencies Agency (MSB).
 
 This research was supported by the CHROMATIC grant of the Knut and Alice Wallenberg foundation.
+
+Development computations were performed on resources provided by the Swedish National Infrastructure for Computing (SNIC) at the PDC Centre for High Performance Computing (PDC-HPC) at the Royal Institute of Technology in Stockholm as well as recourses at the High Performance Computing Center North (HPC2N).
