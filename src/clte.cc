@@ -25,7 +25,7 @@ const double clte::pmin[7]  = {2050. ,-20.e5,  +0.0,-5000.0,  +0.0,  +0.0, 0.01}
 const double clte::pscal[7] = {500. , 1.0e5, 1.0e5, 500.0, 500.0, PI, 1.0};
 const double clte::pstep[7] = {1.e0 , 1.e0, 1.0e0, 1.0e0, 1.0e0, 1.0e0, 1.0e0};
 //
-const double clte::lte_const = PI*EE*EE/(ME*CC); // In units of freq.
+const double clte::lte_const = (PI*EE*EE)/(ME*CC); // In units of freq.
 
 
 // -------------------------------------------------------------------------
@@ -259,8 +259,8 @@ clte::clte(iput_t &inpt, double grav): atmos(inpt, grav){
 // Rutten (2003) eq. 2.98, pag. 31
 // -------------------------------------------------------------------------
 double clte::lte_opac(double temp, double n_u, double gf, double elow, double nu0){
-  return lte_const * gf * n_u * exp(-elow / (BK * temp)) *
-    (1.0 - exp( -(HH * nu0) / (BK * temp)));
+  const double BKT = BK*temp;
+  return lte_const * gf * n_u * exp(-elow / (BKT)) * (1.0 - exp( -(HH * nu0) / (BKT)));
 }
 
 // -------------------------------------------------------------------------
@@ -296,6 +296,9 @@ bool clte::synth(mdepth &m, double *syn, int computing_derivatives, cprof_solver
   /* --- Loop in height and get things that depend on the EOS --- */
   for(int k = 0; k<ndep; k++){
 
+    double b = sqrt(m.bl[k] * m.bl[k] + m.bh[k] * m.bh[k]);
+    double inc = ((b>0.0) ? acos(m.bl[k] / b) : 0.0);
+    
     eos->read_partial_pressures(k, frac, part, na, ne);
     
     /* --- Campute contop. for all lambdas --- */
@@ -306,7 +309,7 @@ bool clte::synth(mdepth &m, double *syn, int computing_derivatives, cprof_solver
        partial number density / partition function (must multiply by pf) to get the number
        density. We must run with mode 0 or the routines in contop.f90 do not work 
        --- */
-    double nh = frac[eos->IXH1-1] * part[eos->IXH1-1];
+    double nh  = frac[eos->IXH1 -1] * part[eos->IXH1 -1];
     double nhe = frac[eos->IXHE1-1] * part[eos->IXHE1-1];
     
     /* --- Loop regions and compute profiles for each wavelength--- */
@@ -325,11 +328,9 @@ bool clte::synth(mdepth &m, double *syn, int computing_derivatives, cprof_solver
 
 	    /* --- Compute Voigt-Faraday Profiles, stored in variables of the prof.class --- */
 
-	    double b = sqrt(m.bl[k] * m.bl[k] + m.bh[k] * m.bh[k]);
 	    prof.zeeman_profile(it.nu[w], li, m.v[k], b, dlnu, damping);
 
 	    /* --- Now get the terms of the ABS. Matrix, stored internally in the cprofile class --- */
-	    double inc = acos(m.bl[k] / b);
 	    prof.zeeman_opacity( inc, m.azi[k], lineop, k, w + it.off);
       
 	  } // lines

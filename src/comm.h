@@ -34,4 +34,6 @@ void comm_slave_unpack_data(iput_t &input, int &action, mat<double> &obs, mat<do
 void comm_kill_slaves(iput_t &input, int nprocs);
 void comm_slave_pack_data(iput_t &input, mat<double> &obs, mat<double> &pars, mat<double> &dobs, int cgrad, std::vector<mdepth_t> &m); 
 void comm_send_weights(iput_t &input, mat<double> &w);
+int getNinstrumentData(std::vector<region_t> const &reg);
+
 #endif /* COMM_H */ 
