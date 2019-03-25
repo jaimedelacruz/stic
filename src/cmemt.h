@@ -36,7 +36,7 @@
 #include <cstring>
 #include <cmath>
 //
-template <class T> std::string formatVect(std::vector<T> &in){
+template <class T> std::string formatVect(std::vector<T> const &in){
   std::stringstream res;
   if(in.size() == 0) return std::string("[ ]");
 
@@ -167,12 +167,12 @@ template <class T> class mat {
     } else return 0;
   }
   //
-  inline std::vector<int> &getdims(){
+  inline const std::vector<int> &getdims()const{
     return n;
   }
 
   // Retrieve number of dimensions
-  inline int ndims(){return n.size();}
+  inline int ndims()const{return int(n.size());}
 
   // Retrieve total number of elements
   inline long long int n_elements(){return nel;}
@@ -213,11 +213,12 @@ template <class T> class mat {
     return res;
   }
   */
-    void operator= ( mat<T> &orig){
+    mat<T> &operator= ( mat<T> const &orig){
       set(orig.getdims());
       std::vector<int> dims = orig.getdims();
       set(dims);
       memcpy(&d[0], &orig.d[0], sizeof(T) * orig.d.size());
+      return *this;
     }
 
   

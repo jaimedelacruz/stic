@@ -112,7 +112,7 @@ void do_slave(int myrank, int nprocs, char hostname[]){
 
 	/* --- Update instrumental profile if needed --- */
 	
-	for(int kk = 0; kk<nreg; kk++) inst[kk]->update((size_t)(input.ipix + pp));
+	for(int kk = 0; kk<nreg; kk++) inst[kk]->update(input.regions[kk].psf.d.size(), &input.regions[kk].psf.d[0]);
 
 	
 	/* --- Perform inversion --- */
@@ -151,7 +151,15 @@ void do_slave(int myrank, int nprocs, char hostname[]){
 	/* --- Call equation of state or hydrostatic equilibrium ? --- */
 	if(input.use_eos){
 	  if(input.thydro) it.getPressureScale(input.nodes.depth_t, input.boundary, *(atmos->eos));
-	  else it.fill_densities(*(atmos->eos), input.keep_nne, 0, it.ndep-1);
+	  else{
+	    it.fill_densities(*(atmos->eos), input.keep_nne, 0, it.ndep-1);
+	
+	/* --- Get scales (depth_t has cmass and z switched compared to getScales) --- */
+	
+	    if     (input.nodes.depth_t == 0) it.getScales(*atmos->eos, 0); // LTAU500
+	    else if(input.nodes.depth_t == 1) it.getScales(*atmos->eos, 2); // CMASS
+	    else if(input.nodes.depth_t == 2) it.getScales(*atmos->eos, 1); // Z
+	  }
 	}
 	
 	/* --- Optimize depth scale? --- */
@@ -159,12 +167,7 @@ void do_slave(int myrank, int nprocs, char hostname[]){
 	if(input.tcut > 0)
 	  it.optimize_depth(*(atmos->eos), input.tcut, 11);
 	
-	
-	/* --- Get scales (depth_t has cmass and z switched compared to getScales) --- */
-	
-	//if     (input.nodes.depth_t == 0) it.getScales(atmos->eos, 0); // LTAU500
-	//else if(input.nodes.depth_t == 1) it.getScales(atmos->eos, 2); // CMASS
-	//else if(input.nodes.depth_t == 2) it.getScales(atmos->eos, 1); // Z
+
 	
 	
 	
@@ -183,7 +186,8 @@ void do_slave(int myrank, int nprocs, char hostname[]){
       
 	/* --- Update instrumental profile if needed --- */
 	
-	for(int kk = 0; kk<nreg; kk++) inst[kk]->update((size_t)(input.ipix + pixel));
+	for(int kk = 0; kk<nreg; kk++) //inst[kk]->update((size_t)(input.ipix + pixel));
+	  inst[kk]->update(input.regions[kk].psf.d.size(), &input.regions[kk].psf.d[0]);
 
 	
 	/* --- Degrade --- */
@@ -306,8 +310,9 @@ void do_slave(int myrank, int nprocs, char hostname[]){
 	
 	/* --- Update instrumental profile if needed --- */
 	
-	for(int kk = 0; kk<nreg; kk++) inst[kk]->update((size_t)(input.ipix + pixel));
-	
+	for(int kk = 0; kk<nreg; kk++) //inst[kk]->update((size_t)(input.ipix + pixel));
+	  inst[kk]->update(input.regions[kk].psf.d.size(), &input.regions[kk].psf.d[0]);
+
 	
 	/* --- Synthesize spectra --- */
 	

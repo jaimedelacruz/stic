@@ -114,7 +114,7 @@ iput_t read_input(std::string filename, bool verbose){
   memset(input.nodes.regul_type, 0, 7*sizeof(int));
   const double tmp[7] = {1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0};
   memcpy(input.nodes.rewe, tmp, 7*sizeof(double));
-  input.use_eos = 0;
+  input.use_eos = 1;
   input.inv_depth_opt = 0;
   
   // Open File and read

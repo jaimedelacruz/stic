@@ -29,6 +29,7 @@ struct region{
   std::vector<double> wav, nu;
   std::vector<int> idx;
   std::string inst, ifile;
+  mat<double> psf;
 };
 typedef region region_t;
 

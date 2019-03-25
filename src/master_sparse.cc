@@ -16,7 +16,24 @@
 using namespace netCDF;
 using namespace std;
 //
+void read_instruments(iput_t &iput)
+{
 
+  static const string no = "none";
+  
+  int const nReg = int(iput.regions.size());
+  for(int ii=0; ii<nReg; ++ii){
+    if(iput.regions[ii].inst == no) continue;
+    
+    io ifil(file_exists(iput.regions[ii].ifile), NcFile::read, false);
+    ifil.read_Tstep<double>("iprof",iput.regions[ii].psf , 0, true);
+    
+  }
+
+}
+
+
+//
 void slaveInversion(iput_t &iput, mdepthall_t &m, mat<double> &obs, mat<double> &x, mat<double> &chi2, mat<double> &dsyn){
 
   /* --- Init dimensions --- */
@@ -101,8 +118,8 @@ void master_inverter(mdepthall_t &model, mat<double> &pars, mat<double> &obs, ma
     else inst[kk] = new instrument();
   }
   atm->inst = &inst[0];
-
-
+  
+  
   /* --- Loop and invert --- */
   
   int per = 0, oper = -1, kk = 0;
@@ -115,6 +132,16 @@ void master_inverter(mdepthall_t &model, mat<double> &pars, mat<double> &obs, ma
       memcpy(&m.cub.d[0], &model.cub(yy,xx,0,0), 13*ndep*sizeof(double));
       m.bound_val = model.boundary(yy,xx);
 
+      // --- update instrumental info --- //
+
+      for(int kk = 0; kk<nreg; kk++){
+	int nd = input.regions[kk].psf.ndims();
+	if(nd == 1)
+	  inst[kk]->update(input.regions[kk].psf.d.size(), &input.regions[kk].psf.d[0]);
+	else
+	  inst[kk]->update(input.regions[kk].psf.size(nd-1), &input.regions[kk].psf(yy,xx,0));
+      }
+      
       /* --- invert --- */
 
       
@@ -142,6 +169,7 @@ void master_inverter(mdepthall_t &model, mat<double> &pars, mat<double> &obs, ma
   for(auto &it: inst)
     delete it;
 }
+
 
 
 void do_master_sparse(int myrank, int nprocs,  char hostname[]){
@@ -304,7 +332,7 @@ void do_master_sparse(int myrank, int nprocs,  char hostname[]){
     
   } // if inversion
 
-
+  read_instruments(input);
 
   
   /* --- MPI bussiness --- */

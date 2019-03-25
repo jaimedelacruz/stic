@@ -12,8 +12,68 @@
 //
 using namespace std;
 //
+int getNinstrumentData(std::vector<region_t> const &reg)
+{
+  int const nReg = int(reg.size());
+  int ndata = 0, nRegwithdata = 0;
+  
+  for(int ii=0; ii<nReg; ++ii){
+    if(reg[ii].inst == string("none")) continue;
+    std::vector<int> dim = reg[ii].psf.getdims();
+    int ndim = int(dim.size());
+    ndata += dim[ndim-1];
+    nRegwithdata+= 1;
+  }
+  return ndata+nRegwithdata+1;
+}
+
+std::vector<double> packInstrumentalData(iput_t &input, int yy, int xx)
+{
+  std::vector<double> res;
+  int ndata = getNinstrumentData(input.regions);
+  int offset = 0;
+  if(ndata > 0){
+    res.resize(ndata, 0.0);
+    res[offset++] = double(ndata);
+    int const nReg = int(input.regions.size());
+    for(int ii=0; ii<nReg; ++ii){
+      if(input.regions[ii].inst == string("none")) continue;
+      int const ndim = input.regions[ii].psf.ndims();
+      int const nd =  input.regions[ii].psf.size(ndim-1);
+      res[offset++]= double(nd);
+
+      if(ndim == 1)
+	for(int ww=0; ww<nd; ++ww)
+	  res[offset++] = input.regions[ii].psf.d[ww];
+      else
+	for(int ww=0; ww<nd; ++ww)
+	  res[offset++] = input.regions[ii].psf(yy,xx,ww);
+
+    }
+  }
+  return res;
+}
+void unpackInstrumentalData(iput_t &input, std::vector<double> const &buff)
+{
+  static const string no = "none";
+  int const nReg = int(input.regions.size());
+  int offset = 0;
+  std::vector<int> idim(1,0);
+  
+  for(int ii=0; ii<nReg; ++ii){
+    if(input.regions[ii].inst == no) continue;
+    const long int &head = long(buff[offset++]+0.1);
+    cerr<<"detected "<<head<<" elements in region "<<ii<<endl;
+    idim[0] = int(head);
+    input.regions[ii].psf.set(idim);
+    memcpy(&input.regions[ii].psf.d[0], &buff[offset], head*sizeof(double));
+    offset += head;
+  }
+}
+//
 void comm_get_buffer_size(iput_t &input){
-    
+  int ninstrumentaldata = getNinstrumentData(input.regions);
+  
   int maxlen = 0;
   string inam = "comm_get_buffer_size: ";
   unsigned long ntot, rest, tocom;
@@ -26,7 +86,8 @@ void comm_get_buffer_size(iput_t &input){
 	 input.npar*sizeof(double) + // Model
 	 (13 * input.ndep + 1)* sizeof(double) + //non-inverted quantities
 	 2*sizeof(double)) * input.npack + // Chi2, boundary value
-	6*sizeof(int);            // xx, yy, iproc, pix, action, npacked
+	6*sizeof(int) +      // xx, yy, iproc, pix, action, npacked
+	ninstrumentaldata * sizeof(double);      
       
       input.buffer_size1 = input.buffer_size;
       break;
@@ -34,7 +95,8 @@ void comm_get_buffer_size(iput_t &input){
     case 2: // Synthesis
       input.buffer_size =
 	(13 * input.ndep * sizeof(double)) * input.npack + // depth-stratified quantities
-	6*sizeof(int); // xx, yy, iproc, pix, action, npacked
+	6*sizeof(int) + // xx, yy, iproc, pix, action, npacked
+	ninstrumentaldata * sizeof(double);      
       input.buffer_size1 =
 	(input.nw_tot*4*sizeof(double)) * input.npack + 6*sizeof(int);
       break;
@@ -355,6 +417,7 @@ void comm_master_pack_data(iput_t &input, mat<double> &obs, mat<double> &model,
       {
 	/* ---  Pack all pixels --- */
 	comm_get_xy(ipix, model.size(1), yy, xx);
+	
 	status = MPI_Pack(&ipix  , 1,     MPI_INT, &buffer[0], input.buffer_size,
 			  &pos, MPI_COMM_WORLD);
 	status = MPI_Pack(&xx    , 1,     MPI_INT, &buffer[0], input.buffer_size,
@@ -382,7 +445,15 @@ void comm_master_pack_data(iput_t &input, mat<double> &obs, mat<double> &model,
 			  input.buffer_size, &pos, MPI_COMM_WORLD);
 	//
 	ipix += nPacked; // Increase the pixel count
-	
+
+	// --- Instrumental profiles --- //
+	{
+	  
+	  vector<double> ires = packInstrumentalData(input, yy, xx);
+	  len = unsigned(ires.size());
+	  status = MPI_Pack(&ires[0], len, MPI_DOUBLE, &buffer[0],
+			  input.buffer_size, &pos, MPI_COMM_WORLD);
+	}
 	break;
       }
     case 2:
@@ -408,7 +479,13 @@ void comm_master_pack_data(iput_t &input, mat<double> &obs, mat<double> &model,
 
 	/* --- Increment pixel count --- */
 	ipix += nPacked;
-	
+	// --- Instrumental profiles --- //
+	{
+	  vector<double> ires = packInstrumentalData(input, yy, xx);
+	  len = unsigned(ires.size());
+	  status = MPI_Pack(&ires[0], len, MPI_DOUBLE, &buffer[0],
+			  input.buffer_size, &pos, MPI_COMM_WORLD);
+	}
 	break;
       }
     case 3:
@@ -453,6 +530,15 @@ void comm_master_pack_data(iput_t &input, mat<double> &obs, mat<double> &model,
 	status = MPI_Pack(&m.cub(yy,xx,0,0), len, MPI_DOUBLE, &buffer[0],
 			  input.buffer_size, &pos, MPI_COMM_WORLD);
 	ipix += nPacked; // Increase the pixel count
+
+	// --- Instrumental profiles --- //
+	{
+	  vector<double> ires = packInstrumentalData(input, yy, xx);
+	  len = unsigned(ires.size());
+	  status = MPI_Pack(&ires[0], len, MPI_DOUBLE, &buffer[0],
+			  input.buffer_size, &pos, MPI_COMM_WORLD);
+	}
+	
 	break;
       }
     } // Switch case
@@ -559,8 +645,24 @@ void comm_slave_unpack_data(iput_t &input, int &action, mat<double> &obs, mat<do
 	  for(auto &it: m)
 	    status = MPI_Unpack(buffer, input.buffer_size, &pos, &it.bound_val, (int)1,
 				MPI_DOUBLE, MPI_COMM_WORLD );
+	  
+
+
+	  {
+	    double bla = 0.0;
+	    status = MPI_Unpack(buffer, input.buffer_size, &pos, &bla, (int)1,
+				MPI_DOUBLE, MPI_COMM_WORLD );
+	    long ndata = long(bla+0.1);
 	    
+	    if(ndata > 0){
+	      std::vector<double> dat(ndata, 0.0);
+	      status = MPI_Unpack(buffer, input.buffer_size, &pos, &dat[0], (int)ndata,
+				  MPI_DOUBLE, MPI_COMM_WORLD );
+	      
 	    
+	      unpackInstrumentalData(input, dat);
+	    }
+	  }
 	  
 	  break;
 	}
@@ -594,7 +696,17 @@ void comm_slave_unpack_data(iput_t &input, int &action, mat<double> &obs, mat<do
 	    status = MPI_Unpack(buffer, input.buffer_size, &pos, &it.cub.d[0], len,
 				MPI_DOUBLE, MPI_COMM_WORLD );
 	  }
-	
+	  {
+	    long ndata = 0;
+	    status = MPI_Unpack(buffer, input.buffer_size, &pos, &ndata, (int)1,
+				MPI_LONG, MPI_COMM_WORLD );
+	    std::vector<double> dat(ndata, 0.0);
+	    status = MPI_Unpack(buffer, input.buffer_size, &pos, &dat[0], (int)ndata,
+				MPI_DOUBLE, MPI_COMM_WORLD );
+	      
+	    if(ndata >= 1)
+	      unpackInstrumentalData(input, dat);
+	  }
 	break;
       case 3: // Synthesize + derivatives
 	{
@@ -662,6 +774,19 @@ void comm_slave_unpack_data(iput_t &input, int &action, mat<double> &obs, mat<do
 	  status = MPI_Unpack(buffer, input.buffer_size, &pos, &it.cub.d[0], len,
 			      MPI_DOUBLE, MPI_COMM_WORLD );
 	}
+
+	{
+	  long ndata = 0;
+	  status = MPI_Unpack(buffer, input.buffer_size, &pos, &ndata, (int)1,
+			      MPI_LONG, MPI_COMM_WORLD );
+	  std::vector<double> dat(ndata, 0.0);
+	  status = MPI_Unpack(buffer, input.buffer_size, &pos, &dat[0], (int)ndata,
+			      MPI_DOUBLE, MPI_COMM_WORLD );
+	  
+	  if(ndata >= 1)
+	    unpackInstrumentalData(input, dat);
+	}
+	
 	break;
       }
   } // action = 1

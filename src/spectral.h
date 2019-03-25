@@ -15,6 +15,7 @@ typedef struct{
   fftw_plan fwd, rev, oplan;
   std::vector<double> dat;
   std::vector<std::complex<double>> ft, otf;
+  
 } spec_ft;
 
 
@@ -25,13 +26,15 @@ class spectral: public instrument{
  public:
   region_t reg;
   int nt;
+  bool firsttime;
+
   std::vector<spec_ft> ft;
   
 
     
   /* --- constructor/Destructor --- */
 
-  spectral(){};
+ spectral():firsttime(true){};
   spectral(region_t &in, int nthreads = 1);
   ~spectral();
   
@@ -39,7 +42,9 @@ class spectral: public instrument{
   void degrade_one(spec_ft &ft, double *dat, int ns);
   void degrade(mat<double> &syn, bool spectral = true, bool spatial = false, int ntt = 1);
   void degrade(double *syn, int ns);
-  
+  void init(int npsf, double const *psf);
+  void update(size_t npsf, double *psf){init(int(npsf), psf);}
+    
 };
 
 

@@ -16,37 +16,20 @@ using namespace netCDF;
 
 /* --------------------------------------------------------------------------- */
 
-spectral::spectral(region_t &in, int nthreads){
-
-  /* --- Copy input --- */
-
-  reg = in;
-  nt = max(1,nthreads);
-  ft.resize(nthreads);
-
-  /* --- Open PSF data --- */
-
-  vector<double> ipsf, ppsf;
+void spectral::init(int npsf, double const *ipsf)
+{
+  /* --- Calculate padding and dims --- */
   vector<complex<double>> otf;
   
-  {
-    mat<double> tmp;
-    io ifil(file_exists(reg.ifile), NcFile::read, false);
-    ifil.read_Tstep<double>("iprof", tmp, 0, false);
-    ipsf = tmp.d;
-  }
-  
-  
-  /* --- Calculate padding and dims --- */
-  
-  int npsf = 0, npad = 0 , n = 0;
+  int  npad = 0 , n = 0;
   n = reg.nw;
   //
-  npsf = (int)ipsf.size();
   if((npsf/2)*2 == npsf) npsf--;
   npad = n + npsf;
   //
-  ppsf.resize(npad, 0.0);
+  //ppsf.resize(npad, 0.0);
+  vector<double> ppsf(npad, 0.0);
+
   otf.resize(npad/2 + 1);
 
   
@@ -83,22 +66,43 @@ spectral::spectral(region_t &in, int nthreads){
     it.dat.resize(npad);
     it.ft.resize(npad/2 + 1);
     //
+    if(!firsttime){
+      fftw_destroy_plan(it.fwd);
+      fftw_destroy_plan(it.rev);
+    }
+
+    firsttime = false;
     it.fwd = fftw_plan_dft_r2c_1d(npad, (double*)&it.dat[0],
 				  (fftw_complex*)(&it.ft[0]), 
-				  FFTW_MEASURE);
+				  FFTW_ESTIMATE);
     //
     it.rev = fftw_plan_dft_c2r_1d(npad, (fftw_complex*)(&it.ft[0]),
 				  (double*)&it.dat[0],
-				  FFTW_MEASURE);
+				  FFTW_ESTIMATE);
   }
 
 
   
-  //fprintf(stderr,"spectral::spectral: [%f] -> n=%d, npsf=%d, npad=%d\n", reg.w0, ft[0].n, ft[0].n1, ft[0].npad);
+  
+
+}
+
+
+spectral::spectral(region_t &in, int nthreads): firsttime(true){
+  
+  /* --- Copy input --- */
+  
+  reg = in;
+  nt = max(1,nthreads);
+  ft.resize(nthreads);
+  
 
   
+  //init(int(ipsf.size()), &ipsf[0]);
+    
   
 }
+/* --------------------------------------------------------------------------- */
 
 
 /* --------------------------------------------------------------------------- */
