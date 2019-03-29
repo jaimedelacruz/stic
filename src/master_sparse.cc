@@ -26,7 +26,11 @@ void read_instruments(iput_t &iput)
     if(iput.regions[ii].inst == no) continue;
     
     io ifil(file_exists(iput.regions[ii].ifile), NcFile::read, false);
-    ifil.read_Tstep<double>("iprof",iput.regions[ii].psf , 0, true);
+    ifil.read_Tstep<double>("iprof",iput.regions[ii].psf , 0, false);
+
+    std::string siz = formatVect<int>(iput.regions[ii].psf.getdims());
+    if(iput.verbose)
+      fprintf(stderr,"read_instruments: region[%3d] <%s> %s\n", ii,iput.regions[ii].ifile.c_str(), siz.c_str() );
     
   }
 
