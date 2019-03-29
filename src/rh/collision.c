@@ -446,7 +446,7 @@ int atomnr(char ID[ATOM_ID_WIDTH+1])
 
 #define MSHELL 5
 
-void CollisionRate(struct Atom *atom, FILE *fp_atom)
+void CollisionRate(struct Atom *atom, char **fp_atom)
 {
   const char routineName[] = "CollisionRate";
   register int k, n, m, ii;
@@ -456,8 +456,8 @@ void CollisionRate(struct Atom *atom, FILE *fp_atom)
   bool_t  hunt, exit_on_EOF;
   int     nitem, i1, i2, i, j, ij, ji, Nlevel = atom->Nlevel, Nitem,
           status;
-  long    Nspace = atmos.Nspace;
-  fpos_t  collpos;
+  long    Nspace = atmos.Nspace, offset = 0;
+  //fpos_t  collpos;
   double  dE, C0, *T, *coeff, *C=NULL, Cdown, Cup, gij, *np, xj, fac, fxj;
 
   int      Ncoef, Nrow;
@@ -480,12 +480,13 @@ void CollisionRate(struct Atom *atom, FILE *fp_atom)
     }
   }
   
-  fgetpos(fp_atom, &collpos);
+  //fgetpos(fp_atom, &collpos);
+  //char *fp_atom = 
   
   C = (double *) malloc(Nspace * sizeof(double));
 
   T = coeff = NULL;
-  while ((status = getLine(fp_atom, COMMENT_CHAR,
+  while ((status = getLine2(fp_atom[offset++], COMMENT_CHAR,
 		  inputLine, exit_on_EOF=FALSE)) != EOF) {
     strcpy(keyword, strtok(inputLine, " "));
 
@@ -588,7 +589,7 @@ void CollisionRate(struct Atom *atom, FILE *fp_atom)
       badi  = matrix_double(Nrow, Ncoef);
 
       for (m = 0, nitem = 0;  m < Nrow;  m++) {
-	status = getLine(fp_atom, COMMENT_CHAR, inputLine,
+	status = getLine2(fp_atom[offset++], COMMENT_CHAR, inputLine,
 			 exit_on_EOF=FALSE);
 
         badi[m][0] = atof(strtok(inputLine, " "));
@@ -634,7 +635,7 @@ void CollisionRate(struct Atom *atom, FILE *fp_atom)
       cdi = matrix_double(Nrow, MSHELL);
       
       for (m = 0, nitem = 0;  m < Nrow;  m++) {
-	status = getLine(fp_atom, COMMENT_CHAR, inputLine, exit_on_EOF=FALSE);
+	status = getLine2(fp_atom[offset++], COMMENT_CHAR, inputLine, exit_on_EOF=FALSE);
 	
         cdi[m][0] = atof(strtok(inputLine, " "));
         nitem++;
@@ -934,14 +935,14 @@ void CollisionRate(struct Atom *atom, FILE *fp_atom)
   free(T);
   free(coeff);
   
-  fsetpos(fp_atom, &collpos);
+  //fsetpos(fp_atom, &collpos);
 
   sprintf(labelStr, "Collision Rate %2s", atom->ID);
   getCPU(3, TIME_POLL, labelStr);
 }
 /* ------- end ---------------------------- CollisionRate.c --------- */
 
-void CollisionRateOne(struct Atom *atom, FILE *fp_atom, int k)
+void CollisionRateOne(struct Atom *atom, char **fp_atom, int k)
 {
   const char routineName[] = "CollisionRateOne";
   register int  n, m, ii;
@@ -951,7 +952,7 @@ void CollisionRateOne(struct Atom *atom, FILE *fp_atom, int k)
   bool_t  hunt, exit_on_EOF;
   int     nitem, i1, i2, i, j, ij, ji, Nlevel = atom->Nlevel, Nitem,
           status;
-  long    Nspace = atmos.Nspace;
+  long    Nspace = atmos.Nspace, offset = 0;
   fpos_t  collpos;
   double  dE, C0, *T, *coeff, C, Cdown, Cup, gij, *np, xj, fac, fxj;
 
@@ -975,12 +976,12 @@ void CollisionRateOne(struct Atom *atom, FILE *fp_atom, int k)
       // }
   }
   
-  fgetpos(fp_atom, &collpos);
+  //fgetpos(fp_atom, &collpos);
   
   C = 0.0;//(double *) malloc(Nspace * sizeof(double));
 
   T = coeff = NULL;
-  while ((status = getLine(fp_atom, COMMENT_CHAR,
+  while ((status = getLine2(fp_atom[offset++], COMMENT_CHAR,
 		  inputLine, exit_on_EOF=FALSE)) != EOF) {
     strcpy(keyword, strtok(inputLine, " "));
 
@@ -1083,7 +1084,7 @@ void CollisionRateOne(struct Atom *atom, FILE *fp_atom, int k)
       badi  = matrix_double(Nrow, Ncoef);
 
       for (m = 0, nitem = 0;  m < Nrow;  m++) {
-	status = getLine(fp_atom, COMMENT_CHAR, inputLine,
+	status = getLine2(fp_atom[offset++], COMMENT_CHAR, inputLine,
 			 exit_on_EOF=FALSE);
 
         badi[m][0] = atof(strtok(inputLine, " "));
@@ -1129,7 +1130,7 @@ void CollisionRateOne(struct Atom *atom, FILE *fp_atom, int k)
       cdi = matrix_double(Nrow, MSHELL);
       
       for (m = 0, nitem = 0;  m < Nrow;  m++) {
-	status = getLine(fp_atom, COMMENT_CHAR, inputLine, exit_on_EOF=FALSE);
+	status = getLine2(fp_atom[offset++], COMMENT_CHAR, inputLine, exit_on_EOF=FALSE);
 	
         cdi[m][0] = atof(strtok(inputLine, " "));
         nitem++;
@@ -1429,7 +1430,7 @@ void CollisionRateOne(struct Atom *atom, FILE *fp_atom, int k)
   free(T);
   free(coeff);
   
-  fsetpos(fp_atom, &collpos);
+  //fsetpos(fp_atom, &collpos);
 
   //sprintf(labelStr, "Collision Rate %2s", atom->ID);
   // getCPU(3, TIME_POLL, labelStr);

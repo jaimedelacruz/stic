@@ -56,10 +56,10 @@ void calculateRay(void) {
     atom = atmos.activeatoms[nact];
     
     /* Rewind atom files to point just before collisional data */
-    if ((ierror = fseek(atom->fp_input, io.atom_file_pos[nact], SEEK_SET))) {
-      sprintf(messageStr, "Unable to rewind atom file for %s", atom->ID);
-      Error(ERROR_LEVEL_2, "rhf1df", messageStr);
-    }
+    // if ((ierror = fseek(atom->fp_input, io.atom_file_pos[nact], SEEK_SET))) {
+    //  sprintf(messageStr, "Unable to rewind atom file for %s", atom->ID);
+    //  Error(ERROR_LEVEL_2, "rhf1df", messageStr);
+    // }
 	
     /* Free collisions matrix, going to be re-allocated in background */
     if (atom->C != NULL) {

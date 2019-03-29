@@ -182,7 +182,7 @@ void obtain_rates(double **w, double **c, int k, Atom *atom)
   
   // --Recompute collisional rates for one depth-point --- //
   
-  CollisionRateOne(atom, atom->fp_input, k);
+  CollisionRateOne(atom, &atom->txt[atom->offset_coll], k);
 
 
   // --- read collisional rates --- //

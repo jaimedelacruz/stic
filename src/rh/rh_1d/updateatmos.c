@@ -35,7 +35,7 @@ void Initvarious(){
   io.atom_file_pos = (long *) malloc(atmos.Nactiveatom * sizeof(long));
   for (nact = 0; nact < atmos.Nactiveatom; nact++) {
     atom = atmos.activeatoms[nact];
-    io.atom_file_pos[nact] = ftell(atom->fp_input);
+    // io.atom_file_pos[nact] = ftell(atom->fp_input);
   }
 }
 
@@ -112,10 +112,10 @@ void UpdateAtmosDep(void) {
     
     
     /* Rewind atom files to point just before collisional data */
-    if ((ierror = fseek(atom->fp_input, io.atom_file_pos[nact], SEEK_SET))) {
-      sprintf(messageStr, "Unable to rewind atom file for %s", atom->ID);
-      Error(ERROR_LEVEL_2, routineName, messageStr);
-    }
+    // if ((ierror = fseek(atom->fp_input, io.atom_file_pos[nact], SEEK_SET))) {
+    //  sprintf(messageStr, "Unable to rewind atom file for %s", atom->ID);
+    //  Error(ERROR_LEVEL_2, routineName, messageStr);
+    // }
     
     /* Reallocate some stuff (because of varying Nspace) */
 

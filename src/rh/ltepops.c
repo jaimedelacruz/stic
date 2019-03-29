@@ -233,7 +233,7 @@ void SetLTEQuantities(void)
              After this we can close the input file for the active
              atom. --                                  -------------- */
 
-      CollisionRate(atom, atom->fp_input);
+      CollisionRate(atom, &atom->txt[atom->offset_coll]);
 
       /* --- Compute the fixed rates and store in Cij -- ------------ */
 
@@ -336,7 +336,7 @@ void SetLTEQuantitiesOne(Atom *atom, int k)
        After this we can close the input file for the active
        atom. --                                  -------------- */
     
-    CollisionRateOne(atom, atom->fp_input, k);
+    CollisionRateOne(atom, &atom->txt[atom->offset_coll], k);
     
     /* --- Compute the fixed rates and store in Cij -- ------------ */
     

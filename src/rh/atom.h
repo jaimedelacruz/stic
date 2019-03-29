@@ -135,6 +135,7 @@ struct Atom {
   rhthread *rhth;
   pthread_mutex_t Gamma_lock;
   FILE *fp_input;
+  char **txt;
 };
 
 typedef struct {
@@ -198,7 +199,7 @@ void   readMolecularModels(void);
 void   statEquil(Atom *atom, int isum);
 double updatePopulations(int niter);
 
-void CollisionRate(Atom *atom, FILE *atomFile);
+void CollisionRate(Atom *atom, char **atomFile);
 void Damping(AtomicLine *line, double *adamp);
 void FixedRate(Atom *atom);
 void freeAtom(Atom *atom);

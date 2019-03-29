@@ -54,6 +54,18 @@ int getLine(FILE *inputFile, char *commentChar, char *line,
     return strlen(line);
   return 0;
 }
+
+
+int getLine2(char *inputFile, char *commentChar, char *line,
+	    bool_t exit_on_EOF)
+{
+  const char routineName[] = "getLine";
+
+  strcpy(line, inputFile);
+  return strlen(line);
+}
+
+
 /* ------- end ---------------------------- getLine.c --------------- */
 
 /* ------- begin -------------------------- checkNread.c ------------ */
