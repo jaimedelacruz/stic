@@ -850,8 +850,13 @@ int getChi2(int npar1, int nd, double *pars1, double *syn_in, double *dev, doubl
   atmos &atm = *((atmos*)tmp1); 
   double *ipars = new double [npar1]();
   mdepth &m = *atm.imodel;
-  double nd1 = 1.0 / sqrt((double)nd);
 
+  int neff = 0;
+  for(int ww = 0; ww < nd; ww++)
+    neff += ((atm.w[ww] > 1.e20) ? 0 : 1);
+  neff = std::max<int>(1, neff);
+  double nd1 = 1.0 / sqrt((double)neff);
+   
   
     /* --- Expand atmosphere ---*/
   
