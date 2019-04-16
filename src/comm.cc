@@ -63,7 +63,7 @@ void unpackInstrumentalData(iput_t &input, std::vector<double> const &buff)
   for(int ii=0; ii<nReg; ++ii){
     if(input.regions[ii].inst == no) continue;
     const long int &head = long(buff[offset++]+0.1);
-    cerr<<"detected "<<head<<" elements in region "<<ii<<endl;
+    //cerr<<"detected "<<head<<" elements in region "<<ii<<endl;
     idim[0] = int(head);
     input.regions[ii].psf.set(idim);
     memcpy(&input.regions[ii].psf.d[0], &buff[offset], head*sizeof(double));
