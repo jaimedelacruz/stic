@@ -655,8 +655,8 @@ void comm_slave_unpack_data(iput_t &input, int &action, mat<double> &obs, mat<do
 	    long ndata = long(bla+0.1);
 	    
 	    if(ndata > 0){
-	      std::vector<double> dat(ndata, 0.0);
-	      status = MPI_Unpack(buffer, input.buffer_size, &pos, &dat[0], (int)ndata,
+	      std::vector<double> dat(ndata-1, 0.0);
+	      status = MPI_Unpack(buffer, input.buffer_size, &pos, &dat[0], (int)ndata-1,
 				  MPI_DOUBLE, MPI_COMM_WORLD );
 	      
 	    
@@ -696,16 +696,20 @@ void comm_slave_unpack_data(iput_t &input, int &action, mat<double> &obs, mat<do
 	    status = MPI_Unpack(buffer, input.buffer_size, &pos, &it.cub.d[0], len,
 				MPI_DOUBLE, MPI_COMM_WORLD );
 	  }
+
 	  {
-	    long ndata = 0;
-	    status = MPI_Unpack(buffer, input.buffer_size, &pos, &ndata, (int)1,
-				MPI_LONG, MPI_COMM_WORLD );
-	    std::vector<double> dat(ndata, 0.0);
-	    status = MPI_Unpack(buffer, input.buffer_size, &pos, &dat[0], (int)ndata,
+	    double bla = 0.0;
+	    status = MPI_Unpack(buffer, input.buffer_size, &pos, &bla, (int)1,
 				MPI_DOUBLE, MPI_COMM_WORLD );
+	    long ndata = long(bla+0.1);
+	    
+	    if(ndata > 0){
+	      std::vector<double> dat(ndata-1, 0.0);
+	      status = MPI_Unpack(buffer, input.buffer_size, &pos, &dat[0], (int)ndata-1,
+				  MPI_DOUBLE, MPI_COMM_WORLD );
 	      
-	    if(ndata >= 1)
 	      unpackInstrumentalData(input, dat);
+	    }
 	  }
 	break;
       case 3: // Synthesize + derivatives
