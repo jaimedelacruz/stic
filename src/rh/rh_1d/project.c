@@ -77,3 +77,27 @@ void Bproject(void)
   }
 }
 /* ------- end ---------------------------- Bproject.c -------------- */
+
+void Bproject_los(void)
+{
+  /* --- Compute the cosine of gamma, the angle of B with the line of
+         sight, and the sine and cosine of 2*chi, the angle of B
+         with e1 --                                    -------------- */
+
+  register int k, mu;
+
+  double bx, by, bz, b1, b2, b3, csc_theta, sin_gamma;
+
+  atmos.cos_gamma = matrix_double(atmos.Nrays, atmos.Nspace);
+  atmos.cos_2chi  = matrix_double(atmos.Nrays, atmos.Nspace);
+  atmos.sin_2chi  = matrix_double(atmos.Nrays, atmos.Nspace);
+
+  for (mu = 0;  mu < atmos.Nrays;  mu++) {
+      for (k = 0;  k < atmos.Nspace;  k++) {
+	atmos.cos_gamma[mu][k] = cos(atmos.gamma_B[k]);
+	atmos.cos_2chi[mu][k]  = cos(2.0 * atmos.chi_B[k]);
+	atmos.sin_2chi[mu][k]  = sin(2.0 * atmos.chi_B[k]);
+      }  
+  }
+  
+}

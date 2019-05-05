@@ -25,6 +25,7 @@ extern char messageStr[];
 extern rhinfo io;
 
 
+extern void Bproject_los(void);
 
 void calculateRay(void) {
   /* performs necessary reallocations and inits, and solves for ray */
@@ -48,7 +49,7 @@ void calculateRay(void) {
       freeMatrix((void **) atmos.sin_2chi);
       atmos.sin_2chi = NULL;
     }
-    Bproject();
+    Bproject_los();
   }
   
   /* Must calculate background opacity for new ray, need some prep first */

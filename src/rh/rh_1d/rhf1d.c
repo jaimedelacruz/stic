@@ -81,6 +81,14 @@ int bdir_exists(const char *name){
 }
 
 
+void adjust_vlos(double *vlos, int ndep, double mu)
+{
+  int register ii;
+  for(ii=0; ii<ndep; ++ii)
+    vlos[ii] /= mu;
+  
+}
+
 
 /* ------- begin -------------------------- rhf1d.c ----------------- */
 
@@ -108,6 +116,9 @@ bool_t rhf1d(float muz, int rhs_ndep, double *rhs_T, double *rhs_rho,
   int argc = 1;
   char *argv[] = {"rhf1d",NULL};
 
+
+  adjust_vlos(rhs_v, rhs_ndep, muz);
+  
   if(firsttime){
     memset(&atmos, 0, sizeof(Atmosphere));
     memset(&geometry, 0, sizeof(Geometry));
