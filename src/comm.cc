@@ -117,7 +117,7 @@ void comm_get_buffer_size(iput_t &input){
     case 4:// Synthesis + derivatives at all heights
       input.buffer_size =
 	(13 * input.ndep * sizeof(double)) * input.npack + // depth-stratified quantities
-	6*sizeof(int); // xx, yy, iproc, pix, action, npacked
+	6*sizeof(int)+ninstrumentaldata * sizeof(double);; // xx, yy, iproc, pix, action, npacked
       
       input.buffer_size1 = (input.nw_tot*4*sizeof(double) * (input.ndep*input.nresp+1)) + 6*sizeof(int);
       break;
