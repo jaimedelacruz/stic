@@ -7,7 +7,7 @@
   Atoms/H_6.atom		PASSIVE		  LTE_POPULATIONS
   Atoms/C.atom	     		PASSIVE     	  LTE_POPULATIONS
   Atoms/O.atom          	PASSIVE      	  LTE_POPULATIONS   pops.O.out
-  Atoms/SiIV.atom	      	PASSIVE     	  LTE_POPULATIONS   pops.SI.out
+  Atoms/Si.atom		      	PASSIVE     	  LTE_POPULATIONS   pops.SI.out
   Atoms/Al-adapt.atom   	PASSIVE     	  LTE_POPULATIONS   pops.AL.out
   Atoms/CaII_bklm.atom  	ACTIVE            ZERO_RADIATION    
   Atoms/FeI.atom        	PASSIVE      	  LTE_POPULATIONS   pops.FE.out
