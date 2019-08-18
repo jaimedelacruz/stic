@@ -96,7 +96,7 @@ namespace mfft{
       
       /* --- Convolve, multiplication is overloaded for complex numbers --- */
       
-      for(size_t ii=0; ii<nft; ii++) ft[ii] *= otf[ii];
+      for(size_t ii=0; ii<nft; ii++) ft[ii] *= std::conj(otf[ii]);
       
       
       /* --- Transform back --- */
@@ -381,7 +381,7 @@ namespace mfft{
       
       /* --- Convolve data with PSF --- */
       
-      for(size_t ii=0;ii<nft;ii++) ft[ii] *= otf[ii];
+      for(size_t ii=0;ii<nft;ii++) ft[ii] *= std::conj(otf[ii]);
       delete [] otf;
 
       
@@ -457,8 +457,9 @@ namespace mfft{
 	  /* --- Transform PSF and save it --- */
 	  
 	  fftw_execute_dft_r2c(fplan, &ppsf[0][0],  (fftw_complex*)otf);
-
-
+	  for(int kk=0; kk<int(ntf); ++kk)
+	    otf[kk] = std::conj(otf[kk]);
+	  
 	  
 	  /* --- Clean up --- */
 	  
