@@ -1254,7 +1254,7 @@ void atmos::responseFunctionFull(mdepth_t m, int nd, double *out_in, double *syn
       
       /* --- upper perturbation --- */
       
-      if((pval + pertu) > mmax[kk]){
+      if((pval + pertu) > mmax[pp]){
 	up = 0.0;
 	memcpy(&syup[0],syn, nd*sizeof(double));
       }else{
@@ -1272,7 +1272,7 @@ void atmos::responseFunctionFull(mdepth_t m, int nd, double *out_in, double *syn
 
       /* --- Lower perturbation --- */
 
-      if((pval - pertu) < mmin[kk]){
+      if((pval - pertu) < mmin[pp]){
 	down = 0.0;
 	memcpy(&sydow[0],syn, nd*sizeof(double));
       }else{
@@ -1299,7 +1299,7 @@ void atmos::responseFunctionFull(mdepth_t m, int nd, double *out_in, double *syn
       }
       */
       // --- compute response ---//
-
+      //cerr<<up*1.e-5<<" "<<down*1.e-5<<" "<<mmax[pp]<<" \n";
       up -= down;
       if(up > 1.e-6) up = 1.0/up;
       else           up = 0.0;
