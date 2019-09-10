@@ -1251,7 +1251,7 @@ void atmos::responseFunctionFull(mdepth_t m, int nd, double *out_in, double *syn
       }else{
 	up = pval * dpar, down = -up;
       }
-	
+      
       /* --- upper perturbation --- */
       
       if((pval + pertu) > mmax[kk]){
@@ -1300,7 +1300,7 @@ void atmos::responseFunctionFull(mdepth_t m, int nd, double *out_in, double *syn
       */
       // --- compute response ---//
 
-      up += down;
+      up -= down;
       if(up > 1.e-6) up = 1.0/up;
       else           up = 0.0;
       
