@@ -116,6 +116,7 @@ iput_t read_input(std::string filename, bool verbose){
   memcpy(input.nodes.rewe, tmp, 7*sizeof(double));
   input.use_eos = 1;
   input.inv_depth_opt = 0;
+  input.nresp = 0;
   
   // Open File and read
   std::ifstream in(filename, std::ios::in | std::ios::binary);
