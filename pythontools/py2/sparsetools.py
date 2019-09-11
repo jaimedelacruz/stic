@@ -614,7 +614,8 @@ class profile:
         self.wav = np.zeros((nw), order='c', dtype='float64')
         self.weights = np.ones((nw, ns), order='c', dtype='float64') 
         self.pweights = np.ones((nt, ny, nx), order='c', dtype='float64')
-
+        self.rf = None
+        
         self.nx = nx
         self.ny = ny
         self.nw = nw
@@ -660,7 +661,7 @@ class profile:
         self.setsize(nx, ny, nw, ns, nt)
 
         read =""
-        
+        print(nc_vars)
         # Readvars
         if(len(np.where(nc_vars == 'profiles')[0]) == 1):
             self.dat[:,:,:,:,:] = nc_fid.variables['profiles'][:]
@@ -756,6 +757,10 @@ class profile:
         n.weights[:,:] = self.weights[w0:w1,:].copy()
         n.pweights[:,:,:] = self.pweights.copy()
 
+        if(self.rf is not None):
+            n.rf = self.rf[:,:,:,:,:,w0:w1,:].copy()
+            n.rf_type = self.rf_type.copy()
+            n.nder = self.nder
         return(n)
 
     def extractPix(self, x0 = 0, x1 = -1, y0 = 0, y1 = -1, t0=0, t1=-1):
