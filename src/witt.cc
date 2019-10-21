@@ -2358,7 +2358,7 @@ void witt::witt::hydrostatic(int ndep, double *tau, double *t, double *Pg, doubl
   rho[0] = rho_from_pg<double>(t[0], Pg[0], pel[0]);
   contOpacity<double>(t[0], Pg[0], pel[0], nw, &wav, &kappa_old);
   kappa_old /= rho[0];
-  cmass[0] =  Pg[0] / gravity; //(xna + xne) * (kb * t[0] / gravity);
+  cmass[0] = Pg[0] / gravity; //(xna + xne) * (kb * t[0] / gravity);
   nel[0] = pel[0]/(phyc::BK*t[0]);
 
   // Loop height
@@ -2378,11 +2378,13 @@ void witt::witt::hydrostatic(int ndep, double *tau, double *t, double *Pg, doubl
 
       /* --- Integrate kappa assuming linear dependence with tau --- */
       
-      if(iter == 0){
-	Pg[k] = Pg[k-1] + gravity * dtau  / (kappa_old);
-      }else{
-	Pg[k] = Pg[k-1] + gravity * dtau / (kappa - kappa_old) * log(kappa/kappa_old);
-      }
+      // if(iter == 0){
+      //	Pg[k] = Pg[k-1] + gravity * dtau  / (kappa_old);
+      //}else{
+	///Pg[k] = Pg[k-1] + gravity * dtau / (kappa - kappa_old) * log(kappa/kappa_old);
+      	Pg[k] = Pg[k-1] + gravity * 2.0 * dtau / (kappa + kappa_old) ;//* log(kappa/kappa_old);
+
+	//}
       
       /* ---  Get opacity --- */
       rho[k] = rho_from_pg<double>(t[k], Pg[k], pel[k]);
@@ -2411,8 +2413,7 @@ void witt::witt::hydrostatic(int ndep, double *tau, double *t, double *Pg, doubl
     /* --- Compute z-scale and cmass--- */
     
     z[k] = z[k-1] - 2.0 * dtau / (kappa * rho[k] + kappa_old * rho[k-1]);
-    cmass[k] = cmass[k-1] + 0.5*(rho[k-1] + rho[k]) * (z[k-1] - z[k]);
-    
+    cmass[k] = cmass[k-1] + 2.0 * dtau / (kappa + kappa_old);
 
     /* --- Store partial pressures and partition function 
        for the ratiative transfer
@@ -2583,7 +2584,7 @@ void eos::witt::hydrostatic_cmass(int ndep, double *tau, double *t, double *Pg, 
   kappa_old /= rho[0];
   cmass[0] =  Pg[0] / gravity; //(xna + xne) * (kb * t[0] / gravity);
   nel[0] = pel/(phyc::BK*t[0]);
-  tau[0] = 0.0; //kappa / rho[0] * cm, ltau[0] = log10(tau[0]);
+  tau[0] = Pg[0] * kappa / (rho[0]*gravity);//0.0; //kappa / rho[0] * cm, ltau[0] = log10(tau[0]);
   z[0] = 0.0;
 
 
@@ -2616,7 +2617,7 @@ void eos::witt::hydrostatic_cmass(int ndep, double *tau, double *t, double *Pg, 
 	    
 	    
   for(int k = 0; k < ndep; k++){
-    tau[k] += toff;
+    //tau[k] += toff;
     ltau[k] = log10(tau[k]);
     //  fprintf(stderr,"%d %e %e %e\n", k, ltau[k], cmass[k], z[k]*1.e-5);
   }
