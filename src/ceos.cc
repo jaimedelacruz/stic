@@ -828,7 +828,7 @@ void ceos::hydrostatic(int ndep, double *tau, double *t, double *Pg, double *rho
 
 
   }
-  double toff = exp(2.0 * log(cmass[1]) - log(cmass[2]));
+  double toff = 0.0;//exp(2.0 * log(cmass[1]) - log(cmass[2]));
   for(int kk=0; kk<ndep; kk++) cmass[kk] = log10(toff+cmass[kk]);
   
   // cerr<<"ceos::hydrostatic: ITMAX="<<imax<<endl;
