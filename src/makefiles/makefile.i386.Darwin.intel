@@ -1,0 +1,46 @@
+#
+# Compilers
+#
+CC  = icc
+CXX = icpc
+FC  = ifort
+
+
+#
+# MPI assignments
+#
+OMPI_FC = $(FC)
+OMPI_CXX = $(CXX)
+OMPI_CC = $(CC)
+MPCXX = mpicxx
+MPFC = mpif90
+
+LINKER = $(MPCXX)
+
+#
+# OPTIMIZATION
+#
+OPTS = -Ofast -I/opt/local/include/
+CXXFLAGS = $(OPTS) -std=c++11 -xHOST
+CFLAGS = $(OPTS) -xHOST
+FFLAGS = $(OPTS) -xCORE-AVX-I
+AR = ar
+OPENMP = -fopenmp
+
+LINKEROPTS =  #-lgfortran 
+
+
+#
+# GSL, FFTW3 libs.
+# In macports, the defaul is /opt/local.
+#
+GSLPATH = /opt/local
+
+
+#
+# Mac related non-sense 
+#
+#ifneq (,$(findstring Darwin,$(OS))) #
+#  MACOSX_DEPLOYMENT_TARGET=10.6
+#  export MACOSX_DEPLOYMENT_TARGET
+#endif
