@@ -517,7 +517,7 @@ void PiecewiseStokesBezier3(int nspect, int mu, bool_t to_obs,
       for(j = 0; j<4; j++){
 	V0[i] += Ma[i][j] * I[j][k-dk] + Mb[i][j] * Su[j] + Mc[i][j] * S0[j];
       }
-      V0[i] += dt03 * (gamma * dS0[i] - theta * dSu[i]);
+      V0[i] += -dt03 * (gamma * dS0[i] - theta * dSu[i]);
     }
       
       
