@@ -264,6 +264,11 @@ inline void Bezier3_coeffs(double dt, double *alpha, double *beta,
 
      Integration coeffs. for cubic Bezier interpolants
      Use Taylor expansion if dtau is small
+     Note:
+        alpha -> Su
+	beta  -> Sc
+	Gamma -> Cc
+	theta -> Cu
      
      --- */
   
@@ -309,7 +314,8 @@ void PiecewiseStokesBezier3(int nspect, int mu, bool_t to_obs,
   
   static const char routineName[] = "PiecewiseStokesBezier3";
   static const int siz_mat = 16*sizeof(double), siz_vec = 4*sizeof(double);
-
+  static const double sign[2] = {-1.0, 1.0}; // Tau changes sign when integrating 
+  
   register int k, n, m, i, j;
   
   int    Ndep = geometry.Ndep, k_start, k_end, dk, k_last, ref_index;
@@ -320,7 +326,7 @@ void PiecewiseStokesBezier3(int nspect, int mu, bool_t to_obs,
   double Ku[4][4], K0[4][4], Kd[4][4], dKu[4][4], dK0[4][4];
   double Su[4], S0[4], Sd[4], dSu[4], dS0[4];
   double A[4][4], Ma[4][4], Mb[4][4], Mc[4][4], V0[4];//, V1[4];
-  double imu = 1.0 / geometry.muz[mu];
+  double imu = sign[to_obs] / geometry.muz[mu];
   double Md[4][4];
   ActiveSet *as;
   double *z, *chi1;
@@ -388,8 +394,8 @@ void PiecewiseStokesBezier3(int nspect, int mu, bool_t to_obs,
   if (Psi) Psi[k_start] = 0.0;
   
   k=k_start+dk;
-  dsup = fabs(z[k] - z[k-dk]) * imu;
-  dsdn = fabs(z[k+dk] - z[k]) * imu;
+  dsup = (z[k] - z[k-dk]) * imu;
+  dsdn = (z[k+dk] - z[k]) * imu;
   dchi_up= (chi1[k] - chi1[k-dk])/dsup;
 
   
@@ -436,10 +442,10 @@ void PiecewiseStokesBezier3(int nspect, int mu, bool_t to_obs,
 
     if(k != k_end){
       
-      dsdn = fabs(z[k+dk] - z[k]) * imu;
+      dsdn = (z[k+dk] - z[k]) * imu;
       
       if(fabs(k-k_end)>1){
-	dsdn2=fabs(z[k+2*dk] - z[k+dk]) * imu;
+	dsdn2=(z[k+2*dk] - z[k+dk]) * imu;
 	dchi_dn = cent_deriv(dsdn,dsdn2,chi1[k],chi1[k+dk],chi1[k+2*dk]);       
       } else dchi_dn=(chi1[k+dk]-chi1[k])/dsdn;
      
@@ -477,13 +483,13 @@ void PiecewiseStokesBezier3(int nspect, int mu, bool_t to_obs,
 
     
     /* --- Bezier3 coeffs. ---- */
-      
-    Bezier3_coeffs(dt, &beta, &alpha, &theta, &gamma, &eps);
+    
+    Bezier3_coeffs(fabs(dt), &alpha, &beta, &gamma, &theta, &eps);
 
     
     /* --- Diagonal operator --- */
       
-    if(Psi) Psi[k] = alpha + gamma;
+    if(Psi) Psi[k] = beta + theta;
 
 
     
@@ -495,14 +501,14 @@ void PiecewiseStokesBezier3(int nspect, int mu, bool_t to_obs,
     
     for(j=0;j<4;j++){
       for(i=0;i<4;i++){
-	Md[j][i] = ident[j][i] + alpha * K0[j][i] - gamma *
-	  -(dt03 * (A[j][i] + dK0[j][i] + K0[j][i]) + K0[j][i]);
+	Md[j][i] = ident[j][i] + beta * K0[j][i] - theta *
+	  (dt03 * (A[j][i] + dK0[j][i] + K0[j][i]) - K0[j][i]); // Terms Ic
 	  
-	Ma[j][i] = eps * ident[j][i] - beta * Ku[j][i] + theta *
-	  (dt03 * (Ma[j][i] + dKu[j][i] + Ku[j][i]) - Ku[j][i]);
+	Ma[j][i] = eps * ident[j][i] - alpha * Ku[j][i] - gamma *
+	  (dt03 * (Ma[j][i] + dKu[j][i] + Ku[j][i]) + Ku[j][i]); // Terms Iu
 	  
-	Mb[j][i] = beta * ident[j][i] + theta * (ident[j][i] - dt03 * Ku[j][i]);
-	Mc[j][i] = alpha* ident[j][i] + gamma * (ident[j][i] + dt03 * K0[j][i]);
+	Mb[j][i] = alpha* ident[j][i] + gamma * (ident[j][i] + dt03 * Ku[j][i]); // Terms Su
+	Mc[j][i] = beta * ident[j][i] + theta * (ident[j][i] - dt03 * K0[j][i]); // Terms Sc
       }
     }
       
@@ -517,7 +523,7 @@ void PiecewiseStokesBezier3(int nspect, int mu, bool_t to_obs,
       for(j = 0; j<4; j++){
 	V0[i] += Ma[i][j] * I[j][k-dk] + Mb[i][j] * Su[j] + Mc[i][j] * S0[j];
       }
-      V0[i] += -dt03 * (gamma * dS0[i] - theta * dSu[i]);
+      V0[i] += dt03 * (gamma * dSu[i] - theta * dS0[i]);
     }
       
       
@@ -572,6 +578,7 @@ void Piecewise_Bezier3(int nspect, int mu, bool_t to_obs,
   
   register int k,i;
   const char routineName[] = "Piecewise_Bezier3";
+  static const double sign[2] = {-1.0, 1.0}; // Tau changes sign when integrating 
 
   int    k_start, k_end, dk, Ndep = geometry.Ndep;
   double dtau_uw, dtau_dw, dS_uw, I_upw, c1, c2, w[3],
@@ -589,7 +596,7 @@ void Piecewise_Bezier3(int nspect, int mu, bool_t to_obs,
     z = geometry.height;
   }
   
-  zmu = 1.0 / geometry.muz[mu];
+  zmu = sign[to_obs] / geometry.muz[mu];
 
   /* --- Distinguish between rays going from BOTTOM to TOP
          (to_obs == TRUE), and vice versa --      -------------- */
@@ -650,10 +657,10 @@ void Piecewise_Bezier3(int nspect, int mu, bool_t to_obs,
      shift for all next iterations */
 
   k=k_start+dk;
-  dsup = fabs(z[k] - z[k-dk]) * zmu;
-  dsdn = fabs(z[k+dk] - z[k]) * zmu;
+  dsup = (z[k] - z[k-dk]) * zmu;
+  dsdn = (z[k+dk] - z[k]) * zmu;
   dchi_up= (chi1[k] - chi1[k-dk])/dsup;
-  
+
   /*  dchi/ds at central point */
 
   dchi_c = cent_deriv(dsup,dsdn,chi1[k-dk],chi1[k],chi1[k+dk]);
@@ -677,13 +684,13 @@ void Piecewise_Bezier3(int nspect, int mu, bool_t to_obs,
     if(k != k_end){
       
       /* downwind path length */
-      dsdn = fabs(z[k+dk] - z[k]   ) * zmu;
-
+      dsdn = (z[k+dk] - z[k]   ) * zmu;
+  
       
       /* dchi/ds at downwind point */
       
       if (fabs(k-k_end)>1) {
-	dsdn2=fabs(z[k+2*dk] - z[k+dk]) * zmu;
+	dsdn2=(z[k+2*dk] - z[k+dk]) * zmu;
 	dchi_dn = cent_deriv(dsdn,dsdn2,chi1[k],chi1[k+dk],chi1[k+2*dk]);       
       } else {
 	dchi_dn=(chi1[k+dk]-chi1[k])/dsdn;
@@ -716,7 +723,7 @@ void Piecewise_Bezier3(int nspect, int mu, bool_t to_obs,
     /* --- compute interpolation parameters --- */
     
     dt03 = dtau_uw*0.33333333333333333333333;
-    Bezier3_coeffs(dtau_uw, &beta, &alpha, &theta, &gamma, &eps);
+    Bezier3_coeffs(dtau_uw, &alpha, &beta, &gamma, &theta, &eps);
     
     
     
@@ -727,12 +734,12 @@ void Piecewise_Bezier3(int nspect, int mu, bool_t to_obs,
     
     /* --- Solve integral in this interval --- */
     
-    I[k]= I[k-dk]*eps + alpha*S[k] + beta*S[k-dk] + gamma * c1 + theta * c2; 
+    I[k]= I[k-dk]*eps + beta*S[k] + alpha*S[k-dk] + theta * c1 + gamma * c2; 
     
 
     /* --- Diagonal operator --- */
     
-    if (Psi) Psi[k] = alpha + gamma;
+    if (Psi) Psi[k] = beta + theta;
     
     /* --- Re-use downwind quantities for next upwind position -- --- */
     
