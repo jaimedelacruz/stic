@@ -17,6 +17,7 @@
 	                      cap imposed in the control points (to be possitive). Also
 			      introduced a better harmonic derivative implementation from 
 			      Steffen (1990).
+	   2019-12-10, JdlCR: Bugfixes in the polarized Bezier solver.
 
    ----------------------------------------------------------------------- */
 
@@ -151,48 +152,42 @@ inline void m4inv(double MI[4][4]){
 }
 /* --------------------------------------------------------------- */
 
-inline double sign(const double val)
+inline double signFortran(const double val)
 {
-  if(val<0) return -1.0;
-  else      return  1.0;
+  return ((val > 0.0)? 1.0 : -1.0);
 }
 
 /* --------------------------------------------------------------- */
 
-inline double cent_deriv(double dsup,double dsdn,
-			 double chiup,double chic, double chidn)
-{
-  /* --- Derivatives from Fritsch & Butland (1984) --- */
-
-  double fim1, fi, alpha, wprime;
-  
-  fim1=(chic-chiup)/dsup;
-  fi=(chidn-chic)/dsdn;
-
-  if ((fim1*fi) > 0.0) {
-    alpha = 0.3333333333333333333333333333333 * ( 1.0 + dsdn/(dsdn+dsup) );
-    return (fim1*fi) / ( (1.0-alpha) * fim1 + alpha*fi );
-   } else {
-    return 0.0;
-  }
-}
-/* --------------------------------------------------------------- */
-
-/* inline double cent_deriv(double odx,double dx, */
+/* inline double cent_deriv(double dsup,double dsdn, */
 /* 			 double chiup,double chic, double chidn) */
 /* { */
-/*   /\* --- Derivatives from Steffen (1990) --- *\/ */
+/*   --- Derivatives from Fritsch & Butland (1984) --- */
 
-/*   double ody=(chic-chiup)/odx, dy=(chidn-chic)/dx, wprime = 0.0, p; */
+/*   double fim1, fi, alpha, wprime; */
   
-  
-/*   if ((ody*dy) > 0) { */
-/*     p = (dy * odx + ody * dx) / (dx + odx); */
-/*     wprime = (2.0*sign(dy)) * min(min(fabs(ody), fabs(dy)), 0.5*fabs(p)); */
+/*   fim1=(chic-chiup)/dsup; */
+/*   fi=(chidn-chic)/dsdn; */
+
+/*   if ((fim1*fi) > 0.0) { */
+/*     alpha = 0.3333333333333333333333333333333 * ( 1.0 + dsdn/(dsdn+dsup) ); */
+/*     return (fim1*fi) / ( (1.0-alpha) * fim1 + alpha*fi ); */
+/*    } else { */
+/*     return 0.0; */
 /*   } */
-  
-/*   return wprime; */
 /* } */
+/* --------------------------------------------------------------- */
+
+inline double cent_deriv(double odx,double dx,
+			 double yu,double y0, double yd)
+{
+  /* --- Derivatives from Steffen (1990) --- */
+  
+  const double S0 = (yd - y0) / dx;
+  const double Su = (y0 - yu) / odx;
+  const double P0 = fabs((Su*dx + S0*odx) / (odx+dx)) * 0.5;
+  return (signFortran(S0) + signFortran(Su)) * min(fabs(Su),min(fabs(S0), P0));
+}
 
 /* --------------------------------------------------------------- */
 
@@ -314,7 +309,6 @@ void PiecewiseStokesBezier3(int nspect, int mu, bool_t to_obs,
   
   static const char routineName[] = "PiecewiseStokesBezier3";
   static const int siz_mat = 16*sizeof(double), siz_vec = 4*sizeof(double);
-  static const double sign[2] = {-1.0, 1.0}; // Tau changes sign when integrating 
   
   register int k, n, m, i, j;
   
@@ -326,7 +320,7 @@ void PiecewiseStokesBezier3(int nspect, int mu, bool_t to_obs,
   double Ku[4][4], K0[4][4], Kd[4][4], dKu[4][4], dK0[4][4];
   double Su[4], S0[4], Sd[4], dSu[4], dS0[4];
   double A[4][4], Ma[4][4], Mb[4][4], Mc[4][4], V0[4];//, V1[4];
-  double imu = sign[to_obs] / geometry.muz[mu];
+  const double imu = 1.0 / geometry.muz[mu];
   double Md[4][4];
   ActiveSet *as;
   double *z, *chi1;
@@ -394,8 +388,8 @@ void PiecewiseStokesBezier3(int nspect, int mu, bool_t to_obs,
   if (Psi) Psi[k_start] = 0.0;
   
   k=k_start+dk;
-  dsup = (z[k] - z[k-dk]) * imu;
-  dsdn = (z[k+dk] - z[k]) * imu;
+  dsup = fabs(z[k] - z[k-dk]) * imu;
+  dsdn = fabs(z[k+dk] - z[k]) * imu;
   dchi_up= (chi1[k] - chi1[k-dk])/dsup;
 
   
@@ -442,10 +436,10 @@ void PiecewiseStokesBezier3(int nspect, int mu, bool_t to_obs,
 
     if(k != k_end){
       
-      dsdn = (z[k+dk] - z[k]) * imu;
+      dsdn = fabs(z[k+dk] - z[k]) * imu;
       
       if(fabs(k-k_end)>1){
-	dsdn2=(z[k+2*dk] - z[k+dk]) * imu;
+	dsdn2=fabs(z[k+2*dk] - z[k+dk]) * imu;
 	dchi_dn = cent_deriv(dsdn,dsdn2,chi1[k],chi1[k+dk],chi1[k+2*dk]);       
       } else dchi_dn=(chi1[k+dk]-chi1[k])/dsdn;
      
@@ -501,14 +495,14 @@ void PiecewiseStokesBezier3(int nspect, int mu, bool_t to_obs,
     
     for(j=0;j<4;j++){
       for(i=0;i<4;i++){
-	Md[j][i] = ident[j][i] + beta * K0[j][i] - theta *
-	  (dt03 * (A[j][i] + dK0[j][i] + K0[j][i]) - K0[j][i]); // Terms Ic
+	Md[j][i] = ident[j][i] + beta * K0[j][i] + theta *
+	  (dt03 * (A[j][i] - dK0[j][i] + K0[j][i]) + K0[j][i]); // Terms Ic
 	  
-	Ma[j][i] = eps * ident[j][i] - alpha * Ku[j][i] - gamma *
-	  (dt03 * (Ma[j][i] + dKu[j][i] + Ku[j][i]) + Ku[j][i]); // Terms Iu
+	Ma[j][i] = eps * ident[j][i] - alpha * Ku[j][i] + gamma *
+	  (dt03 * (Ma[j][i] - dKu[j][i] + Ku[j][i]) - Ku[j][i]); // Terms Iu
 	  
-	Mb[j][i] = alpha* ident[j][i] + gamma * (ident[j][i] + dt03 * Ku[j][i]); // Terms Su
-	Mc[j][i] = beta * ident[j][i] + theta * (ident[j][i] - dt03 * K0[j][i]); // Terms Sc
+	Mb[j][i] = alpha* ident[j][i] + gamma * (ident[j][i] - dt03 * Ku[j][i]); // Terms Su
+	Mc[j][i] = beta * ident[j][i] + theta * (ident[j][i] + dt03 * K0[j][i]); // Terms Sc
       }
     }
       
@@ -578,11 +572,10 @@ void Piecewise_Bezier3(int nspect, int mu, bool_t to_obs,
   
   register int k,i;
   const char routineName[] = "Piecewise_Bezier3";
-  static const double sign[2] = {-1.0, 1.0}; // Tau changes sign when integrating 
 
   int    k_start, k_end, dk, Ndep = geometry.Ndep;
   double dtau_uw, dtau_dw, dS_uw, I_upw, c1, c2, w[3],
-         zmu, Bnu[2];
+          Bnu[2];
   double dsup,dsdn,dt,dt03,eps=0,alpha=0,beta=0,gamma=0,theta=0;
   double dS_up,dS_c,dchi_up,dchi_c,dchi_dn,dsdn2, tmp = 0.0;
   double *z, *chi1;
@@ -596,7 +589,7 @@ void Piecewise_Bezier3(int nspect, int mu, bool_t to_obs,
     z = geometry.height;
   }
   
-  zmu = sign[to_obs] / geometry.muz[mu];
+  const double zmu = 1.0 / geometry.muz[mu];
 
   /* --- Distinguish between rays going from BOTTOM to TOP
          (to_obs == TRUE), and vice versa --      -------------- */
@@ -657,8 +650,8 @@ void Piecewise_Bezier3(int nspect, int mu, bool_t to_obs,
      shift for all next iterations */
 
   k=k_start+dk;
-  dsup = (z[k] - z[k-dk]) * zmu;
-  dsdn = (z[k+dk] - z[k]) * zmu;
+  dsup = fabs(z[k] - z[k-dk]) * zmu;
+  dsdn = fabs(z[k+dk] - z[k]) * zmu;
   dchi_up= (chi1[k] - chi1[k-dk])/dsup;
 
   /*  dchi/ds at central point */
@@ -684,13 +677,13 @@ void Piecewise_Bezier3(int nspect, int mu, bool_t to_obs,
     if(k != k_end){
       
       /* downwind path length */
-      dsdn = (z[k+dk] - z[k]   ) * zmu;
+      dsdn = fabs(z[k+dk] - z[k]   ) * zmu;
   
       
       /* dchi/ds at downwind point */
       
       if (fabs(k-k_end)>1) {
-	dsdn2=(z[k+2*dk] - z[k+dk]) * zmu;
+	dsdn2=fabs(z[k+2*dk] - z[k+dk]) * zmu;
 	dchi_dn = cent_deriv(dsdn,dsdn2,chi1[k],chi1[k+dk],chi1[k+2*dk]);       
       } else {
 	dchi_dn=(chi1[k+dk]-chi1[k])/dsdn;
