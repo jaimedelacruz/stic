@@ -154,7 +154,7 @@ inline void m4inv(double MI[4][4]){
 
 inline double signFortran(const double val)
 {
-  return ((val > 0.0)? 1.0 : -1.0);
+  return ((val >= 0.0)? 1.0 : -1.0);
 }
 
 /* --------------------------------------------------------------- */
