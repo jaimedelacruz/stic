@@ -118,7 +118,7 @@ class cprofiles{
     k[3][3] = 0.0;//ki[idep];
   }
 
-  void abmat(double ikq, double iku, double ikv, double ifq, double ifu, double ifv, mat4 &k){
+  static void abmat(double ikq, double iku, double ikv, double ifq, double ifu, double ifv, mat4 &k){
     k[0][0] = 0.0;//ki[idep];
     k[0][1] = ikq;//[idep];///ki[idep];
     k[0][2] = iku;//[idep];///ki[idep];
@@ -411,7 +411,7 @@ class cprofiles{
   //----------------------------------------------------------------
   // Plank function at a given frequency for a given temperature
   //----------------------------------------------------------------
-  double plank_nu(const double nu, const double temp){
+  static double plank_nu(const double nu, const double temp){
   
     constexpr const double c = (2.0 * phyc::HH ) / (phyc::CC*phyc::CC);
     const double c1 = c *  nu*nu*nu;
@@ -424,14 +424,14 @@ class cprofiles{
   //----------------------------------------------------------------
   // Get Doppler factor, without the freq
   //----------------------------------------------------------------
-  double get_doppler_factor(double temp, double vturb, double amass){
+  static double get_doppler_factor(double temp, double vturb, double amass){
     return sqrt(2.0 * phyc::BK * temp / (amass * phyc::AMU)  + vturb * vturb) / phyc::CC;
   }
 
   //----------------------------------------------------------------
   // Damping, assuming VALD3 input
   //----------------------------------------------------------------
-  double damp(line_t &line, double temp, double vturb, double nne, double nh, double nhe, double dlnu){
+  static double damp(line_t &line, double temp, double vturb, double nne, double nh, double nhe, double dlnu){
 
     /* --- radiative damping --- */
     double adamp = line.g_rad; // in input.cc, if g_rad is 0, then the value is filled with an approx. formula.
@@ -447,7 +447,7 @@ class cprofiles{
   // Assuming VALD input, we get gamma_4 * nne (at 10000 K) to correct
   // for temperature, use x(temp/10000.)^(1./6.)
   //----------------------------------------------------------------
-  double stark(double g_str, double temp, double nne){
+  static double stark(double g_str, double temp, double nne){
     return g_str * nne * pow(temp/10000.,1.0/6.0); // Assuming Vald input!
   }
 
@@ -455,7 +455,7 @@ class cprofiles{
   // van der Waals broadening (collisions with neutral particles, typically H)
   // Includes Barklem formulation
   //----------------------------------------------------------------
-  double vanderWaals(line_t &line,  double temp, double nh,  double nhe){
+  static double vanderWaals(line_t &line,  double const temp, double const nh,  double const nhe){
     if(line.g_vdw >= 20.0){
     
       /* --- Barklem (constants initialized in input.cc) --- */
@@ -492,7 +492,7 @@ class cprofiles{
   // J_i and M_i have to be twice the actual value of J and M
   // Adapted from Polarization in spectral lines, Landi Degl'innocenti & Landolfi (2004) 
   //----------------------------------------------------------------
-  double w3js(const int j1, const int j2, const int j3, const int m1, const int m2, const int m3){
+  static double w3js(const int j1, const int j2, const int j3, const int m1, const int m2, const int m3){
 
   
     if ((m1+m2+m3) != 0) return 0.0;
@@ -623,15 +623,14 @@ class cprofiles{
   //-------------------------------------------------------------------------
   // Delo-Lin formal solver, using z as input
   //-------------------------------------------------------------------------
-  void delolin(int ndep, double *z, double *stokes, double mu){
+  void delolin(int const ndep, double* __restrict__ z, double* __restrict__ stokes, double mu){
   
     //  int ndep = (int)z.size();
 
   
     /* --- Init arrays --- */
-    double *dtau = new double [ndep];
+    double* __restrict__ dtau = new double [ndep]();
     double stk[4];
-    memset(&dtau[0], 0, sizeof(double) * ndep);
     memset(&stk[0],  0, sizeof(double) * 4);
 
   
@@ -672,17 +671,16 @@ class cprofiles{
       double eps = 0.0;
       double cu = 0, c0 = 0;
       //
-      if(dt >= 1.e-5){
+      if(dt >= 5.e-3){
 
 	eps = exp(-dt);
 	double u0 = 1.0 - eps;
-	double u1 = dt - 1.0 + eps;
       
-	c0 = u1 / dt;
-	cu = u0 - c0;
+	c0 = 1.0 - (u0 / dt);//u1 / dt;
+	cu = u0 - c0; //u0/dt - eps;//u0 - c0;
       
       }else{
-	eps = 1.0 - dt + 0.5 * dt*dt - dt*dt*dt/6.0;
+	eps = 1.0 - dt + 0.5 * dt*dt;
 
 	double dt2 = dt * dt;
 	c0 = dt * 0.5 - dt2 / 6.0;
@@ -703,7 +701,7 @@ class cprofiles{
 	}
       }
     
-      m4inv(mat2); // Invert matrix
+      //m4inv(mat2); // Invert matrix
       m4v(mat1, stk, vec1); // Matrix x vector
 
     
@@ -724,7 +722,7 @@ class cprofiles{
     delete [] dtau;
   }
 
-  inline void bez3_coeff(double const &dt, double &alpha, double &beta, double &gamma, double &theta, double &eps)
+  inline static void bez3_coeff(double const &dt, double &alpha, double &beta, double &gamma, double &theta, double &eps)
   {
     /* ---
        
@@ -752,9 +750,9 @@ class cprofiles{
       }else{
 	eps = exp(-dt);
 	alpha = -(-6.0+(6.0+6.0*dt+3.0*dt2+dt3)*(eps))/dt3;
-	beta  = (-6.0 + dt*(6.0+dt*(dt-3.0)) +6.0*(eps)) / dt3;
+	beta  = (-6.0 + dt*(6.0+dt*(dt-3.0)) + 6.0*eps) / dt3;
 	gamma = 3.0 * (2.0*dt-6.0 + eps*(6.0+dt*(dt+4.0))) / dt3;
-	theta = 3.0 * (-2.0*(eps)*(dt+3.0) +6.0+(dt-4.0)*dt) / dt3;
+	theta = 3.0 * (-2.0*eps*(dt+3.0) +6.0+(dt-4.0)*dt) / dt3;
 	return;
       }
     }
@@ -776,14 +774,13 @@ class cprofiles{
   //
   // NOTE3: It assumes that kq,ku,kv,fq,fu,fv are normalized by ki.
   //-------------------------------------------------------------------------
-  void delobez3(int ndep, double *z, double *stokes, double mu){
+  void delobez3(int const ndep, double *z, double *stokes, double mu){
 
 
   
     /* --- Init arrays --- */
-    double *dtau = new double [ndep];
+    double* __restrict__ dtau = new double [ndep]();
     double stk[4];
-    memset(&dtau[0], 0, sizeof(double) * ndep);
     memset(&stk[0],  0, sizeof(double) * 4);
 
   
@@ -792,24 +789,24 @@ class cprofiles{
 
     /* --- Compute dtau_nu scale using a bezier interpolant approx --- */
     //
-    double dzu = z[1]  - z[0];
+    double dzu = fabs(z[1]  - z[0]);
     double deu  = (ki[1] - ki[0]) / dzu;
     double odki = deu;
     double dki, dzd, ded;
     //
     double imu = fabs(1.0 / mu);
-    for(int k = 1; k<ndep-1; k++){
+    for(int k = 1; k<(ndep-1); ++k){
 
     
       int kd = k + 1; // index of the downwind point
     
-      dzd = z[kd] - z[k];
+      dzd = fabs(z[kd] - z[k]);
       ded = (ki[kd] - ki[k]) / dzd;
 
     
       /* --- Derivative of the opacity following Fritsch & Butland (1984) --- */
       if(deu*ded > 0.0){
-	double lambda = (1.0 + dzd / (dzd + dzu)) / 3.0;
+	double const lambda = (1.0 + dzd / (dzd + dzu)) / 3.0;
 	dki = (deu / (lambda * ded + (1.0 - lambda) * deu)) * ded;
       } else dki = 0.0;
 
@@ -820,6 +817,8 @@ class cprofiles{
 	 --- */
     
       dtau[k] = fabs(dzu) * ((ki[k] - dki/3.0 * dzu) + (ki[k-1] + odki/3.0 * dzu) + ki[k] + ki[k-1]) * 0.25 * imu;
+      //dtau[k] = 0.5 * (ki[k-1] + ki[k]) * fabs(z[k-1] - z[k]) * imu;
+
       itau += dtau[k];
     
       /* --- Store values for next interval --- */
@@ -831,9 +830,9 @@ class cprofiles{
     
       /* --- Integration limits --- */
 
-      if(itau <= 1.E-4) k0 = k;
-      if(itau <= 100.0) k1 = k;
-      else break; // If tau is already larger than 100, then stop integrating the opacity
+      if(itau <= 1.E-5) k0 = k;
+      if(itau <= 50.0) k1 = k;
+      else break; // If tau is already larger than 50, then stop integrating the opacity
     }
   
     /* --- 
@@ -858,12 +857,12 @@ class cprofiles{
   
     /* -- centered derivatives of all independent terms in the Abs matrix --- */
   
-    cent_deriv(ndep, dtau, &kq[0], &dkq[0], k0, k1);
-    cent_deriv(ndep, dtau, &ku[0], &dku[0], k0, k1);
-    cent_deriv(ndep, dtau, &kv[0], &dkv[0], k0, k1);
-    cent_deriv(ndep, dtau, &fq[0], &dfq[0], k0, k1);
-    cent_deriv(ndep, dtau, &fu[0], &dfu[0], k0, k1);
-    cent_deriv(ndep, dtau, &fv[0], &dfv[0], k0, k1);
+    cent_deriv_out(ndep, dtau, &kq[0], &dkq[0], k0, k1);
+    cent_deriv_out(ndep, dtau, &ku[0], &dku[0], k0, k1);
+    cent_deriv_out(ndep, dtau, &kv[0], &dkv[0], k0, k1);
+    cent_deriv_out(ndep, dtau, &fq[0], &dfq[0], k0, k1);
+    cent_deriv_out(ndep, dtau, &fu[0], &dfu[0], k0, k1);
+    cent_deriv_out(ndep, dtau, &fv[0], &dfv[0], k0, k1);
 
     /* --- Derivative of the elements of the source vector --- */
   
@@ -874,10 +873,10 @@ class cprofiles{
       vtemp[3][k] = sf[k] * kv[k];
     }
   
-    cent_deriv(ndep, dtau, &vtemp[0][0], &vtemp1[0][0], k0, k1);
-    cent_deriv(ndep, dtau, &vtemp[1][0], &vtemp1[1][0], k0, k1);
-    cent_deriv(ndep, dtau, &vtemp[2][0], &vtemp1[2][0], k0, k1);
-    cent_deriv(ndep, dtau, &vtemp[3][0], &vtemp1[3][0], k0, k1);
+    cent_deriv_out(ndep, dtau, &vtemp[0][0], &vtemp1[0][0], k0, k1);
+    cent_deriv_out(ndep, dtau, &vtemp[1][0], &vtemp1[1][0], k0, k1);
+    cent_deriv_out(ndep, dtau, &vtemp[2][0], &vtemp1[2][0], k0, k1);
+    cent_deriv_out(ndep, dtau, &vtemp[3][0], &vtemp1[3][0], k0, k1);
 
 
     for(int k = k0; k <= k1; k++){ // Transpose Source vector array
@@ -896,7 +895,7 @@ class cprofiles{
     /* --- Integrate over all relevant depths --- */
     for(int k = k1-1; k >= k0; k--){
     
-      int ku = k + 1; // index of the upwind point
+      int const ku = k + 1; // index of the upwind point
 
       /* --- Init source vector and Abs. matrix for depth "k" --- */
       abmat(k, K0);
@@ -906,31 +905,30 @@ class cprofiles{
 
     
       /* --- Integration coeffs. and exponential --- */
-      double dt = dtau[ku], dt03 = dt/3.0;
+      double const dt = dtau[ku], dt03 = dt/3.0;
       double eps=0.0, alp=0.0, bet=0.0, gam=0.0, thet=0.0;
       //
-      bez3_coeff(dt, bet, alp, thet, gam, eps);
-    
+      bez3_coeff(dt, alp, bet, gam, thet, eps);
       m4m(Ku, Ku, tmpa); //  Ku^2
       m4m(K0, K0, A);    //  K0^2
 
       /* --- Compute temporary matrices --- */
-      for(int j = 0; j<4; j++){
-	for(int i = 0; i<4; i++){
-	  A[j][i] = phyc::ident[j][i] + alp * K0[j][i] - gam * -(dt03 * (A[j][i] + dK_0[j][i] + K0[j][i]) + K0[j][i]);
-	  tmpa[j][i] = eps * phyc::ident[j][i] - bet * Ku[j][i] + thet * (dt03 * (tmpa[j][i] + dK_u[j][i] + Ku[j][i]) - Ku[j][i]);
-	  tmpb[j][i] = bet * phyc::ident[j][i] + thet * (phyc::ident[j][i] - dt03*Ku[j][i]);
-	  tmpc[j][i] = alp * phyc::ident[j][i] + gam* (phyc::ident[j][i] + dt03*K0[j][i]);
+      for(int j = 0; j<4; ++j){
+	for(int i = 0; i<4; ++i){
+	  A[j][i] = phyc::ident[j][i] + bet * K0[j][i] + thet * (dt03 * (A[j][i] - dK_0[j][i] + K0[j][i]) + K0[j][i]);
+	  tmpa[j][i] = eps * phyc::ident[j][i] - alp * Ku[j][i] + gam * (dt03 * (tmpa[j][i] - dK_u[j][i] + Ku[j][i]) - Ku[j][i]);
+	  tmpb[j][i] = alp * phyc::ident[j][i] + gam * (phyc::ident[j][i] - dt03*Ku[j][i]);
+	  tmpc[j][i] = bet * phyc::ident[j][i] + thet* (phyc::ident[j][i] + dt03*K0[j][i]);
 	}
       }
 
-      // Here I am doing tmpa*stk + tmpb * Su + tmpc * S0 + (gam * dS0 - thet * dSu) * dtau / 3.0
-      for(int i = 0; i<4; i++){
+      //
+      for(int i = 0; i<4; ++i){
 	v0[i] = 0.0;
-	for(int j = 0; j<4; j++){
+	for(int j = 0; j<4; ++j){
 	  v0[i] += tmpa[i][j] * stk[j] + tmpb[i][j] * Su[j] + tmpc[i][j] * S0[j];
 	}
-	v0[i] += dt03 * (gam * dSv[k][i] - thet * dSv[ku][i]);
+	v0[i] += dt03 * (gam * dSv[ku][i] - thet * dSv[k][i]);
       }
       //m4inv(A); // Invert "A"
 
@@ -951,10 +949,10 @@ class cprofiles{
     delete [] dtau;
   }
 
-  void cent_deriv(int n, const double *dx, const double *y, double *yp, int k0, int k1){
+  static void cent_deriv(int n, const double* __restrict__ dx, const double* __restrict__ y, double* __restrict__ yp, int const k0, int const k1){
     // Assumes that yp has been allocated: yp[n]
-    int kinit = std::max(1,k0);
-    int kend = std::min(k1, n-2);
+    int const kinit = std::max(1,k0);
+    int const kend = std::min(k1, n-2);
   
     double oder = (y[kinit] - y[kinit-1]) / dx[kinit];
     if(k0 == 0) yp[0] = oder;
@@ -972,7 +970,29 @@ class cprofiles{
     if(k1 == (n-1)) yp[n-1] = oder;			  
   }
 
-  double **mat2d(int nx1, int nx2){
+  static void cent_deriv_out(int const n, const double* __restrict__ dx, const double* __restrict__ y, double* __restrict__ yp, int const k0, int const k1){
+    // Assumes that yp has been allocated: yp[n]
+    int const kinit = std::max(1,k0);
+    int const kend = std::min(k1, n-2);
+  
+    double oder = (y[kend] - y[kend+1]) / dx[kend+1];
+    if(k1 == (n-1)) yp[k1] = oder;
+  
+    for(int k = kend; k >= kinit; --k){
+      double der = (y[k-1] - y[k]) / dx[k];
+    
+      if(der*oder > 0.0){
+	double lambda = (1.0 + dx[k-1] / (dx[k-1] + dx[k])) / 3.0;
+	yp[k] = (oder / (lambda * der + (1.0 - lambda) * oder)) * der;
+      } else yp[k] = 0.0; // Set der to zero at extrema;
+    
+      oder = der;
+    }
+    if(k0 == 0) yp[k0] = oder;			  
+  }
+
+  
+  static double **mat2d(int nx1, int nx2){
     double **p;
     p = new double* [nx1];
     p[0] = new double [nx1 * nx2]();
@@ -980,7 +1000,7 @@ class cprofiles{
     return p;
   }
 
-  void del_mat(double **p){
+  static void del_mat(double **p){
     delete[] (p[0]);
     delete[] (p);
     p = NULL;
