@@ -107,7 +107,6 @@ void atmos::responseFunction(int npar, mdepth_t &m_in, double *pars, int nd, dou
   }else  pertu = input.dpar * scal[pp];
 
 
-  if(input.nodes.ntype[pp] == azi_node)
   
   /* --- Centered derivatives ? --- */
   
