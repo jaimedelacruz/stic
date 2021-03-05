@@ -84,8 +84,9 @@ void atmos::responseFunction(int npar, mdepth_t &m_in, double *pars, int nd, dou
   //m.bound_val = m_in.bound_val;
   
   bool store_pops = false;
-  int centder = input.centder; 
-  //if(input.nodes.ntype[pp] == v_node) centder = 1;
+
+  // --- Force centered derivatives for azimuth --- //
+  int const centder = ((input.nodes.ntype[pp] == azi_node) ? 1 : input.centder); 
 
   
   /* --- Init perturbation --- */
@@ -104,7 +105,9 @@ void atmos::responseFunction(int npar, mdepth_t &m_in, double *pars, int nd, dou
     }else
       pertu = input.dpar * scal[pp] * 0.3;
   }else  pertu = input.dpar * scal[pp];
-    
+
+
+  if(input.nodes.ntype[pp] == azi_node)
   
   /* --- Centered derivatives ? --- */
   
