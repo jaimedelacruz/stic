@@ -223,7 +223,7 @@ void readKuruczLines(char *inputFile)
 	
 	/* --- Get "small" l values for Barklem tables --- */
 	
-	determined = RLKdeterminate(labeli, labelj, rlk);
+	determined = RLKdeterminate_ac(labeli, labelj, rlk);
 	
 	
         /* --- Line broadening --                      -------------- */
