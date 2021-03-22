@@ -69,7 +69,8 @@ bool_t determinate(char *label, double g, int *n, double *S, int *L,
   /* --- Orbital quantum number --                     -------------- */
 
   *L = getOrbital(orbit[0]);
-
+  if(*L == -1) return FALSE;
+  
   /* --- Total angular momentum --                     -------------- */
 
   *J = (g - 1.0) / 2.0;
@@ -395,7 +396,8 @@ int getOrbital(char orbit)
   case 'Z': L = 20;  break;
   default: 
     sprintf(messageStr, "Invalid orbital: %c", orbit);
-    Error(ERROR_LEVEL_2, routineName, messageStr);
+    //Error(ERROR_LEVEL_2, routineName, messageStr);
+    L = -1;
   }
   return L;
 }

@@ -216,14 +216,14 @@ void readKuruczLines(char *inputFile)
 	rlk->lambda0 = lambda0 / NM_TO_M;
 
 	/* --- Get quantum numbers for angular momentum and spin -- - */
-
+	
         determined = RLKdeterminate(labeli, labelj, rlk);
         rlk->polarizable = (atmos.Stokes && determined);
 
 	
 	/* --- Get "small" l values for Barklem tables --- */
 	
-	determined = RLKdeterminate_ac(labeli, labelj, rlk);
+	determined = RLKdeterminate(labeli, labelj, rlk);
 	
 	
         /* --- Line broadening --                      -------------- */
@@ -803,6 +803,7 @@ ZeemanMultiplet* RLKZeeman(RLK_Line *rlk)
 }
 /* ------- end ---------------------------- RLKZeeman.c ------------- */
 
+
 /* ----- JdlCR: Function to get the l values from the atomic 
    configuration, not from the spectral terms --- */
 
@@ -811,7 +812,7 @@ bool_t RLKdeterminate_ac(char *labeli, char *labelj, RLK_Line *rlk)
   char **words, orbit[2];
   int    count, length, Nread;
 
-   /* --- Get spin and orbital quantum numbers from level labels -- -- */
+  /* --- Get spin and orbital quantum numbers from level labels -- -- */
     words  = getWords(labeli, " ", &count);
     if (words[0]) {
       length = strlen(words[0]);
@@ -820,7 +821,7 @@ bool_t RLKdeterminate_ac(char *labeli, char *labelj, RLK_Line *rlk)
       rlk->li = getOrbital(toupper(orbit[0])); 
     } else return FALSE;
 
-    
+
     words  = getWords(labelj, " ", &count);
     if (words[0]) {
       length = strlen(words[0]);
@@ -829,6 +830,7 @@ bool_t RLKdeterminate_ac(char *labeli, char *labelj, RLK_Line *rlk)
       rlk->lj = getOrbital(toupper(orbit[0])); 
     } else return FALSE;
 
+    if ((rlk->li == -1) || (rlk->lj == -1)) return FALSE;
     return TRUE;
 }
 
@@ -846,7 +848,7 @@ bool_t RLKdeterminate(char *labeli, char *labelj, RLK_Line *rlk)
   int    count, multiplicity, length, Nread, Ji, Jj;
 
   /* --- Get spin and orbital quantum numbers from level labels -- -- */
-
+  
   words  = getWords(labeli, " ", &count);
   if (words[0]) {
     length = strlen(words[count-1]);
