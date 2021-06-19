@@ -1,0 +1,46 @@
+#
+# Compilers
+#
+#CC  = gcc
+#CXX = g++
+#FC  = gfortran
+
+
+#
+# MPI assignments
+#
+OMPI_FC = $(FC)
+OMPI_CXX = $(CC)
+OMPI_CC = $(CC)
+MPCXX = mpicc
+MPFC = mpif90
+
+LINKER = $(MPCXX)
+
+#
+# OPTIMIZATION
+#
+OPTS = -O3 -I$(CONDA_PREFIX)/include
+CXXFLAGS = $(OPTS) -std=c++11 
+CFLAGS = $(OPTS) 
+FFLAGS = $(OPTS)
+AR = ar
+OPENMP = -fopenmp
+
+LINKEROPTS =  -lgfortran 
+
+
+#
+# GSL, FFTW3 libs.
+# In macports, the defaul is /opt/local.
+#
+GSLPATH = $(CONDA_PREFIX)
+
+
+#
+# Mac related non-sense 
+#
+#ifneq (,$(findstring Darwin,$(OS))) #
+#  MACOSX_DEPLOYMENT_TARGET=10.6
+#  export MACOSX_DEPLOYMENT_TARGET
+#endif

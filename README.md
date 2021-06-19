@@ -40,6 +40,29 @@ It makes use of the following libraries: Eigen-3, FFTW-3, netCDF4-cxx4, openmpi-
 
 The code has been extensively run in Linux and OSX.
 
+## Dependencies with Anaconda
+
+The dependencies can also be installed with the Anaconda package manager. We recommend the users to create
+a new isolated environment:
+
+In linux:
+
+   conda create --name stic
+   conda activate stic
+   conda install gcc_linux-64 gxx_linux-64 gfortran_linux-64 openmpi fftw eigen netcdf-cxx4 libnetcdf netcdf4 -c conda-forge
+   conda deactivate
+   conda activate stic
+
+In OSX:
+
+   conda create --name stic
+   conda activate stic
+   conda install gfortran openmpi fftw eigen netcdf-cxx4 libnetcdf netcdf4 -c conda-forge
+   conda deactivate
+   conda activate stic
+
+Use the appropriate makefiles for the Anaconda installation.
+
 ## Compilation instructions
 
 Very detailed compilation instructions for OSX and Linux can be found [here](http://dubshen.astro.su.se/~jaime/stic_compile.txt). However, we include a brief explanation,
