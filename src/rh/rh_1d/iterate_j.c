@@ -97,7 +97,7 @@ void Iterate_j(int NmaxIter, double iterLimit, double *dpopmax_out)
     input.prdswitch = 1.0;
 
   
-  while ((niter <= NmaxIter || niter < 3) && !StopRequested()) {
+  while ((niter <= NmaxIter || niter < 3)) {
     getCPU(2, TIME_START, NULL);
     mpi.iter = niter;
     
