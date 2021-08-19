@@ -1318,3 +1318,59 @@ void mdepthall::write_model2(string &filename, int tstep){
 }
 
 
+void Ncompress(int const n,  double*  x,  double*  y, int const nn,  double*  xx, double*  yy)
+{
+  if(nn == 0) return;
+  else if(nn == 1){
+    double tmp = 0.0;
+    for(int zz = 0; zz<n;zz++) tmp += y[zz];
+    yy[0] = tmp / (double)n;
+    return;
+  } else {
+    linpol<double, double>(n, x, y, nn, xx, yy, false);
+    return;
+  }
+}
+
+double* mdepth::compress(nodes_t &n)const
+{
+  int const nnodes = n.nnodes;
+  //int const ndep = temp.size(2);
+  double *tmp = new double [nnodes]();
+  
+  int k = 0;
+  int nn = 0;
+	
+  // Temp
+  nn = (int)n.temp.size();
+  Ncompress(ndep, ltau, temp, nn, &n.temp[0], &tmp[k]);
+  k += nn;
+  
+  // v_los
+  nn = (int)n.v.size();
+  Ncompress(ndep, ltau, v, nn, &n.v[0], &tmp[k]);
+  k += nn;
+  
+  // vturb
+  nn = (int)n.vturb.size();
+  Ncompress(ndep, ltau, vturb, nn, &n.vturb[0], &tmp[k]);
+  k += nn;
+  
+  // Bl
+  nn = (int)n.bl.size();
+  Ncompress(ndep, ltau, bl, nn, &n.bl[0], &tmp[k]);
+  k += nn;
+  
+  // Bh
+  nn = (int)n.bh.size();
+  Ncompress(ndep, ltau, bh, nn, &n.bh[0], &tmp[k]);
+  k += nn;
+  
+  // azi
+  nn = (int)n.azi.size();
+  Ncompress(ndep, ltau, azi, nn, &n.azi[0], &tmp[k]);
+  k += nn;
+  
+  
+  return tmp;
+}

@@ -57,6 +57,7 @@ class mdepth{
   void optimize_depth(eoswrap &eos, float tcut, int smooth = 0);
   void optimize_depth_ltau(eoswrap &eos, float tcut);
   void to_txt(const std::string &fname);
+  double* compress(nodes_t &nodes)const;
 
   
   mdepth& operator= ( mdepth &m);

@@ -944,9 +944,25 @@ int getChi2(int npar1, int nd, double *pars1, double *syn_in, double *dev, doubl
 
   /* ---  compute regularization --- */ 
 
-  if(dregul.to_reg)
-    getDregul2(pars1, npar1, dregul, atm.input.nodes);
+  if(dregul.to_reg){
+    if(atm.input.depth_model == 0){
+      getDregul2(pars1, npar1, dregul, atm.input.nodes);
+    }else{
+      // --- Need to extract the total node value from the stratified atmosphere --- //\
       
+      double* compressed_pars = m.compress(atm.input.nodes);
+
+      // --- Normalize them --- //
+      
+      for(int zz=0; zz<npar1; ++zz)
+	compressed_pars[zz] /= atm.scal[zz];
+
+      getDregul2(compressed_pars, npar1, dregul, atm.input.nodes);
+
+      delete [] compressed_pars; // cleanup
+    }
+  }
+  
   /* --- clean up --- */
   
   delete [] ipars;
