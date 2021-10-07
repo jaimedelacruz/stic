@@ -56,60 +56,61 @@ extern char messageStr[];
 
 void getCPU(int level, enum CPUaction action, char *label)
 {
-  register int n;
+  
+/*   register int n; */
+  
+/*   int Nblanck, Nspace, Ndot; */
 
-  int Nblanck, Nspace, Ndot;
+/* #if defined(SunOS5) */
+/*   static hrtime_t CPU[N_TIME_LEVELS]; */
+/*   static double   scale = NANOSECOND; */
+/*   hrtime_t CPUtime; */
+/* #else */
+/*   static clock_t CPU[N_TIME_LEVELS]; */
+/*   static double  scale = 1.0 / CLOCKS_PER_SEC; */
+/*   clock_t CPUtime; */
+/* #endif */
 
-#if defined(SunOS5)
-  static hrtime_t CPU[N_TIME_LEVELS];
-  static double   scale = NANOSECOND;
-  hrtime_t CPUtime;
-#else
-  static clock_t CPU[N_TIME_LEVELS];
-  static double  scale = 1.0 / CLOCKS_PER_SEC;
-  clock_t CPUtime;
-#endif
+/*   if (level == 0 && action == TIME_START && !commandline.showkeywords) { */
+/*     stats.fp_CPU = fopen(TIME_DOT_OUT, "w"); */
+/*     setvbuf(stats.fp_CPU, NULL, _IOLBF, BUFSIZ); */
+/*   } */
 
-  if (level == 0 && action == TIME_START && !commandline.showkeywords) {
-    stats.fp_CPU = fopen(TIME_DOT_OUT, "w");
-    setvbuf(stats.fp_CPU, NULL, _IOLBF, BUFSIZ);
-  }
+/*   if (!stats.printCPU || !stats.fp_CPU) */
+/*     return; */
+/*   else { */
 
-  if (!stats.printCPU || !stats.fp_CPU)
-    return;
-  else {
+/* #if defined(SunOS5) */
+/*     /\* --- Use high-resolution time on SUN Solaris machines -- ------ *\/ */
 
-#if defined(SunOS5)
-    /* --- Use high-resolution time on SUN Solaris machines -- ------ */
+/*     CPUtime = gethrtime(); */
+/* #else */
+/*     if ((CPUtime = clock()) == ((clock_t) -1)) { */
+/*       sprintf(messageStr, "Cannot poll resources"); */
+/*       Error(ERROR_LEVEL_1, "getCPU", messageStr); */
+/*     } */
+/* #endif */
 
-    CPUtime = gethrtime();
-#else
-    if ((CPUtime = clock()) == ((clock_t) -1)) {
-      sprintf(messageStr, "Cannot poll resources");
-      Error(ERROR_LEVEL_1, "getCPU", messageStr);
-    }
-#endif
+/*     switch (action) { */
+/*     case TIME_START: */
+/*       CPU[level] = CPUtime; */
+/*       return; */
+/*     case TIME_POLL: */
+/*       CPUtime = CPUtime - CPU[level]; */
+/*       break; */
+/*     case TIME_ADD: */
+/*       break; */
+/*     } */
+/*   } */
+/*   /\* --- Format output --                              -------------- *\/ */
 
-    switch (action) {
-    case TIME_START:
-      CPU[level] = CPUtime;
-      return;
-    case TIME_POLL:
-      CPUtime = CPUtime - CPU[level];
-      break;
-    case TIME_ADD:
-      break;
-    }
-  }
-  /* --- Format output --                              -------------- */
+/*   Nspace  = (level < 4) ? level + 1 : 4; */
+/*   Ndot    = TAB_POSITION - Nspace - strlen(label); */
+/*   Nblanck = (level > 2) ? 0 : 3 - level; */
 
-  Nspace  = (level < 4) ? level + 1 : 4;
-  Ndot    = TAB_POSITION - Nspace - strlen(label);
-  Nblanck = (level > 2) ? 0 : 3 - level;
-
-  fprintf(stats.fp_CPU, "%.*s%.*s%s: %7.3f [sec]\n", Nspace, SPACES,
-	  Ndot, DOTS, label, CPUtime * scale);
-  for (n = 0;  n < Nblanck;  n++) fprintf(stats.fp_CPU, "\n");
+/*   fprintf(stats.fp_CPU, "%.*s%.*s%s: %7.3f [sec]\n", Nspace, SPACES, */
+/* 	  Ndot, DOTS, label, CPUtime * scale); */
+/*   for (n = 0;  n < Nblanck;  n++) fprintf(stats.fp_CPU, "\n"); */
 }
 
 /* ------- end ---------------------------- getTime.c --------------- */
@@ -118,16 +119,16 @@ void getCPU(int level, enum CPUaction action, char *label)
 
 void printTotalCPU()
 {
-  double user, system, total;
-  struct tms tms;
+  /* double user, system, total; */
+  /* struct tms tms; */
 
-  times(&tms);
-  user   = ((double) tms.tms_utime) / sysconf(_SC_CLK_TCK);
-  system = ((double) tms.tms_stime) / sysconf(_SC_CLK_TCK);
-  total  = user + system;
+  /* times(&tms); */
+  /* user   = ((double) tms.tms_utime) / sysconf(_SC_CLK_TCK); */
+  /* system = ((double) tms.tms_stime) / sysconf(_SC_CLK_TCK); */
+  /* total  = user + system; */
   
-  fprintf(stats.fp_CPU, "\nTotal_time____: %8.3f [sec] ", total);
-  fprintf(stats.fp_CPU, " (user: %4.1f%%, system: %4.1f%%)\n\n",
-	  100*user/total, 100*system/total);
+  /* fprintf(stats.fp_CPU, "\nTotal_time____: %8.3f [sec] ", total); */
+  /* fprintf(stats.fp_CPU, " (user: %4.1f%%, system: %4.1f%%)\n\n", */
+  /* 	  100*user/total, 100*system/total); */
 }
 /* ------- end ---------------------------- printTotalCPU ----------- */
