@@ -13,6 +13,7 @@
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
 
 #include "rh.h"
 #include "atom.h"
@@ -31,6 +32,44 @@ extern Atmosphere atmos;
 extern InputData input;
 extern char messageStr[];
 
+
+bool_t determinate_abo(char *label,  int *L)
+{
+  const char routineName[] = "determinate";
+
+  char multiplet[ATOM_LABEL_WIDTH+1], *ptr, **words, orbit[3];
+  int  count, multiplicity, length, off;
+
+  /* --- Get the principal, spin, orbital, and angular quantum numbers
+         from the atomic label --                      -------------- */
+
+  strcpy(multiplet, label);
+  ptr = multiplet + (strlen(multiplet) - 1);
+  while ((*ptr != 'E')  &&  (*ptr != 'O')  &&  (ptr > multiplet))  ptr--;
+  if (ptr > multiplet)
+    *(ptr + 1) = '\0';
+  else {
+    sprintf(messageStr, "Cannot determine parity of atomic level %s", label);
+    Error(WARNING, routineName, messageStr);
+    return FALSE;
+  }
+
+  words = getWords(multiplet, " ", &count);
+  length = strlen(words[count-2]);
+
+  // ---JdlCR: get the level l from the level configuration, not from the spectral term! --- //
+  sscanf(words[count-2], "%d%s", &multiplicity, orbit); 
+  free(words);
+
+  
+  /* --- Orbital quantum number --                     -------------- */
+
+  *L = getOrbital(toupper(orbit[0]));
+  if(*L == -1) return FALSE;
+
+
+  return TRUE;
+}
 
 /* ------- begin -------------------------- determinate.c ----------- */
 
@@ -138,10 +177,11 @@ double effectiveLande(AtomicLine *line)
 
 double Lande(double S, int L, double J)
 {
-  if (J == 0.0)
-    return 0.0;
-  else
-    return 1.5 + (S*(S + 1.0) - L*(L + 1)) / (2.0*J*(J + 1.0));
+  //if (J == 0.0)
+    // return 0.0;
+  //else
+    //return 1.5 + (S*(S + 1.0) - L*(L + 1)) / (2.0*J*(J + 1.0));
+  return 1.0 + zm_gamma(J, S, L);
 }
 /* ------- end ---------------------------- Lande.c ----------------- */
 
@@ -201,9 +241,20 @@ double ZeemanStrength(double Ju, double Mu, double Jl, double Ml)
 }
 /* ------- end ---------------------------- ZeemanStrength.c -------- */
 
+void initZeeman(ZeemanMultiplet *zm)
+{
+  zm->Ncomponent = 0;
+  zm->q = NULL;
+  
+  zm->shift = NULL;
+  zm->strength = NULL;
+  zm->g_eff = 0.0;
+}
+
+
 /* ------- begin -------------------------- Zeeman.c ---------------- */
 
-ZeemanMultiplet* Zeeman(AtomicLine *line)
+void* Zeeman(AtomicLine *line)
 {
   register int n;
 
@@ -230,8 +281,13 @@ ZeemanMultiplet* Zeeman(AtomicLine *line)
 
 	 --                                            -------------- */
 
-  zm = (ZeemanMultiplet *) malloc(sizeof(ZeemanMultiplet));
+  //zm = (ZeemanMultiplet *) malloc(sizeof(ZeemanMultiplet));
+  
+  line->zm = (ZeemanMultiplet *) malloc(sizeof(ZeemanMultiplet));
+  initZeeman(line->zm);
+  zm = line->zm;
 
+  
   if (line->g_Lande_eff != 0.0) {
 
     /* --- In case an effective Landee factor has been specified, or
@@ -295,9 +351,18 @@ ZeemanMultiplet* Zeeman(AtomicLine *line)
       zm->strength[n] /= norm[zm->q[n]+1];
   }
 
-  return zm;
+  zm->g_eff = effectiveLande(line);
 }
 /* ------- end ---------------------------- Zeeman.c ---------------- */
+
+double zm_gamma(double J, double S, double L)
+{
+  if (J == 0.0)
+    return 0.0;
+  else 
+    return (J * (J + 1.0) + S * (S + 1.0) - L * (L + 1.0)) /
+      (2.0*J * (J + 1.0));
+}
 
 /* ------- begin -------------------------- adjustStokesMode.c ------ */
 
@@ -366,7 +431,7 @@ void freeZeeman(ZeemanMultiplet *zm)
 
 /* ------- begin -------------------------- getOrbital.c ------------ */
 
-int getOrbital(char orbit)
+int getOrbital(char const orbit)
 {
   const char routineName[] = "getOrbital";
 

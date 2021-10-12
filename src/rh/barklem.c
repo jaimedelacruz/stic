@@ -61,6 +61,7 @@
 
 extern Atmosphere atmos;
 extern char messageStr[];
+extern bool_t determinate_abo(char *label,  int *L);
 
 
 /* ------- begin -------------------------- readBarklemTable.c ------ */
@@ -159,9 +160,9 @@ bool_t getBarklemcross(Barklemstruct *bs, RLK_Line *rlk)
   if (rlk->stage > 0)
     return FALSE;
 
-  if ((deltaEi = element->ionpot[rlk->stage] - rlk->Ei) <= 0.0)
+  if ((deltaEi = element->ionpot[rlk->stage] - rlk->level_i.E) <= 0.0)
     return FALSE;
-  if ((deltaEj = element->ionpot[rlk->stage] - rlk->Ej) <= 0.0)
+  if ((deltaEj = element->ionpot[rlk->stage] - rlk->level_j.E) <= 0.0)
     return FALSE;
 
   Z = (double) (rlk->stage + 1);
@@ -169,7 +170,7 @@ bool_t getBarklemcross(Barklemstruct *bs, RLK_Line *rlk)
   neff1 = Z * sqrt(E_Rydberg / deltaEi);
   neff2 = Z * sqrt(E_Rydberg / deltaEj);
 
-  if (rlk->Li > rlk->Lj) SWAPDOUBLE(neff1, neff2);
+  if (rlk->level_i.lower_l > rlk->level_j.lower_l) SWAPDOUBLE(neff1, neff2);
   
   if (neff1 < bs->neff1[0] || neff1 > bs->neff1[bs->N1-1])
     return FALSE;
@@ -223,9 +224,9 @@ bool_t getBarklemcross_ac(Barklemstruct *bs, RLK_Line *rlk)
   if (rlk->stage > 0)
     return FALSE;
 
-  if ((deltaEi = element->ionpot[rlk->stage] - rlk->Ei) <= 0.0)
+  if ((deltaEi = element->ionpot[rlk->stage] - rlk->level_i.E) <= 0.0)
     return FALSE;
-  if ((deltaEj = element->ionpot[rlk->stage] - rlk->Ej) <= 0.0)
+  if ((deltaEj = element->ionpot[rlk->stage] - rlk->level_j.E) <= 0.0)
     return FALSE;
 
   Z = (double) (rlk->stage + 1);
@@ -233,7 +234,7 @@ bool_t getBarklemcross_ac(Barklemstruct *bs, RLK_Line *rlk)
   neff1 = Z * sqrt(E_Rydberg / deltaEi);
   neff2 = Z * sqrt(E_Rydberg / deltaEj);
 
-  if (rlk->li > rlk->lj) SWAPDOUBLE(neff1, neff2);
+  if (rlk->level_i.lower_l > rlk->level_j.lower_l) SWAPDOUBLE(neff1, neff2);
   
   if (neff1 < bs->neff1[0] || neff1 > bs->neff1[bs->N1-1])
     return FALSE;
@@ -253,7 +254,7 @@ bool_t getBarklemcross_ac(Barklemstruct *bs, RLK_Line *rlk)
 			  bs->cross[0], findex2, findex1);
   rlk->alpha = cubeconvol(bs->N2, bs->N1,
 			  bs->alpha[0], findex2, findex1);
-
+  
   reducedmass  = AMU / (1.0/atmos.H->weight + 1.0/element->weight);
   meanvelocity = sqrt(8.0 * KBOLTZMANN / (PI * reducedmass));
   crossmean    = SQ(RBOHR) * pow(meanvelocity / 1.0E4, -rlk->alpha);
@@ -287,17 +288,15 @@ bool_t getBarklemactivecross(AtomicLine *line)
   
   if(line->cvdWaals[0] < 20.0){ 
       
-
+    
     /* --- ABO tabulations are only valid for neutral atoms  -- -------- */
     
     if (atom->stage[i] > 0) return FALSE;
     
     /* --- Get the quantum numbers for orbital angular momentum -- ---- */
     
-    determined &= determinate(atom->label[i], atom->g[i],
-			      &nq, &Sl, &Ll, &Jl);
-    determined &= determinate(atom->label[j], atom->g[j],
-			      &nq, &Su, &Lu, &Ju);
+    determined &= determinate_abo(atom->label[i], &Ll);
+    determined &= determinate_abo(atom->label[j], &Lu);
     
     /* --- See if one of the Barklem cases applies --    -------------- */
     
@@ -313,7 +312,10 @@ bool_t getBarklemactivecross(AtomicLine *line)
 	useBarklem = readBarklemTable(DF, &bs);
       }
     }
+
+    
     if (!determined || !useBarklem) return FALSE;
+
     
     /* --- Determine the index of the appropriate continuum level -- -- */
     
@@ -349,6 +351,7 @@ bool_t getBarklemactivecross(AtomicLine *line)
 				   bs.cross[0], findex2, findex1);
     line->cvdWaals[1] = cubeconvol(bs.N2, bs.N1,
 				   bs.alpha[0], findex2, findex1);
+
   }
   
   reducedmass  = AMU / (1.0/atmos.atoms[0].weight + 1.0/atom->weight);
