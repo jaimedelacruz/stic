@@ -80,7 +80,7 @@ void readAbundance(Atmosphere *atmos)
   const char routineName[] = "readAbundance";
   register int n, k, i;
 
-  char   ID[ATOM_ID_WIDTH+1], line[MAX_LINE_SIZE], *match;
+  char   ID[ATOM_ID_WIDTH+1], line[MAX_LINE_SIZE], *match = NULL;
   bool_t result = TRUE, DEX = FALSE, exit_on_EOF;
   int    Nread, pti;
   double abund, totalAbund, avgWeight, metallicity;
@@ -120,6 +120,7 @@ void readAbundance(Atmosphere *atmos)
     UpperCase(ID);
     if (strlen(ID) == 1) strcat(ID, " ");
 
+    match = NULL;
     for (n = 0;  n < atmos->Nelem;  n++) {
       if ((match = strstr(atmos->elements[n].ID, ID))) {
 	atmos->elements[n].abund = abund;
