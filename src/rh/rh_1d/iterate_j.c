@@ -196,11 +196,13 @@ void Iterate_j(int NmaxIter, double iterLimit, double *dpopmax_out)
   for (nact = 0;  nact < atmos.Nactiveatom;  nact++) {
     atom = atmos.activeatoms[nact];
     freeMatrix((void **) atom->Gamma);
+    atom->Gamma = NULL;
     NgFree(atom->Ng_n);
   } 
   for (nact = 0;  nact < atmos.Nactivemol;  nact++) {
     molecule = atmos.activemols[nact];
     freeMatrix((void **) molecule->Gamma);
+    molecule->Gamma = NULL;
     NgFree(molecule->Ng_nv);
   }
   if(input.solve_ne >= ITERATION_EOS){
