@@ -10,6 +10,7 @@
  
 #include <math.h>
 #include <stdlib.h>
+#include <float.h>
 
 #include "rh.h"
 #include "atom.h"
@@ -92,8 +93,10 @@ void LTEpops(Atom *atom, bool_t Debeye)
     }
     atom->nstar[0][k] = atom->ntotal[k] / sum;
 
-    for (i = 1;  i < atom->Nlevel;  i++)
+    for (i = 1;  i < atom->Nlevel;  i++){
       atom->nstar[i][k] *= atom->nstar[0][k];
+      atom->nstar[i][k] = MAX(atom->nstar[i][k], DBL_MIN);
+    }
   }
 
   if (Debeye) free(nDebeye);
@@ -305,9 +308,10 @@ void LTEpopsOne(Atom *atom, bool_t Debeye, int k)
     }
     atom->nstar[0][k] = atom->ntotal[k] / sum;
 
-    for (i = 1;  i < atom->Nlevel;  i++)
+    for (i = 1;  i < atom->Nlevel;  i++){
       atom->nstar[i][k] *= atom->nstar[0][k];
-    //}
+      atom->nstar[i][k] = MAX(atom->nstar[i][k], DBL_MIN);
+    }
 
   if (Debeye) free(nDebeye);
 

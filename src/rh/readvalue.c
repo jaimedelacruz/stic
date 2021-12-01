@@ -368,8 +368,8 @@ void set_S_Interpolation(char *value, void *pointer)
 
   enum S_interpol interpolation;
 
-  if (!strcmp(value, "PARABOLIC"))
-    interpolation = PARABOLIC;
+  if (!strcmp(value, "LINEAR"))
+    interpolation = LINEARS;
   else if (!strcmp(value, "BEZIER3"))
     interpolation = BEZIER3;
   else if(!strcmp(value, "CUBIC_HERMITE"))

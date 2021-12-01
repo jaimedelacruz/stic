@@ -282,6 +282,10 @@ void* Zeeman(AtomicLine *line)
 	 --                                            -------------- */
 
   //zm = (ZeemanMultiplet *) malloc(sizeof(ZeemanMultiplet));
+
+  //printf("line = %lf, Zeeman = %p\n", line->lambda0, line->zm);
+  if(line->zm != NULL)
+    freeZeeman(line->zm);
   
   line->zm = (ZeemanMultiplet *) malloc(sizeof(ZeemanMultiplet));
   initZeeman(line->zm);

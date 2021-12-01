@@ -147,7 +147,7 @@ void readInput()
 
     {"VMICRO_CHAR", "",     FALSE, KEYWORD_REQUIRED, &atmos.vmicro_char,
      setdoubleValue},
-    {"VMACRO_TRESH", "0.1", FALSE, KEYWORD_OPTIONAL, &atmos.vmacro_tresh,
+    {"VMACRO_TRESH", "0.0", FALSE, KEYWORD_OPTIONAL, &atmos.vmacro_tresh,
      setdoubleValue},
     {"LAMBDA_REF",   "500.0", FALSE, KEYWORD_DEFAULT, &atmos.lambda_ref,
      setdoubleValue},
@@ -166,6 +166,8 @@ void readInput()
      &input.magneto_optical, setboolValue},
     {"BACKGROUND_POLARIZATION", "FALSE", FALSE, KEYWORD_DEFAULT,
      &input.backgr_pol, setboolValue},
+    {"RLK_EXPLICIT", "FALSE", FALSE, KEYWORD_DEFAULT,
+     &input.RLK_explicit, setboolValue},
     {"XDR_ENDIAN", "TRUE", FALSE, KEYWORD_OPTIONAL,
      &input.xdr_endian, setboolValue},
 

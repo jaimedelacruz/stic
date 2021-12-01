@@ -22,7 +22,7 @@
 
 
 enum keywordtype  {KEYWORD_REQUIRED, KEYWORD_DEFAULT, KEYWORD_OPTIONAL};
-enum S_interpol   {PARABOLIC, BEZIER3, S_CUBIC_HERMITE};
+enum S_interpol   {LINEARS, BEZIER3, S_CUBIC_HERMITE};
 enum S_interpol_stokes  {DELO_PARABOLIC, DELO_BEZIER3};
 enum order_3D     {LINEAR_3D, BICUBIC_3D};
 enum ne_solution  {NONE, ONCE, ITERATION_EOS, ITERATION};
@@ -77,7 +77,7 @@ typedef struct {
   bool_t magneto_optical, PRD_angle_dep, XRD, Eddington,
     backgr_pol, limit_memory, allow_passive_bb, NonICE,
     rlkscatter, xdr_endian, old_background, accelerate_mols,
-    prdh_limit_mem;
+    prdh_limit_mem, RLK_explicit;
   enum   solution startJ;
   enum   StokesMode StokesMode;
   enum   S_interpol S_interpolation;
@@ -86,8 +86,8 @@ typedef struct {
   enum   ne_solution solve_ne;
   int    isum, Ngdelay, Ngorder, Ngperiod, NmaxIter,
     PRD_NmaxIter, PRD_Ngdelay, PRD_Ngorder, PRD_Ngperiod,
-    NmaxScatter, Nthreads, NlambdaIter;
-  double iterLimit, PRDiterLimit, metallicity, eos_iter_limit, ng_start_limit;
+    NmaxScatter, Nthreads, NlambdaIter,CR_Nstep ;
+  double iterLimit, PRDiterLimit, metallicity, eos_iter_limit, ng_start_limit,CR_factor;
 
   double crsw, crsw_ini;
   double prdswitch, prdsw;

@@ -336,12 +336,15 @@ void readAtom(Atom *atom, char *atom_file, bool_t active)
 	     determinate(atom->label[j], atom->g[j], &nq, &S, &L, &Ju) &&
 	     fabs(Ju - Jl) <= 1.0)) {
 
+	  /*
           if (line->Ncomponent > 1) {
 	    sprintf(messageStr,
 		    "Line %3d -> %3d: cannot treat composite line "
                     "with polarization", j, i);
 	    Error(ERROR_LEVEL_2, routineName, messageStr);
 	  }
+	  */
+	  
 	  line->polarizable = TRUE;
 	} else {
 	  sprintf(messageStr,
@@ -666,6 +669,8 @@ void initAtomicLine(AtomicLine *line)
   line->id1 = NULL;
   line->gII = NULL;
   line->Jgas = NULL;
+  line->zm = NULL;
+  
   // line->iprdh = NULL;
   //line->cprdh = NULL;
   //line->nc = NULL;
@@ -757,6 +762,8 @@ void freeAtomicLine(AtomicLine *line)
   if (line->Qelast != NULL)  free(line->Qelast);
   if (line->rho_prd != NULL) freeMatrix((void **) line->rho_prd);
   if (line->fp_GII != NULL)  free(line->fp_GII);
+  if(atmos.Stokes && line->polarizable)
+    if(line->zm)  freeZeeman(line->zm);
 }
 /* ------- end ---------------------------- freeAtomicLine.c -------- */
 

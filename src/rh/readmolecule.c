@@ -675,8 +675,9 @@ void readMolecularLines(struct Molecule *molecule, char *line_data)
       case 36: mrt->isotope_frac = C_13;        break;
       default: mrt->isotope_frac = 1.0;
       }
+      
+      mrt->polarizable = FALSE;	  
     }
-    mrt->polarizable = FALSE;
 
   } else if (strstr(format_string, "KURUCZ_CD18") ||
 	     strstr(format_string, "KURUCZ_NEW")  ||

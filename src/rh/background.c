@@ -144,7 +144,7 @@ void Background(bool_t write_analyze_output, bool_t equilibria_only)
 
   static int ne_iter = 0;
   char    inputLine[MAX_LINE_SIZE];
-  bool_t  exit_on_EOF, do_fudge, fromscratch;
+  bool_t  exit_on_EOF, do_fudge = FALSE, fromscratch;
   int     backgrrecno, index, Nfudge, NrecStokes;
   double *chi, *eta, *scatt, wavelength, *thomson, *chi_ai, *eta_ai, *sca_ai,
           Hmin_fudge, scatt_fudge, metal_fudge, *lambda_fudge, **fudge,
@@ -191,6 +191,7 @@ void Background(bool_t write_analyze_output, bool_t equilibria_only)
   }
     
   getCPU(3, TIME_START, NULL);
+  
   if (strcmp(input.fudgeData, "none")) {
     do_fudge = TRUE;
 
@@ -688,6 +689,12 @@ void Background(bool_t write_analyze_output, bool_t equilibria_only)
     free(lambda_fudge);
     freeMatrix((void **) fudge);
   }
+
+  //for (n = 0;  n < atmos.Nrlk;  n++) {
+  //  if (atmos.rlk_lines[n].zm != NULL) freeZeeman(atmos.rlk_lines[n].zm);
+  // }
+  //free(atmos.rlk_lines);
+
   getCPU(2, TIME_POLL, "Total Background");
 }
 /* ------- end ---------------------------- Background.c ------------ */

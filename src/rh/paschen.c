@@ -52,10 +52,10 @@ void Paschen_Back()
 
 void Paschen(double L, double S, double *E0, double B, Paschenstruct *ps)
 {
-  register int M, j, jp;
+  register int j, jp;
 
   int Mindex;
-  double Larmor, *ud, J, Jp, Jmin, Jmax, Ja, Jb;
+  double M, Larmor, *ud, J, Jp, Jmin, Jmax, Ja, Jb;
 
   /* --- See: E. Landi Degl'Innocenti & M. Landolfi, 2004
               "Polarization in Spectral Lines", Kluwer
