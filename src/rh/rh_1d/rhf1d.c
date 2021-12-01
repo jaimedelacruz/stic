@@ -76,8 +76,10 @@ MPI_t mpi;
 
 int bdir_exists(const char *name){
   DIR* dir = opendir(name);
-  if (dir) return 1;
-  else return 0;
+  if (dir){
+    closedir(dir);
+    return 1;
+  }else return 0;
 }
 
 
