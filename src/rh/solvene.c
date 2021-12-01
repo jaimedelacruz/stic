@@ -169,7 +169,12 @@ void getfjk(Element *element, double ne, int k, double *fjk, double *dfjk)
       dfjk[j] = 0.0;
     }
     for (i = 0;  i < atom->Nlevel;  i++)
-      fjk[atom->stage[i]] += atom->stage[i] * atom->n[i][k];
+
+      /* --- Correction (CMO): no multiplication with stage[i] -- --- */
+
+      
+      // fjk[atom->stage[i]] += atom->stage[i] * atom->n[i][k];
+      fjk[atom->stage[i]] += atom->n[i][k];
 
     for (j = 0;  j < element->Nstage;  j++) fjk[j] /= atom->ntotal[k];
   } else {
