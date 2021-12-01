@@ -151,8 +151,7 @@ inline void m4inv(double MI[4][4]){
   return;
 }
 /* --------------------------------------------------------------- */
-
-inline double signFortran(const double val)
+double signFortran(const double val)
 {
   return ((val >= 0.0)? 1.0 : -1.0);
 }
@@ -178,7 +177,7 @@ inline double signFortran(const double val)
 /* } */
 /* --------------------------------------------------------------- */
 
-inline double cent_deriv(double odx,double dx,
+double cent_deriv(double odx,double dx,
 			 double yu,double y0, double yd)
 {
   /* --- Derivatives from Steffen (1990) --- */
@@ -191,7 +190,7 @@ inline double cent_deriv(double odx,double dx,
 
 /* --------------------------------------------------------------- */
 
-inline void cent_deriv_mat(double wprime[4][4], double dsup, double dsdn,
+void cent_deriv_mat(double wprime[4][4], double dsup, double dsdn,
 			   double chiup[4][4], double chic[4][4], double chidn[4][4])
 {
   register int i,j;
@@ -204,7 +203,7 @@ inline void cent_deriv_mat(double wprime[4][4], double dsup, double dsdn,
 
 /* -------------------------------------------------------------------------- */
 
-inline void cent_deriv_vec(double wprime[4], double dsup, double dsdn,
+void cent_deriv_vec(double wprime[4], double dsup, double dsdn,
 		    double chiup[4], double chic[4], double chidn[4])
 {
   register int i;
@@ -218,7 +217,7 @@ inline void cent_deriv_vec(double wprime[4], double dsup, double dsdn,
 
   /* --- matrix multiplication --- */
 
-inline void m4m(double a[4][4], double b[4][4], double c[4][4])
+ void m4m(double a[4][4], double b[4][4], double c[4][4])
 {
   register int i, j, k;
   memset(&c[0][0],0,sizeof(double)*16);
