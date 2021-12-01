@@ -126,7 +126,8 @@ void UpdateAtmosDep(void) {
     }
 
     /* Allocate Gamma, as iterate released the memory */
-    atom->Gamma = matrix_double(SQ(atom->Nlevel), atmos.Nspace);
+    if(atom->Gamma == NULL)
+      atom->Gamma = matrix_double(SQ(atom->Nlevel), atmos.Nspace);
 
     
     /* Initialise some continuum quantities */
