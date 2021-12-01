@@ -115,6 +115,18 @@
 #  SOLVE_NE = ITERATION
 #  EOS_ITER_LIMIT = 1.E-3
 
+# RLK_EXPLICIT allows the user to use formatted labels in order
+# to compute also JJ and JK coupling. From RH's documentation:
+#      LS_COUPLING: [m,L]             Exmpl: '[2P]      ' --> S = 0.5, L = 1
+#      JK_COUPLING: (M1L1J1)lmK       Exmpl: '(6D4.5)f2K' --> S1 = 2.5, L1 = 2,
+#                                               J1 = 4.5, l = 3, K = 3.5
+#      JJ_COUPLING: {j1l1j2l2}        Exmpl: '{1.5p2.5s}' --> j1 = 1.5,
+#                                               l1 = 1, j2 = 2.5, l2 = 0
+#
+
+  RLK_EXPLICIT = FALSE
+
+
 # Set HYDROGEN_LTE = TRUE if hydrogen in the background has to be
 # treated with LTE populations (KEYWORD_DEFAULT). Default is FALSE
 
