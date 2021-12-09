@@ -20,6 +20,7 @@ class mdepth{
   double *temp, *nne, *rho, *pgas, *bl,
     *bh, *azi, *v, *vturb, *ltau,
     *z, *pel, *tau, *cmass;
+  double tr_loc, tr_amp;
   int ndep;
   mat<double> cub;
   double bound_val;
@@ -75,12 +76,13 @@ typedef mdepth mdepth_t;
 class mdepthall{
  public:
   mat<double> temp, nne, rho, pgas, bl, bh,
-    azi, v, vturb, ltau, z, pel, boundary;
+    azi, v, vturb, ltau, z, pel, boundary, tr_amp, tr_loc;
+  mat<int> tr_N;
   int ndep, btype;
   // ceos eos;
   mat<double> cub;
 
-  
+   
   
   mdepthall(int iny, int inx, int indep){//: eos(4.44){
     setsize(iny, inx, indep);
@@ -89,8 +91,8 @@ class mdepthall{
   ~mdepthall(){setsize(0,0,0);};
 
   void model_parameters (mat<double> &tmp, nodes_t &n, int nt = 1);
-  void model_parameters2(mat<double> &tmp, nodes_t &n, int nt = 1);
-  int  read_model2(std::string &filename,int tstep = 0,  bool require_tau = false);
+  void model_parameters2( mat<double> &tmp, nodes_t &n, int nt = 1);
+  int  read_model2(iput_t const& input, std::string &filename,int tstep = 0,  bool require_tau = false);
   void compress(int n, double *x, double *y, int nn, double *xx, double *yy);
   void compress(int n, float *x, float *y, int nn, double *xx, double *yy);
 
@@ -99,7 +101,7 @@ class mdepthall{
   void expandAtmos(nodes_t &nodes, mat<double> &pars, int interpolation = 0);
   void expand(int n, double *x, double *y, int nn, double *xx, double *yy, int interpolation = 0);
   void write_model(std::string &filename, int tstep = 0);
-  void write_model2(std::string &filename, int tstep = 0);
+  void write_model2(iput_t const& input, std::string &filename, int tstep = 0);
 
 };
 typedef mdepthall mdepthall_t;

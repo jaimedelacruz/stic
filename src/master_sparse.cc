@@ -133,7 +133,7 @@ void master_inverter(mdepthall_t &model, mat<double> &pars, mat<double> &obs, ma
 
       /* --- Copy data to single pixel model --- */
       
-      memcpy(&m.cub.d[0], &model.cub(yy,xx,0,0), 13*ndep*sizeof(double));
+      memcpy(&m.cub.d[0], &model.cub(yy,xx,0,0), 12*ndep*sizeof(double));
       m.bound_val = model.boundary(yy,xx);
 
       // --- update instrumental info --- //
@@ -155,8 +155,8 @@ void master_inverter(mdepthall_t &model, mat<double> &pars, mat<double> &obs, ma
 
       /* --- Copy inverted model back to model cube --- */
       
-      memcpy( &model.cub(yy,xx,0,0), &m.cub.d[0], 13*ndep*sizeof(double));
-
+      memcpy( &model.cub(yy,xx,0,0), &m.cub.d[0], 12*ndep*sizeof(double));
+      
       
       per = ++kk / (nx*ny);
       if(per > oper){
@@ -260,7 +260,7 @@ void do_master_sparse(int myrank, int nprocs,  char hostname[]){
   }
 
   // Read model for tstep = 0
-  input.boundary = im.read_model2(input.imodel, 0, true);
+  input.boundary = im.read_model2(input, input.imodel, 0, true);
   input.ndep = im.ndep;
   
   /* ---
@@ -378,7 +378,7 @@ void do_master_sparse(int myrank, int nprocs,  char hostname[]){
       }
     }
     
-    if(tt > 0) im.read_model2(input.imodel, tt, true);
+    if(tt > 0) im.read_model2(input, input.imodel, tt, true);
 
     /* --- Check dimensions in inversion mode --- */
     
@@ -442,7 +442,7 @@ void do_master_sparse(int myrank, int nprocs,  char hostname[]){
       /* --- Write model parameters, profiles and depth-stratified atmos --- */
       
       //omfile.write_Tstep(string("model"), model, tt);
-      im.write_model2(input.oatmos, tt);
+      im.write_model2(input, input.oatmos, tt);
     }
 
     opfile.write_Tstep(string("profiles"), obs, tt);

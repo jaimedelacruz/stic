@@ -17,10 +17,10 @@ extern "C" {
 using namespace std;
 using namespace phyc;
 //
-const double crh::pmax[7]  = {90000., 150.e5, 15e5, 5000.0, 5000., PI, 10.0};
-const double crh::pmin[7]  = {3100. ,-150.e5,  +0.0,-5000.0,  +0.0,  +0.0, 0.1};
-const double crh::pscal[7] = {5000. , 6.0e5, 6.0e5, 700.0, 700.0, PI, 1.0};
-const double crh::pstep[7] = {1.e-1 , 1.e-1, 1.0e-1, 2.0e-1, 2.0e-1, 1.0e-1, 1.0e-1};
+const double crh::pmax[9]  = {90000., 150.e5, 15e5, 5000.0, 5000., PI, 10.0, 10000, 4.0};
+const double crh::pmin[9]  = {3100. ,-150.e5,  +0.0,-5000.0,  +0.0,  +0.0, 0.1, 0, 1.0};
+const double crh::pscal[9] = {5000. , 6.0e5, 6.0e5, 700.0, 700.0, PI, 1.0, 1, 1};
+const double crh::pstep[9] = {1.e-1 , 1.e-1, 1.0e-1, 2.0e-1, 2.0e-1, 1.0e-1, 1.0e-1, 1.0001, 1.e-1};
 
 /* ----------------------------------------------------------------*/
 
@@ -40,6 +40,8 @@ vector<double> crh::get_max_limits(nodes_t &n, int mode){
       else if(n.ntype[k] == bh_node  ) mmax[k] = pmax[4];
       else if(n.ntype[k] == azi_node  ) mmax[k] = pmax[5];
       else if(n.ntype[k] == pgas_node ) mmax[k] = pmax[6];
+      else if(n.ntype[k] == tr_node_loc) mmax[k] = pmax[7];
+      else if(n.ntype[k] == tr_node_amp) mmax[k] = pmax[8];
       else                              mmax[k] = 0;
     }
   }
@@ -73,6 +75,8 @@ vector<double> crh::get_min_limits(nodes_t &n, int mode){
       else if(n.ntype[k] == bh_node  ) mmin[k] = pmin[4];
       else if(n.ntype[k] == azi_node  ) mmin[k] = pmin[5];
       else if(n.ntype[k] == pgas_node ) mmin[k] = pmin[6];
+      else if(n.ntype[k] == tr_node_loc) mmin[k] = pmin[7];
+      else if(n.ntype[k] == tr_node_amp) mmin[k] = pmin[8];
       else                              mmin[k] = 0;
     }
   }
@@ -97,7 +101,7 @@ vector<double> crh::get_scaling(nodes_t &n, int mode){
   
   if(kmx > 0){
 
-    scal.resize(nnodes);
+    scal.resize(nnodes, 1.0);
 
   
     for(int k = 0; k<kmx; k++){
@@ -108,6 +112,8 @@ vector<double> crh::get_scaling(nodes_t &n, int mode){
       else if(n.ntype[k] == bh_node  ) scal[k] = pscal[4];
       else if(n.ntype[k] == azi_node  ) scal[k] = pscal[5];
       else if(n.ntype[k] == pgas_node ) scal[k] = pscal[6];
+      else if(n.ntype[k] == tr_node_loc) scal[k] = pscal[7];
+      else if(n.ntype[k] == tr_node_amp) scal[k] = pscal[8];
       else                              scal[k] = 1.0;
     }
   }
@@ -132,18 +138,17 @@ vector<double> crh::get_steps(nodes_t &n, int mode){
   int nnodes = (int)n.nnodes;
   step.resize(nnodes);
 
-  double ipstep[7];
+  double ipstep[9] = {};
   double sum = 0.0;
   
-  for(int ii=0;ii<7;ii++){
+  for(int ii=0;ii<9;ii++){
     sum += pstep[ii];
     ipstep[ii] = pstep[ii];
   }
-  sum /= 7.0;
+  sum /= 9.0;
   
-  for(int ii=0;ii<7;ii++){
+  for(int ii=0;ii<9;ii++){
     ipstep[ii]/= sum;
-    // cerr<<ipstep[ii]<<endl;
   }
   for(int k = 0; k<nnodes; k++){
     if     (n.ntype[k] == temp_node ) step[k] = ipstep[0];
@@ -153,6 +158,8 @@ vector<double> crh::get_steps(nodes_t &n, int mode){
     else if(n.ntype[k] == bh_node  ) step[k] = ipstep[4];
     else if(n.ntype[k] == azi_node  ) step[k] = ipstep[5];
     else if(n.ntype[k] == pgas_node ) step[k] = ipstep[6];
+    else if(n.ntype[k] == tr_node_loc) step[k] = ipstep[7];
+    else if(n.ntype[k] == tr_node_amp) step[k] = ipstep[8];
     else                              step[k] = 1.0;
   }
   return step;

@@ -89,7 +89,7 @@ iput_t read_input(std::string filename, bool verbose){
   input.nodes.nnodes = 0;
   input.nodes.depth_t = 0;
   input.verbose = 0; // default
-  memset(&input.nodes.toinv[0],0, 7*sizeof(int));
+  memset(&input.nodes.toinv[0],0, 8*sizeof(int));
   input.solver = 0;
   input.centder = 0;
   input.init_step = -1.0;
@@ -117,6 +117,7 @@ iput_t read_input(std::string filename, bool verbose){
   input.use_eos = 1;
   input.inv_depth_opt = 0;
   input.nresp = 0;
+  input.fit_tr = 0;
   
   // Open File and read
   std::ifstream in(filename, std::ios::in | std::ios::binary);
@@ -180,6 +181,11 @@ iput_t read_input(std::string filename, bool verbose){
       }
       else if(key == "svd_thres"){
 	input.svd_thres = atof(field.c_str());
+	set = true;
+      }
+      else if(key == "fit_tr"){
+	input.fit_tr = atoi(field.c_str());
+	input.nodes.fit_tr = input.fit_tr;
 	set = true;
       }
       else if(key == "mpi_pack"){
@@ -478,6 +484,8 @@ iput_t read_input(std::string filename, bool verbose){
   else input.nodes.nnodes += input.nodes.azi.size();
 
   if(input.nodes.toinv[6] > 0) input.nodes.nnodes += 1;
+
+  if(input.fit_tr > 0) input.nodes.nnodes += 2;
   
   if(verbose && (input.nodes.nnodes > 0)) {
     std::cout << "read_input: total number of nodes = "<<input.nodes.nnodes<<std::endl;
@@ -888,8 +896,22 @@ int set_nodes(nodes_t &n, vector<double> &itau, int dint, bool verbose){
   /* --- Pgas boundary --- */
   if(n.toinv[6] > 0){
     n.pgas_off = k;
-    n.ntype[k] = pgas_node;
+    n.ntype[k++] = pgas_node;
   }
+
+
+  /* --- Do we need to add a TR? --- */
+  if(n.fit_tr > 0){
+    n.toinv[7] = 1;
+    n.tr_off = k;
+    n.ntype[k++] = tr_node_loc;
+    n.ntype[k++] = tr_node_amp;
+    if(verbose) cout<< inam << "Transition region nGrid -> "<< n.fit_tr<<endl;
+  }else{
+    n.tr_off = -1;
+  }
+
+
   
   return n.nnodes;
   

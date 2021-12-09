@@ -43,13 +43,15 @@ enum nodes_type_t{
   bl_node,
   bh_node,
   azi_node,
-  pgas_node
+  pgas_node,
+  tr_node_loc,
+  tr_node_amp
 };
 
 
 /* --- nodes struct --- */
 struct nodes{
-  int nnodes, temp_off, v_off, vturb_off, bl_off, bh_off, azi_off, pgas_off, tosend, bound,depth_t;
+  int nnodes, temp_off, v_off, vturb_off, bl_off, bh_off, azi_off, pgas_off, tosend, bound,depth_t, fit_tr, tr_off;
   std::vector<double> temp;
   std::vector<double> v;
   std::vector<double> vturb;
@@ -57,9 +59,9 @@ struct nodes{
   std::vector<double> bh;
   std::vector<double> azi;
   std::vector<nodes_type_t> ntype;
-  int toinv[7];
-  int regul_type[7], nregul;
-  double rewe[7];
+  int toinv[8];
+  int regul_type[8], nregul;
+  double rewe[8];
   double regularize[2];
 };
 typedef nodes nodes_t;
@@ -71,7 +73,8 @@ struct iput{
   unsigned long buffer_size, buffer_size1;
   int nt, ny, nx, ns, npar, npack, mode, nInv, inst_len, atmos_len, ab_len,
     nw_tot, boundary, ndep, solver, centder, thydro, dint, keep_nne, svd_split, random_first, depth_model,
-    use_geo_accel, nresp, getResponse[8], delay_bracket, vgrad, verbose, use_eos, inv_depth_opt, eos_type;
+    use_geo_accel, nresp, getResponse[8], delay_bracket, vgrad, verbose, use_eos, inv_depth_opt, eos_type,
+    fit_tr;
   double mu, chi2_thres, sparse_threshold, dpar, init_step, marquardt_damping, svd_thres,  tcut;
   std::string imodel, omodel, iprof, oprof, myid, instrument,
     atmos_type, wavelet_type, oatmos, abfile;

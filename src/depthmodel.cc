@@ -3,6 +3,7 @@
 #include <iostream>
 #include <cstdio>
 #include <cmath>
+//
 #include "depthmodel.h"
 #include "interpol.h"
 #include "ceos.h"
@@ -21,7 +22,7 @@ void mdepth::to_txt(const std::string &fname)
 {
   FILE *fout = fopen(fname.c_str(), "w");
   for(int ii=0; ii<ndep; ++ii){
-    for(int ss = 0; ss< 13; ++ss)
+    for(int ss = 0; ss< 14; ++ss)
       fprintf(fout, "%e  ", cub(ss,ii));
     fprintf(fout, "\n");
   }
@@ -32,10 +33,14 @@ void mdepth::to_txt(const std::string &fname)
 
 std::vector<double> mdepth::model2vector()
 {
-  vector<double> res(ndep*13, 0.0);
+  vector<double> res(ndep*12+2, 0.0);
   
   if(ndep >0)
-    memcpy(&res[0], &cub(0,0), ndep*13*sizeof(double));
+    memcpy(&res[0], &cub(0,0), ndep*12*sizeof(double));
+
+  int  off = ndep*12;
+  res[off++] = tr_loc;
+  res[off++] = tr_amp;
 
   return res; 
 }
@@ -46,11 +51,14 @@ void mdepth::vector2model(std::vector<double> &vec)
 {
 
   
-  int nn = (int)vec.size()/13;
+  int nn = (int)vec.size()/12;
   if(ndep != nn) setsize(nn);
 
   memcpy(&cub(0,0), &vec[0], 13*ndep*sizeof(double));
-
+  int  off = ndep*12;
+  tr_loc = vec[off++];
+  tr_amp = vec[off++];
+  
 }
 
 /* ------------------------------------------------------ */
@@ -307,6 +315,10 @@ void mdepth::setsize(int n){
   cmass = &cub(11,0);
   pel =   &cub(12,0);
   tau  =  &cub(13,0);
+
+  tr_loc = 0;
+  tr_amp = 1.0;
+  
 }
 
 void mdepth::zero(){
@@ -318,6 +330,9 @@ mdepth& mdepth::operator= (  mdepth &m)
   this->setsize(m.ndep);
   memcpy(&(this->cub(0,0)), &m.cub(0,0), 14*m.ndep*sizeof(double));
 
+  this->tr_loc = m.tr_loc;
+  this->tr_amp = m.tr_amp;
+  
   this->bound_val = m.bound_val;
   this->ref_m = m.ref_m;
   
@@ -331,7 +346,10 @@ mdepth::mdepth(const  mdepth &m)
 
   this->setsize(m.ndep);
   memcpy(&(this->cub.d[0]), &m.cub.d[0], 14*m.ndep*sizeof(double));
-
+  
+  this->tr_loc = m.tr_loc;
+  this->tr_amp = m.tr_amp;
+  
   this->bound_val = m.bound_val;
   this->ref_m = m.ref_m;
   
@@ -405,8 +423,90 @@ void mdepth::nne_enhance(nodes_t &nodes, int n, double *pars, eoswrap &eos){
 
 }
 
-void mdepth::expand(nodes_t &n, double *p, int interpol, int mtype){
+std::vector<double> expand_transition_region2(int const N, double tr_loc, double const tr_amp, int const dtr_in)
+{
+
+  //constexpr static const int dtr_in = 7;
+
+  // --- Init output array with ones --- //
+  std::vector<double> tr(N, 1.0);
+  if(tr_loc == 0) return tr;
+
+  // --- check that TR is within limits --- //
+  tr_loc = std::min<double>(tr_loc, N-1);
+  int    const dtr = std::min<int>(dtr_in, int(tr_loc));
+  double const i0  = std::max(0.0, tr_loc-dtr);
+  double const i1  = tr_loc;
+
+  // --- define linear integration limits in index numbers --- //
+  int const ii0 = int(floor(i0)+0.1);
+  int const ii1 = int(ceil(i1)+0.1);
+  int const nn  = ii1-ii0;
+
+  // --- Array with the desired output x-values --- //
+  std::vector<double> xx(nn, 0.0);
+  for(int ii=0; ii<nn; ++ii)
+    xx[ii] = ii+ii0;
+
+  // --- Fill the left-hand side of the atmos with TR value --- //
+  for(int ii=0; ii<ii0; ++ii)
+    tr[ii] = tr_amp;
+
+  // --- Interpolate gradient --- //
+  double const x[2] = {i0, i1};
+  double const y[2] = {tr_amp, 1.0};
+  linpol(2, x, y, nn, &xx[0], &tr[ii0], false);
   
+  return tr;
+}
+
+std::vector<double> expand_transition_region(int const N, double tr_loc, double const tr_amp, int const dtr_in)
+{
+
+  // --- Init output array with ones --- //
+  std::vector<double> tr(N, 1.0);
+  if((tr_loc == 0) || (tr_amp <= 1.0)) return tr;
+
+  // --- check that TR is within limits --- //
+  tr_loc = std::min<double>(tr_loc, N-1);
+  int    const dtr = std::min<int>(dtr_in, int(tr_loc));
+  double const i0  = std::max(0.0, tr_loc-dtr);
+  double const i1  = tr_loc;
+
+  // --- define calculation limits in index numbers --- //
+  int const ii0 = int(floor(i0)+0.1);
+  int const ii1 = int(ceil(i1)+0.1);
+  double const dnn = i1-i0;
+
+  // --- Fill the left-hand side of the atmos with TR value --- //
+  for(int ii=0; ii<ii0; ++ii)
+    tr[ii] = tr_amp;
+
+  // --- Take the tanh decay --- //
+  double imax = 0, imin = 0;
+  
+  for(int ii=ii0; ii<=ii1; ++ii){
+    double const x = ((i1-double(ii)) / dnn - 0.5) * 1.4*  phyc::PI;
+    double const y =  tanh(x);
+    tr[ii] = y;
+    
+    imax = std::max(imax, y);
+    imin = std::min(imin, y);
+  }
+
+  // --- And scale it properly --- //
+  double const scl = (tr_amp - 1.0) / (imax-imin);
+  for(int ii=ii0; ii<=ii1; ++ii){
+    tr[ii] = (tr[ii] - imin) * scl + 1.0;
+  }
+  
+  return tr;
+}
+
+
+
+void mdepth::expand(nodes_t &n, double *p, int interpol, int mtype){
+
   double *dep = NULL;
   if(n.depth_t == 0) dep = ltau;
   else               dep = cmass;
@@ -415,8 +515,10 @@ void mdepth::expand(nodes_t &n, double *p, int interpol, int mtype){
   if(mtype == 0){ // Nodes are the actual value of the model
     
     if(n.toinv[0]){
+      // --- expand nodes --- //
       int len = (int)n.temp.size();
-      nodes2depth(len, &n.temp[0], &p[n.temp_off], ndep, dep, &temp[0], interpol, true);
+      nodes2depth(len, &n.temp[0], &p[n.temp_off], ndep, dep, &temp[0], interpol, false);
+
     }
     
     if(n.toinv[1]){
@@ -451,8 +553,29 @@ void mdepth::expand(nodes_t &n, double *p, int interpol, int mtype){
       else if(n.bound == 3) nne[0]  = bound_val*p[n.pgas_off];
       else pgas[0] =  boundary_pgas_default*p[n.pgas_off];
     }
-    
 
+
+
+    // --- apply TR parameterization --- //
+    if(n.toinv[7] > 0){
+      double const tr_loc_ext = std::max(p[n.tr_off], 0.0);
+      double const tr_amp_ext = std::max<double>(p[n.tr_off+1], 1.0);
+      fprintf(stderr, "loc=%f, amp=%f\n", tr_loc_ext, tr_amp_ext);
+      
+      std::vector<double> const tr(std::move(expand_transition_region2(ndep, tr_loc_ext, tr_amp_ext, n.fit_tr)));
+      
+      for(int ii = 0; ii<ndep; ++ii)
+	temp[ii] *= tr[ii];
+
+
+      tr_amp = tr_amp_ext;
+      tr_loc = tr_loc_ext;
+    }else{
+      tr_amp = 1.0;
+      tr_loc = 0.0;
+    }
+    
+    
     
   }else{ // NICOLE/SIR behaviour: node is a correction
 
@@ -677,7 +800,7 @@ void mdepthall::setsize(int ny, int nx, int ndep, bool verbose){
   if(verbose) std::cout << inam << "["<<dims[0]<<" "<<dims[1]<<" "<<dims[2]<<"]"<<std::endl;
 		 
 
-  cub.set({ny, nx, 13, ndep});
+  cub.set({ny, nx, 12, ndep});
 }
 
 
@@ -756,12 +879,12 @@ void mdepthall::model_parameters(mat<double> &tmp, nodes_t &n, int nt){
 
 }
 
-void mdepthall::model_parameters2(mat<double> &tmp, nodes_t &n, int nt){
+void mdepthall::model_parameters2( mat<double> &tmp, nodes_t &n, int nt){
 
-  int nnodes = n.nnodes;
-  int nx = cub.size(1);
-  int ny = cub.size(0);
-  int ndep = cub.size(3);
+  int const nnodes = n.nnodes;
+  int const nx = cub.size(1);
+  int const ny = cub.size(0);
+  int const ndep = cub.size(3);
     
   tmp.set({ny, nx, nnodes});
 
@@ -773,7 +896,25 @@ void mdepthall::model_parameters2(mat<double> &tmp, nodes_t &n, int nt){
 
       int k = 0;
       int nn = 0;
+
+
+      // Transition region amplification
+      if(n.toinv[7]>0){
+	tmp(yy,xx,n.tr_off) = std::max<double>(tr_loc(yy,xx),4); // Init at the fourth grid cell
+	tmp(yy,xx,n.tr_off+1) = std::max<double>(tr_amp(yy,xx),1.0);
+
+	// --- correct the temperature for the old tr amp before inferring the nodes --- //
+	std::vector<double> const tr = expand_transition_region(ndep, tr_loc(yy,xx), tr_amp(yy,xx), tr_N(yy,xx));
+
 	
+	double* const __restrict__ Tg = &cub(yy,xx,0,0);
+	for(int ii=0; ii<ndep; ++ii)
+	  Tg[ii] /= tr[ii];
+
+	// -- Take the new grid ---//
+	tr_N(yy,xx) = n.fit_tr;
+      }
+      
       // Temp
       if(n.toinv[0]){
 	nn = (int)n.temp.size();
@@ -819,15 +960,18 @@ void mdepthall::model_parameters2(mat<double> &tmp, nodes_t &n, int nt){
       // Pgas boundary
       
       if(n.toinv[6]>0){
-	tmp(yy,xx,k) = 1.0;
+	tmp(yy,xx,k++) = 1.0;
       }
+
+
+      
       
     }
 
 }
 
 
-int mdepthall::read_model2(std::string &filename, int tstep, bool require_tau){
+int mdepthall::read_model2(iput_t const& input, std::string &filename, int tstep, bool require_tau){
   io ifile(filename, netCDF::NcFile::read);
   std::string inam = "mdepthall::read_model: ";
   int idep, bound = 0;
@@ -846,6 +990,7 @@ int mdepthall::read_model2(std::string &filename, int tstep, bool require_tau){
   /* --- Allocate cube --- */
   cub.set({dims[0], dims[1], 13, dims[2]});
   ndep = dims[2];
+
 
   
   /* --- read vars, assuming they exists --- */
@@ -902,6 +1047,9 @@ int mdepthall::read_model2(std::string &filename, int tstep, bool require_tau){
 	 for(int xx = 0; xx < dims[1]; xx++)
 	   memcpy(&cub(yy,xx,4,0), &tmp(yy,xx,0), dims[2]*sizeof(double));
      }
+
+
+     
    }else{
 
      /* --- Are B and inc defined? -> Backwards compatibility  --- */
@@ -1037,9 +1185,39 @@ int mdepthall::read_model2(std::string &filename, int tstep, bool require_tau){
 	 memcpy(&cub(yy,xx,11,0), &tmp(yy,xx,0), dims[2]*sizeof(double));
    }
 
+   /* --- Tr amplification factor --- */
+   if(ifile.is_var_defined("transition_region_scale")){
+     ifile.read_Tstep<double>("transition_region_scale", tr_amp, tstep);
+   }else{
+     tr_amp.set({dims[0], dims[1]});
+     long const nTot = long(dims[0]) * long(dims[1]);
+     for(long ii=0; ii<nTot; ++ii)
+       tr_amp(ii) = 1.0;
+   }
+   
+   /* --- Tr location --- */
+   if(ifile.is_var_defined("transition_region_loc")){
+     ifile.read_Tstep<double>("transition_region_loc", tr_loc, tstep);
+   }else{
+     tr_loc.set({dims[0], dims[1]});
+     long const nTot = long(dims[0]) * long(dims[1]);
+     for(long ii=0; ii<nTot; ++ii)
+       tr_loc(ii) = 30; 
+   }
+   
+   /* --- Tr N --- */
+   if(ifile.is_var_defined("transition_region_nGrid")){
+     ifile.read_Tstep<int>("transition_region_nGrid", tr_N, tstep);
+   }else{
+     tr_N.set({dims[0], dims[1]});
+     long const nTot = long(dims[0]) * long(dims[1]);
+     for(long ii=0; ii<nTot; ++ii)
+       tr_N(ii) = input.fit_tr;
+   }
+
    
    if(set_ltau == false && set_cmass == false){
-    std::cerr << inam << "ERROR, "<<filename
+     std::cerr << inam << "ERROR, "<<filename
 	      <<" does not contain a depth-scale [ltau500] or [cmass], exiting"
 	      <<std::endl;
     exit(0);
@@ -1114,6 +1292,9 @@ void mdepthall::expandAtmos(nodes_t &n, mat<double> &pars, int interpolation){
       if(n.toinv[0]){
 	int len = (int)n.temp.size();
 	expand(len, &n.temp[0], &pars(yy,xx,n.temp_off), ndep, &cub(yy,xx,idx,0), &cub(yy,xx,0,0), interpolation);
+
+	
+	
       }
 
 
@@ -1197,13 +1378,11 @@ void mdepthall::write_model(string &filename, int tstep){
   ofile.write_Tstep(string("azi"),     azi,   tstep);
   ofile.write_Tstep(string("ltau500"), ltau,  tstep);
   ofile.write_Tstep(string("pgas"),    pgas,  tstep);
-
-  
 }
 
 
 
-void mdepthall::write_model2(string &filename, int tstep){
+void mdepthall::write_model2(iput_t const& input, string &filename, int tstep){
 
   static bool firsttime = true;
 
@@ -1238,12 +1417,15 @@ void mdepthall::write_model2(string &filename, int tstep){
     ofile.initVar<float>(string("rho"),     {"time","y", "x", "ndep"});
     ofile.initVar<float>(string("nne"),     {"time","y", "x", "ndep"});
     ofile.initVar<float>(string("cmass"),     {"time","y", "x", "ndep"});
+    ofile.initVar<float>(string("transition_region_loc"),     {"time","y", "x"});
+    ofile.initVar<float>(string("transition_region_scale"),     {"time","y", "x"});
+    ofile.initVar<int>(string("transition_region_nGrid"),     {"time","y", "x"});
 
     firsttime = false;
     
   }
   
-
+  {
   mat<double> tmp((vector<int>){dims[1], dims[2], dims[3]});
   
   /* --- write time step --- */
@@ -1312,7 +1494,13 @@ void mdepthall::write_model2(string &filename, int tstep){
     for(int xx = 0;xx<dims[2];xx++)
       memcpy(&tmp(yy,xx,0), &cub(yy,xx,11,0), dims[3]*sizeof(double));
   ofile.write_Tstep<double>(string("cmass"),    tmp,  tstep);
- 
+  }
+
+  {
+    ofile.write_Tstep<double>(string("transition_region_loc"),   tr_loc,  tstep);
+    ofile.write_Tstep<double>(string("transition_region_scale"),   tr_amp,  tstep);
+    ofile.write_Tstep<int>(string("transition_region_nGrid"),   tr_N,  tstep);
+  }
 
   
 }

@@ -31,7 +31,7 @@
 //
 using namespace std;
 //
-const double atmos::maxchange[7] = {7000., 7.0e5, 5.0e5, 600., 600., phyc::PI/5, 0.6};
+const double atmos::maxchange[9] = {7000., 7.0e5, 5.0e5, 600., 600., phyc::PI/5, 0.6, 5.0, 0.5};
 
 inline double SQ(const double a){return a*a;};
 inline double CUB(const double a){return a*a*a;};
@@ -62,6 +62,8 @@ vector<double> atmos::get_max_change(nodes_t &n, int mode){
       else if(n.ntype[k] == bh_node  ) maxc[k] = maxchange[4];
       else if(n.ntype[k] == azi_node  ) maxc[k] = maxchange[5];
       else if(n.ntype[k] == pgas_node ) maxc[k] = maxchange[6];
+      else if(n.ntype[k] == tr_node_loc  ) maxc[k] = maxchange[7];
+      else if(n.ntype[k] == tr_node_amp ) maxc[k] = maxchange[8];
       else                              maxc[k] = 0;
     }
   }
@@ -100,10 +102,16 @@ void atmos::responseFunction(int npar, mdepth_t &m_in, double *pars, int nd, dou
     
   //
   if(input.depth_model == 0){
-    if((input.nodes.ntype[pp] == temp_node) && (pval > 10000.)){
+    if((input.nodes.ntype[pp] == temp_node) && (pval > 10000.))
       pertu = input.dpar * pval * 0.25;
-    }else
+    else if(input.nodes.ntype[pp] == temp_node)
       pertu = input.dpar * scal[pp] * 0.3;
+    else if(input.nodes.ntype[pp] == tr_node_loc)
+      pertu = input.dpar * scal[pp] * 10;
+    else if(input.nodes.ntype[pp] == tr_node_amp)
+      pertu = input.dpar * scal[pp];
+    else
+      pertu = input.dpar * scal[pp];
   }else  pertu = input.dpar * scal[pp];
 
 
@@ -137,6 +145,10 @@ void atmos::responseFunction(int npar, mdepth_t &m_in, double *pars, int nd, dou
       /* -- recompute Hydro Eq. ? --- */
       
       //if(input.nodes.ntype[pp] == temp_node && input.thydro == 1)
+      bool recompute = (input.nodes.ntype[pp] == temp_node);
+      recompute = (recompute || (input.nodes.ntype[pp] == tr_node_amp));
+      recompute = (recompute || (input.nodes.ntype[pp] == tr_node_loc));
+      if(recompute && (input.thydro == 1))
 	m.getPressureScale(input.nodes.depth_t, input.boundary, *eos);
 	//m.nne_enhance(input.nodes, npar, &ipars[0], eos);
 
@@ -154,10 +166,13 @@ void atmos::responseFunction(int npar, mdepth_t &m_in, double *pars, int nd, dou
       ipars[pp] = pval + down;
       m.expand(input.nodes, &ipars[0], input.dint, input.depth_model);
       checkBounds(m);
-
-      // if(input.nodes.ntype[pp] == temp_node && input.thydro == 1)
+    
+    bool recompute = (input.nodes.ntype[pp] == temp_node);
+    recompute = (recompute || (input.nodes.ntype[pp] == tr_node_amp));
+    recompute = (recompute || (input.nodes.ntype[pp] == tr_node_loc));
+    if(recompute && (input.thydro == 1))
       m.getPressureScale(input.nodes.depth_t, input.boundary, *eos);
-	//m.nne_enhance(input.nodes, npar, &ipars[0], eos);
+    //m.nne_enhance(input.nodes, npar, &ipars[0], eos);
 
       synth(m, &spec[0], 1, (cprof_solver)input.solver, store_pops);
     }
@@ -197,15 +212,18 @@ void atmos::responseFunction(int npar, mdepth_t &m_in, double *pars, int nd, dou
     }
 
     pertu = (ipars[pp] - pval);
-    //fprintf(stderr,"pval=%e, pertu=%e, ipars=%e\n", pval, pertu, ipars[pp]);
     
     /* --- Synth --- */
     
     m.expand(input.nodes, &ipars[0],  input.dint, input.depth_model);
     checkBounds(m);
+    
+    bool recompute = (input.nodes.ntype[pp] == temp_node);
+    recompute = (recompute || (input.nodes.ntype[pp] == tr_node_amp));
+    recompute = (recompute || (input.nodes.ntype[pp] == tr_node_loc));
 
-    //  if((input.nodes.ntype[pp] == temp_node) && (input.thydro == 1))
-    m.getPressureScale(input.nodes.depth_t, input.boundary, *eos);
+    if(recompute &&  (input.thydro == 1))
+      m.getPressureScale(input.nodes.depth_t, input.boundary, *eos);
     //m.nne_enhance(input.nodes, npar, &ipars[0], eos);
       
     synth(m, &out[0], 1, (cprof_solver)input.solver, store_pops);
@@ -1189,13 +1207,15 @@ double atmos::fitModel2(mdepth_t &m, int npar, double *pars, int nobs, double *o
     if(chi2 < bestChi){
       bestChi = chi2;
       memcpy(&bestPars[0], &ipars[0], npar*sizeof(double));
-      memcpy(&best_m.cub.d[0], &m.cub.d[0], m.ndep*14*sizeof(double));
+      memcpy(&best_m.cub.d[0], &m.cub.d[0], m.ndep*12*sizeof(double));
+      best_m.tr_loc = m.tr_loc;
+      best_m.tr_amp = m.tr_amp;
       memcpy(&bestSyn[0], &lm.bestSyn[0], ndata*sizeof(double));
     }
 
     if(depth_per){
-      memcpy(&m.cub.d[0], &m2.cub.d[0], m.ndep*14*sizeof(double));
-      memcpy(&m1.cub.d[0], &m2.cub.d[0], m.ndep*14*sizeof(double));
+      memcpy(&m.cub.d[0], &m2.cub.d[0], m.ndep*12*sizeof(double));
+      memcpy(&m1.cub.d[0], &m2.cub.d[0], m.ndep*12*sizeof(double));
     }
     
     /* --- reached thresthold? ---*/
@@ -1210,9 +1230,19 @@ double atmos::fitModel2(mdepth_t &m, int npar, double *pars, int nobs, double *o
     double tmp = (obs[ww] - bestSyn[ww]) / weights.d[ww];
     sum += (tmp*tmp);
   }
+
+      
+  for(int pp = 0; pp<npar; pp++){
+    bestPars[pp] *= scal[pp];      
+  }
+  
   //fprintf(stderr,"Recomp chi2=%13.5f\n", sum/ndata);
   memcpy(&obs[0], &bestSyn[0], ndata*sizeof(double));
-  memcpy(&m.cub.d[0], &best_m.cub.d[0], m.ndep*14*sizeof(double));
+  memcpy(&m.cub.d[0], &best_m.cub.d[0], m.ndep*12*sizeof(double));
+  if(input.fit_tr){
+    m.tr_loc =  bestPars[input.nodes.tr_off];
+    m.tr_amp =  bestPars[input.nodes.tr_off+1];
+  }
   
   /* --- Clean-up --- */
   

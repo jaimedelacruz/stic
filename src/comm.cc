@@ -84,7 +84,7 @@ void comm_get_buffer_size(iput_t &input){
       input.buffer_size =
 	(input.nw_tot*4*sizeof(double) +  // Profiles
 	 input.npar*sizeof(double) + // Model
-	 (13 * input.ndep + 1)* sizeof(double) + //non-inverted quantities
+	 (12 * input.ndep +2+ 1)* sizeof(double) + //non-inverted quantities
 	 2*sizeof(double)) * input.npack + // Chi2, boundary value
 	6*sizeof(int) +      // xx, yy, iproc, pix, action, npacked
 	ninstrumentaldata * sizeof(double);      
@@ -106,17 +106,17 @@ void comm_get_buffer_size(iput_t &input){
 	8*sizeof(int) + // xx, yy, iproc, pix, action, npacked, ndep, cgrad
 	input.npar*sizeof(double) * input.npack + // Values of the nodes * npacked
 	1*sizeof(double) + // perturbation to the parameter
-	(13*input.ndep + 1)*sizeof(double)*input.npack; // atmospheric model
+	(12*input.ndep + 1+2)*sizeof(double)*input.npack; // atmospheric model
       
       input.buffer_size1 = (input.nw_tot*4*sizeof(double) +                    
 			    input.nw_tot*4*input.npar*sizeof(double) + // Derivatives
 			    1*sizeof(double)) * input.npack +// perturbation to the parameter
-	                    13*input.npack*input.ndep*sizeof(double)+ // Send back the pressure scale
+	(13*input.ndep+2)*input.npack*sizeof(double)+ // Send back the pressure scale
 	                    6*sizeof(int); // xx, yy, ipix, npacked, iproc
 
     case 4:// Synthesis + derivatives at all heights
       input.buffer_size =
-	(13 * input.ndep * sizeof(double)) * input.npack + // depth-stratified quantities
+	(12 * input.ndep * sizeof(double)) * input.npack + // depth-stratified quantities
 	6*sizeof(int)+ninstrumentaldata * sizeof(double);; // xx, yy, iproc, pix, action, npacked
       
       input.buffer_size1 = (input.nw_tot*4*sizeof(double) * (input.ndep*input.nresp+1)) + 6*sizeof(int);
@@ -143,9 +143,9 @@ void comm_send_parameters(iput_t &input){
   status = MPI_Bcast(&nregions,  1,    MPI_INT, 0, MPI_COMM_WORLD);  
   status = MPI_Bcast(&input.buffer_size,  2,    MPI_UNSIGNED_LONG, 0, MPI_COMM_WORLD);
 
-  status = MPI_Bcast(&input.nt, 38,    MPI_INT, 0, MPI_COMM_WORLD); // We are sending 11 ints from the struct!
-  status = MPI_Bcast(&input.nodes.regul_type, 8,    MPI_INT, 0, MPI_COMM_WORLD); // We are getting 15 ints from the struc
-  status = MPI_Bcast(&input.nodes.rewe, 9,    MPI_DOUBLE, 0, MPI_COMM_WORLD); // We are getting 15 ints from the struct!
+  status = MPI_Bcast(&input.nt, 39,    MPI_INT, 0, MPI_COMM_WORLD); // We are sending 11 ints from the struct!
+  status = MPI_Bcast(&input.nodes.regul_type, 9,    MPI_INT, 0, MPI_COMM_WORLD); // We are getting 15 ints from the struc
+  status = MPI_Bcast(&input.nodes.rewe, 10,    MPI_DOUBLE, 0, MPI_COMM_WORLD); // We are getting 15 ints from the struct!
   // status = MPI_Bcast(&input.nodes.nregul,     1,    MPI_INT, 0, MPI_COMM_WORLD);
 
 
@@ -226,11 +226,11 @@ void comm_send_parameters(iput_t &input){
     
     
     // Total number of nodes
-    status = MPI_Bcast(&input.nodes.nnodes,     9,    MPI_INT, 0, MPI_COMM_WORLD);
+    status = MPI_Bcast(&input.nodes.nnodes,     13,    MPI_INT, 0, MPI_COMM_WORLD);
     
     
     // Variables to Invert
-    status = MPI_Bcast(input.nodes.toinv,     7,    MPI_INT, 0, MPI_COMM_WORLD);
+    status = MPI_Bcast(input.nodes.toinv,     8,    MPI_INT, 0, MPI_COMM_WORLD);
 
     
     
@@ -252,10 +252,10 @@ void comm_recv_parameters(iput_t &input){
   status = MPI_Bcast(&nline,     1,    MPI_INT, 0, MPI_COMM_WORLD);
   status = MPI_Bcast(&nregions,  1,    MPI_INT, 0, MPI_COMM_WORLD);
   status = MPI_Bcast(&input.buffer_size,  2,    MPI_UNSIGNED_LONG, 0, MPI_COMM_WORLD);
-  status = MPI_Bcast(&input.nt, 38,    MPI_INT, 0, MPI_COMM_WORLD); // We are getting 15 ints from the struct!
+  status = MPI_Bcast(&input.nt, 39,    MPI_INT, 0, MPI_COMM_WORLD); // We are getting 15 ints from the struct!
 
-  status = MPI_Bcast(&input.nodes.regul_type, 8,    MPI_INT, 0, MPI_COMM_WORLD); // We are getting 15 ints from the struct!
-  status = MPI_Bcast(&input.nodes.rewe, 9,    MPI_DOUBLE, 0, MPI_COMM_WORLD); // We are getting 15 ints from the struct!
+  status = MPI_Bcast(&input.nodes.regul_type, 9,    MPI_INT, 0, MPI_COMM_WORLD); // We are getting 15 ints from the struct!
+  status = MPI_Bcast(&input.nodes.rewe, 10,    MPI_DOUBLE, 0, MPI_COMM_WORLD); // We are getting 15 ints from the struct!
 
   // status = MPI_Bcast(&input.nodes.nregul,     1,    MPI_INT, 0, MPI_COMM_WORLD);
 
@@ -369,10 +369,10 @@ void comm_recv_parameters(iput_t &input){
     }
     
     // total number of nodes
-    status = MPI_Bcast(&input.nodes.nnodes,     9,    MPI_INT, 0, MPI_COMM_WORLD);
+    status = MPI_Bcast(&input.nodes.nnodes,     13,    MPI_INT, 0, MPI_COMM_WORLD);
     
     // Variables to Invert
-    status = MPI_Bcast(input.nodes.toinv,     7,    MPI_INT, 0, MPI_COMM_WORLD);
+    status = MPI_Bcast(input.nodes.toinv,     8,    MPI_INT, 0, MPI_COMM_WORLD);
     
     
     // Send type of nodes
@@ -436,7 +436,7 @@ void comm_master_pack_data(iput_t &input, mat<double> &obs, mat<double> &model,
 	
 
 	/* --- Pack full stratified atmos ---*/
-	len = m.ndep * nPacked * 13;
+	len = m.ndep * nPacked * 12;
 	status = MPI_Pack(&m.cub(yy,xx,0,0), len, MPI_DOUBLE, &buffer[0],
 			  input.buffer_size, &pos, MPI_COMM_WORLD);
 	
@@ -471,7 +471,7 @@ void comm_master_pack_data(iput_t &input, mat<double> &obs, mat<double> &model,
 
 	
 	/* --- Pack full stratified atmos ---*/
-	len = m.ndep * nPacked * 13;
+	len = m.ndep * nPacked * 12;
 	status = MPI_Pack(&m.cub(yy,xx,0,0), len, MPI_DOUBLE, &buffer[0],
 			  input.buffer_size, &pos, MPI_COMM_WORLD);
 
@@ -505,7 +505,7 @@ void comm_master_pack_data(iput_t &input, mat<double> &obs, mat<double> &model,
 			  input.buffer_size, &pos, MPI_COMM_WORLD);
 
 	/* --- Pack full stratified atmos ---*/
-	len = m.ndep * nPacked * 13;
+	len = m.ndep * nPacked * 12;
 	status = MPI_Pack(&m.cub(yy,xx,0,0), len, MPI_DOUBLE, &buffer[0],
 			  input.buffer_size, &pos, MPI_COMM_WORLD);
 
@@ -526,7 +526,7 @@ void comm_master_pack_data(iput_t &input, mat<double> &obs, mat<double> &model,
 			  input.buffer_size, &pos, MPI_COMM_WORLD);
 
 	/* --- pack ful model --- */
-	len = input.ndep * 13*nPacked;
+	len = input.ndep * 12*nPacked;
 	status = MPI_Pack(&m.cub(yy,xx,0,0), len, MPI_DOUBLE, &buffer[0],
 			  input.buffer_size, &pos, MPI_COMM_WORLD);
 	ipix += nPacked; // Increase the pixel count
@@ -634,7 +634,7 @@ void comm_slave_unpack_data(iput_t &input, int &action, mat<double> &obs, mat<do
 	  
 	  
 	   /* --- Unpack model atmosphere --- */
-	  len = 13 * input.ndep;
+	  len = 12 * input.ndep;
 	  for(auto &it: m){
 	    it.setsize(input.ndep);
 	    status = MPI_Unpack(buffer, input.buffer_size, &pos, &it.cub.d[0], len,
@@ -687,7 +687,7 @@ void comm_slave_unpack_data(iput_t &input, int &action, mat<double> &obs, mat<do
 	  
 	  /* --- Unpack model atmosphere --- */
 	  
-	  len = 13 * input.ndep;
+	  len = 12 * input.ndep;
 	  m.resize(nPacked);
 	  obs.set({nPacked, input.nw_tot, input.ns});
 	  
@@ -745,7 +745,7 @@ void comm_slave_unpack_data(iput_t &input, int &action, mat<double> &obs, mat<do
 
 	  
 	  /* --- Unpack model atmosphere --- */
-	  len = 13 * input.ndep;
+	  len = 12 * input.ndep;
 	  for(auto &it: m){
 	    it.setsize(input.ndep);
 	    status = MPI_Unpack(buffer, input.buffer_size, &pos, &it.cub.d[0], len,
@@ -772,7 +772,7 @@ void comm_slave_unpack_data(iput_t &input, int &action, mat<double> &obs, mat<do
 	status = MPI_Unpack(buffer, input.buffer_size, &pos, &input.yy,   1,
 			    MPI_INT, MPI_COMM_WORLD );
 
-	len = 13 * input.ndep;
+	len = 12 * input.ndep;
 	for(auto &it: m){
 	  it.setsize(input.ndep);
 	  status = MPI_Unpack(buffer, input.buffer_size, &pos, &it.cub.d[0], len,
@@ -868,12 +868,17 @@ void comm_master_unpack_data(int &iproc, iput_t input, mat<double> &obs, mat<dou
 			    len, MPI_DOUBLE, MPI_COMM_WORLD );
 	irec += nPacked;
 
-	len = input.ndep*13;
+	len = input.ndep*12;
 	for(int ii=0;ii<nPacked;ii++){
 	  comm_get_xy(pix++, input.nx, yy, xx);
 	  status = MPI_Unpack(buffer, input.buffer_size1, &pos, &m.cub(yy,xx,0,0),
 			      len, MPI_DOUBLE, MPI_COMM_WORLD);
-
+	  
+	  status = MPI_Unpack(buffer, input.buffer_size1, &pos, &m.tr_loc(yy,xx),
+			      1, MPI_DOUBLE, MPI_COMM_WORLD);
+	  status = MPI_Unpack(buffer, input.buffer_size1, &pos, &m.tr_amp(yy,xx),
+			      1, MPI_DOUBLE, MPI_COMM_WORLD);
+	  
 	}
 	break;
       }
@@ -908,13 +913,17 @@ void comm_master_unpack_data(int &iproc, iput_t input, mat<double> &obs, mat<dou
 	status = MPI_Unpack(buffer, input.buffer_size1, &pos, &obs(yy,xx,0,0), len,
 			    MPI_DOUBLE, MPI_COMM_WORLD );
 
-	len = input.ndep*13;
+	len = input.ndep*12+2;
 	int mypix = pix, iyy=0, ixx=0;
 	
 	for(int ii = 0; ii< nPacked;ii++){
 	  comm_get_xy(mypix++, nx, iyy, ixx);
 	  status = MPI_Unpack(buffer, input.buffer_size1, &pos, &m.cub(yy,xx,0,0),
 			      len, MPI_DOUBLE, MPI_COMM_WORLD);
+	  status = MPI_Unpack(buffer, input.buffer_size1, &pos, &m.tr_loc(yy,xx),
+			      1, MPI_DOUBLE, MPI_COMM_WORLD);
+	  status = MPI_Unpack(buffer, input.buffer_size1, &pos, &m.tr_amp(yy,xx),
+			      1, MPI_DOUBLE, MPI_COMM_WORLD);
 	  //cerr<<mypix-1<<" "<<iyy<<" "<<ixx<<endl;
 	}
 	  
@@ -991,7 +1000,7 @@ void comm_slave_pack_data(iput_t &input, mat<double> &obs, mat<double> &pars, ma
 			&pos, MPI_COMM_WORLD);
       
       // model
-      len = input.ndep*13;
+      len = input.ndep*12+2;
       for(int pp=0; pp<nPacked; pp++){
 	vector<double> vec = m[pp].model2vector();
 	status = MPI_Pack(&vec[0], len,  MPI_DOUBLE, &buffer[0], input.buffer_size1,
@@ -1020,7 +1029,7 @@ void comm_slave_pack_data(iput_t &input, mat<double> &obs, mat<double> &pars, ma
       status = MPI_Pack(&obs.d[0], len,  MPI_DOUBLE, &buffer[0], input.buffer_size1, &pos, MPI_COMM_WORLD);
 
       // gas pressure
-      len = input.ndep*13;
+      len = input.ndep*12+2;
       for(int pp=0; pp<nPacked; pp++){
 	vector<double> vec = m[pp].model2vector();
 	status = MPI_Pack(&vec[0], len,  MPI_DOUBLE, &buffer[0], input.buffer_size1,
