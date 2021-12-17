@@ -560,7 +560,7 @@ void mdepth::expand(nodes_t &n, double *p, int interpol, int mtype){
     if(n.toinv[7] > 0){
       double const tr_loc_ext = std::max(p[n.tr_off], 0.0);
       double const tr_amp_ext = std::max<double>(p[n.tr_off+1], 1.0);
-      fprintf(stderr, "loc=%f, amp=%f\n", tr_loc_ext, tr_amp_ext);
+      //fprintf(stderr, "loc=%f, amp=%f\n", tr_loc_ext, tr_amp_ext);
       
       std::vector<double> const tr(std::move(expand_transition_region2(ndep, tr_loc_ext, tr_amp_ext, n.fit_tr)));
       
