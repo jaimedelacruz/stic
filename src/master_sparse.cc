@@ -1,7 +1,7 @@
 #include <iostream>
 #include <string>
 #include <netcdf>
-#include <omp.h>
+//#include <omp.h>
 #include "io.h"
 #include "cmemt.h"
 #include "atmosphere.h"
@@ -28,6 +28,15 @@ void read_instruments(iput_t &iput)
     io ifil(file_exists(iput.regions[ii].ifile), NcFile::read, false);
     ifil.read_Tstep<double>("iprof",iput.regions[ii].psf , 0, false);
 
+    if(iput.regions[ii].inst == "specrebin"){
+      mat<int> tmp;
+      ifil.read_Tstep<int>("rebin", tmp, 0, false);
+
+      iput.regions[ii].reb = tmp.d[0];
+
+      fprintf(stderr,"read_instruments: nRebin=%d\n",iput.regions[ii].reb );
+    }
+    
     std::string siz = formatVect<int>(iput.regions[ii].psf.getdims());
     if(iput.verbose)
       fprintf(stderr,"read_instruments: region[%3d] <%s> %s\n", ii,iput.regions[ii].ifile.c_str(), siz.c_str() );
@@ -69,9 +78,10 @@ void slaveInversion(iput_t &iput, mdepthall_t &m, mat<double> &obs, mat<double> 
 
     /* --- manage packages as long as needed --- */
     while(irec < ntot){
-    
+
       // Receive processed data from any slave (iproc)
       comm_master_unpack_data(iproc, iput, obs, x, chi2, irec, dsyn, compute_gradient, m);
+
       per = irec * pno;
       //cerr << ipix << " " << irec<<" "<<ntot << endl;
       // Send more data to that same slave (iproc)
@@ -199,7 +209,7 @@ void do_master_sparse(int myrank, int nprocs,  char hostname[]){
 
   /* --- Set OpenMP threads in the master --- */
   
-  omp_set_num_threads(input.master_threads);
+  // omp_set_num_threads(input.master_threads);
   
   
   /* --- Open input files with the models and profiles --- */

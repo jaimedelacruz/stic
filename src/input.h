@@ -24,12 +24,27 @@ typedef line line_t;
 
 /* --- region struct --- */
 struct region{
+  int nw, off, reb;
   double w0, dw, cscal;
-  int nw, off;
   std::vector<double> wav, nu;
   std::vector<int> idx;
   std::string inst, ifile;
   mat<double> psf;
+  
+
+  region(): nw(0), off(0), reb(1), w0(0), dw(0), cscal(0), wav(), nu(), idx(), inst(), ifile(), psf(){};
+
+  region(region const& in):
+    nw(in.nw), off(in.off), reb(in.reb), w0(in.w0), dw(in.dw), cscal(in.cscal),
+    wav(in.wav), nu(in.nu), idx(in.idx), inst(in.inst), ifile(in.ifile), psf(in.psf){};
+
+  region &operator=(region const& in)
+  {
+    nw=in.nw, off=in.off, reb=in.reb, w0=in.w0, dw=in.dw, cscal=in.cscal,
+      wav=in.wav, nu=in.nu, idx=in.idx, inst=in.inst, ifile=in.ifile, psf=in.psf;
+    return *this;
+  }
+  
 };
 typedef region region_t;
 
@@ -63,6 +78,9 @@ struct nodes{
   int regul_type[8], nregul;
   double rewe[8];
   double regularize[2];
+
+nodes(): nnodes(0), temp_off(0), v_off(0), vturb_off(0), bl_off(0), bh_off(0), azi_off(0), pgas_off(0), tosend(0), bound(0),depth_t(0), fit_tr(0), tr_off(0), temp(), v(), vturb(), bl(), bh(), azi(), ntype(), toinv{}, regul_type{}, nregul(0), rewe{}, regularize{}{};
+  
 };
 typedef nodes nodes_t;
 

@@ -4,7 +4,7 @@
 #include <iostream>
 #include <cstdio>
 #include <algorithm>
-#include <omp.h>
+//#include <omp.h>
 #include <string>
 #include "instruments.h"
 #include "input.h"

@@ -12,24 +12,24 @@ FC  = gfortran
 OMPI_FC = $(FC)
 OMPI_CXX = $(CXX)
 OMPI_CC = $(CC)
-MPCXX = mpicxx
+MPCXX = mpicxx.openmpi
 MPFC = mpif90
 MPCC = mpicc
 
 LINKER = $(MPCXX)
 
 
-#
+# 
 # OPTIMIZATION
 #
-OPTS = -O3 -march=native  -I/usr/include/tirpc
+OPTS = -O3 -march=native -DNDEBUG -fomit-frame-pointer -fstrict-aliasing -I/usr/include/tirpc
 CXXFLAGS =  $(OPTS) -std=c++11
-CFLAGS =  $(OPTS) -DHAVE_F90 -ffast-math
-FFLAGS =   $(OPTS) 
+CFLAGS =  $(OPTS) -DHAVE_F90 
+FFLAGS =  -O3 -march=native -fomit-frame-pointer
 AR = gcc-ar
-OPENMP = -fopenmp 
+//OPENMP = -fopenmp 
 
-LINKEROPTS = -lgfortran -lm -lpthread -ltirpc
+LINKEROPTS = -lgfortran -lm -lpthread #-ltirpc
 
 #
 # GSL, FFTW3 libs.

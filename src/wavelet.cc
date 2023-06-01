@@ -5,7 +5,7 @@
  */
 #include <iostream>
 #include <cstring>
-#include <omp.h>
+//#include <omp.h>
 #include "wavelet.h"
 #include "cmemt.h"
 //
@@ -142,7 +142,7 @@ void wavelet::transform(mat<double> &dat, wavelet_dir idir){
       //      
 #pragma omp parallel default(shared) private(xx,yy,id) num_threads(nthreads)
       {
-	id = omp_get_thread_num(); // get thread number
+	//	id = omp_get_thread_num(); // get thread number
 	
 	// Fist do all rows
 #pragma omp for 
@@ -163,7 +163,7 @@ void wavelet::transform(mat<double> &dat, wavelet_dir idir){
       //
 #pragma omp parallel default(shared) private(xx,yy,id) num_threads(nthreads)
       {
-	id = omp_get_thread_num(); // get thread number
+	//id = omp_get_thread_num(); // get thread number
 	// Now columns
 #pragma omp for // Schedule 1 horizontal slice at the time
 	for(xx = 0; xx < dat.size(1); xx++)
@@ -192,7 +192,7 @@ void wavelet::transform(mat<double> &dat, wavelet_dir idir){
       //
 #pragma omp parallel default(shared) private(xx,zz,yy,id) num_threads(nthreads)
       {
-	id = omp_get_thread_num(); // get thread number
+	//id = omp_get_thread_num(); // get thread number
 	// Transform along "X"
 #pragma omp for  // Schedule 1 horizontal slice at the time
 	for(zz = 0; zz < dims[0]; zz++)
@@ -228,7 +228,7 @@ void wavelet::transform(mat<double> &dat, wavelet_dir idir){
       // 
 #pragma omp parallel default(shared) private(xx,zz,yy,id) num_threads(nthreads)
       {
-	id = omp_get_thread_num(); // get thread number
+	//	id = omp_get_thread_num(); // get thread number
 
 	// Now "Z"
 #pragma omp for
@@ -294,7 +294,7 @@ void wavelet::transformSlices(mat<double> &dat, wavelet_dir idir, int id1){
     //      
 #pragma omp parallel default(shared) private(zz,xx,yy,id) num_threads(nthreads)
     {
-      id = omp_get_thread_num(); // get thread number
+      //id = omp_get_thread_num(); // get thread number
       
       // Fist do all rows
 #pragma omp for
@@ -317,7 +317,7 @@ void wavelet::transformSlices(mat<double> &dat, wavelet_dir idir, int id1){
     //
 #pragma omp parallel default(shared) private(xx,zz,yy,id) num_threads(nthreads)
     {
-      id = omp_get_thread_num(); // get thread number
+      // id = omp_get_thread_num(); // get thread number
       // Now columns
 #pragma omp for
       for(zz = 0; zz < nn[0]; zz++)

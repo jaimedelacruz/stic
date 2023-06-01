@@ -15,17 +15,17 @@ OMPI_CC = $(CC)
 MPCXX = mpicxx
 MPFC = mpif90
 
-LINKER = $(MPCXX)
+LINKER = $(MPFC)
 
 #
 # OPTIMIZATION
 #
-OPTS = -O3 -I/opt/local/include/
+OPTS = -O3 -mtune=native -fstrict-aliasing -I/opt/local/include/
 CXXFLAGS = $(OPTS) -std=c++11 
 CFLAGS = $(OPTS) 
 FFLAGS = $(OPTS)
 AR = ar
-OPENMP = -fopenmp
+//OPENMP = -fopenmp
 
 LINKEROPTS =  -lgfortran 
 

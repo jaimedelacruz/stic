@@ -4,7 +4,7 @@
 #include <iostream>
 #include <cstdio>
 #include <algorithm>
-#include <omp.h>
+//#include <omp.h>
 #include "instruments.h"
 #include "input.h"
 #include "spectral.h"
@@ -137,7 +137,7 @@ void spectral::degrade(mat<double> &syn, bool spectral, bool spatial, int ntt)
 #pragma omp parallel default(shared) private(ipix, tid) num_threads(nt)
   {
     
-    tid = omp_get_thread_num();
+    //   tid = omp_get_thread_num();
 #pragma omp for
     for(ipix = 0; ipix<npix; ipix++)
       degrade_one(ft[tid], &syn(ipix, off, 0), ns);

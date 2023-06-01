@@ -13,7 +13,7 @@
 #include <cstring>
 #include <cstdio>
 #include <netcdf>
-#include <omp.h>
+//#include <omp.h>
 #include <gsl/gsl_sort_double.h>
 #include <sys/time.h>
 #include "sparse.h"
@@ -523,7 +523,7 @@ void sparse2d::threshold(mat<double> &x, double thr){
   // For all parameters in the model					
   int par=0, id=0;
 #pragma omp parallel default(shared) private(par,id) num_threads(nthreads)
-  id = omp_get_thread_num(); // get thread number
+  //id = omp_get_thread_num(); // get thread number
   
 #pragma omp for
   for( par = 0; par<npar; par++){
