@@ -1,10 +1,12 @@
 #include <iostream>
 #include <string>
 #include <netcdf>
+#include <cstdio>
 //#include <omp.h>
 #include "io.h"
 #include "cmemt.h"
 #include "atmosphere.h"
+#include "math_tools.h"
 //#include "sparse.h"
 #include <mpi.h>
 #include "comm.h"
@@ -71,9 +73,10 @@ void slaveInversion(iput_t &iput, mdepthall_t &m, mat<double> &obs, mat<double> 
 
     int per  = 0;
     int oper  = -1;
-    float pno =  100.0 / (float(ntot) - 1.0);
+    float pno =  100.0 / double(mth::max<int>(1, ntot - 1));
     unsigned long irec = 0;
-    cerr << "\rProcessed -> "<<per<<"% ";
+    fprintf(stdout,"\rProcessed -> %d%s -> sent=%d, received=%d     ", per, "%", ipix, irec);
+    fflush(stdout);
 
 
     /* --- manage packages as long as needed --- */
@@ -83,7 +86,7 @@ void slaveInversion(iput_t &iput, mdepthall_t &m, mat<double> &obs, mat<double> 
       comm_master_unpack_data(iproc, iput, obs, x, chi2, irec, dsyn, compute_gradient, m);
 
       per = irec * pno;
-      //cerr << ipix << " " << irec<<" "<<ntot << endl;
+
       // Send more data to that same slave (iproc)
       if(ipix < ntot) comm_master_pack_data(iput, obs, x, ipix, iproc, m, compute_gradient);
     
@@ -93,12 +96,14 @@ void slaveInversion(iput_t &iput, mdepthall_t &m, mat<double> &obs, mat<double> 
       // Printout
       if(per > oper){
 	oper = per;
-	cerr << "\rProcessed -> "<<per<<"% ";
+	//cout << "\rProcessed -> "<<per<<"% -> sent="<<ipix<<", received="<<irec;
+	fprintf(stdout,"\rProcessed -> %d%s -> sent=%d, received=%d", per, "%", ipix, irec);
+	fflush(stdout);
       }
     }
   
-    cerr << " "<<endl;
-
+    fprintf(stdout, "\n");
+    fflush(stdout);
   }
   
 }
@@ -168,10 +173,10 @@ void master_inverter(mdepthall_t &model, mat<double> &pars, mat<double> &obs, ma
       memcpy( &model.cub(yy,xx,0,0), &m.cub.d[0], 12*ndep*sizeof(double));
       
       
-      per = ++kk / (nx*ny);
+      per = ++kk / std::max(1,nx*ny-1);
       if(per > oper){
 	oper = per;
-	fprintf(stderr,"\rmaster_invert: %d%s",per,"%");
+	fprintf(stderr,"\rmaster_invert: %d%s",per,"% ");
       }
     }
   
