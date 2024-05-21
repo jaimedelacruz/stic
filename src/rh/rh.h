@@ -118,6 +118,7 @@ void  splineEval(int N, double *x, double *y, bool_t hunt);
 void  exp_splineCoef(int Ntable, double *xtable, double *ytable,
 		     double tension);
 void  exp_splineEval(int N, double *x, double *y, bool_t hunt);
+void splineHermite(int const N, double* const x, double* const y, int const N1, double* const x1, double* const y1);
 
 void  cc_kernel(double s, double *u);
 double cubeconvol(int Nx, int Ny, double *f, double x, double y);

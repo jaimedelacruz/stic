@@ -127,9 +127,15 @@ bool_t Metal_bf(double lambda, int Nmetal, struct Atom *metals,
 	    alpha_la = continuum->alpha0 * CUBE(lambda/continuum->lambda0) *
 	      Gaunt_bf(lambda, n_eff, Z) / gbf_0;
 	  } else {
+	    /*
 	    splineCoef(continuum->Nlambda, continuum->lambda,
 		       continuum->alpha);
 	    splineEval(1, &lambda, &alpha_la, hunt=FALSE);
+	    */
+
+	    splineHermite(continuum->Nlambda, continuum->lambda, continuum->alpha,
+	    		  1, &lambda, &alpha_la);
+	    
 	  }
 
 	  for (k = 0;  k < atmos.Nspace;  k++) {

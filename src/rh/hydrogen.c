@@ -88,7 +88,6 @@ void distribute_nH()
               let atmos.H.n point to the LTE equivalents atmos.H.nstar.
 
      --                                                -------------- */
-
   if (atmos.H_LTE) {
     atmos.H->NLTEpops = FALSE;
     Error(MESSAGE, routineName,
@@ -107,7 +106,6 @@ void distribute_nH()
       //	for (k = 0;  k < Nspace;  k++)
       //	  atmos.H->n[i][k] = atmos.H->nstar[i][k];
       //  }
-      //  atmos.H->NLTEpops = TRUE;
     }
     
   } else {
@@ -178,6 +176,7 @@ bool_t Hydrogen_bf(double lambda, double *chi, double *eta)
     chi[k] = 0.0;
     eta[k] = 0.0;
   }
+
   if (atmos.H->active) return opaque;
 
   twohc  = (2.0 * HPLANCK * CLIGHT) / CUBE(NM_TO_M);
@@ -318,8 +317,9 @@ bool_t Hminus_bf(double lambda, double *chi, double *eta)
   if ((lambda <= lambdaBF[0]) || (lambda >= lambdaBF[NBF-1]))
     return FALSE;
 
-  splineCoef(NBF, lambdaBF, alphaBF);
-  splineEval(1, &lambda, &alpha_bf, hunt=FALSE);
+  //splineCoef(NBF, lambdaBF, alphaBF);
+  //splineEval(1, &lambda, &alpha_bf, hunt=FALSE);
+  splineHermite(NBF, lambdaBF, alphaBF, 1, &lambda, &alpha_bf);
   alpha_bf *= 1.0E-21;
 
   hc_kla     = (HPLANCK * CLIGHT) / (KBOLTZMANN * NM_TO_M * lambda);

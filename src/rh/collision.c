@@ -670,9 +670,10 @@ void CollisionRate(struct Atom *atom, char **fp_atom)
 	!strcmp(keyword, "CH0")   || !strcmp(keyword, "CH+")||
 	!strcmp(keyword, "CH") ) {
 
-      if (Nitem > 2) {
-	splineCoef(Nitem, T, coeff);
-	splineEval(Nspace, atmos.T, C, hunt=TRUE);
+      if (Nitem > 3) {
+	//splineCoef(Nitem, T, coeff);
+	//splineEval(Nspace, atmos.T, C, hunt=TRUE);
+	splineHermite(Nitem, T, coeff, Nspace, atmos.T, C);
       } else
 	Linear(Nitem, T, coeff, Nspace, atmos.T, C, hunt=TRUE);
     }
@@ -1165,9 +1166,10 @@ void CollisionRateOne(struct Atom *atom, char **fp_atom, int k)
 	!strcmp(keyword, "CH0")   || !strcmp(keyword, "CH+")||
 	!strcmp(keyword, "CH") ) {
 
-      if (Nitem > 2) {
-	splineCoef(Nitem, T, coeff);
-	splineEval(1, &atmos.T[k], &C, hunt=TRUE);
+      if (Nitem > 3) {
+	//splineCoef(Nitem, T, coeff);
+	//splineEval(1, &atmos.T[k], &C, hunt=TRUE);
+	splineHermite(Nitem, T, coeff, 1, &atmos.T[k], &C);
       } else
 	Linear(Nitem, T, coeff, 1, &atmos.T[k], &C, hunt=TRUE);
     }
