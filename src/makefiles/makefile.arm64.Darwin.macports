@@ -1,0 +1,45 @@
+#
+# This confog file assumes that you are using macports
+# with clang, clang++ and flang-new (v20) installed from macports
+#
+# if used with mpich, you might need "export MPICH_FC=flang-new-mp-20"
+
+
+# Compilers
+#
+CC  = clang
+CXX = clang++
+FC  = flang-new-mp-20
+
+
+#
+# MPI assignments
+#
+OMPI_FC = $(FC)
+OMPI_CXX = $(CXX)
+OMPI_CC = $(CC)
+MPCXX = mpicxx
+MPFC = mpif90
+
+LINKER = $(MPFC)
+
+#
+# OPTIMIZATION
+#
+OPTS = -O3 -mcpu=native -mtune=native -I/opt/local/include/
+CXXFLAGS = $(OPTS) -std=c++11 
+CFLAGS = $(OPTS) 
+FFLAGS = -O3 -mcpu=native -mtune=native 
+AR = ar
+//OPENMP = -fopenmp
+
+LINKEROPTS = 
+
+
+#
+# GSL, FFTW3 libs.
+# In macports, the defaul is /opt/local.
+#
+GSLPATH = /opt/local
+
+
