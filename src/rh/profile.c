@@ -75,7 +75,7 @@ void Profile(AtomicLine *line)
   double *adamp = NULL, **v, **v_los, *vB, *sv, *vbroad, Larmor, H, F,
           wlamu, vk, phi_pi, phi_sm, phi_sp, phi_delta, phi_sigma,
           psi_pi, psi_sm, psi_sp, psi_delta, psi_sigma, sign, sin2_gamma,
-         *phi, *phi_Q, *phi_U, *phi_V, *psi_Q, *psi_U, *psi_V;
+    *phi, *phi_Q, *phi_U, *phi_V, *psi_Q, *psi_U, *psi_V, dum;
 
   Atom *atom = line->atom;
   //ZeemanMultiplet *zm;
@@ -259,6 +259,7 @@ void Profile(AtomicLine *line)
 	  }
 
 	  if (line->polarizable && (input.StokesMode > FIELD_FREE)) {
+
 	    for (k = 0;  k < atmos.Nspace;  k++) {
 	      sin2_gamma = 1.0 - SQ(atmos.cos_gamma[mu][k]);
 
@@ -306,7 +307,7 @@ void Profile(AtomicLine *line)
 		  phi_delta * sin2_gamma * atmos.cos_2chi[mu][k] * sv[k];
 		phi_U[k] +=
 		  phi_delta * sin2_gamma * atmos.sin_2chi[mu][k] * sv[k];
-		phi_V[k] += sign *
+		phi_V[k] += sign *  line->c_fraction[n] * 
 		  0.5*(phi_sp - phi_sm) * atmos.cos_gamma[mu][k] * sv[k];
 
 		if (input.magneto_optical) {
@@ -318,7 +319,7 @@ void Profile(AtomicLine *line)
 		    psi_delta * sin2_gamma * atmos.cos_2chi[mu][k] * sv[k];
 		  psi_U[k] +=
 		    psi_delta * sin2_gamma * atmos.sin_2chi[mu][k] * sv[k];
-		  psi_V[k] += sign *
+		  psi_V[k] += sign * line->c_fraction[n] * 
 		    0.5 * (psi_sp - psi_sm) * atmos.cos_gamma[mu][k] * sv[k];
 		}
 	      }
@@ -327,15 +328,27 @@ void Profile(AtomicLine *line)
 	      line->wphi[k] += wlamu * phi[k];
 	    }
 	  } else {
-	    /* --- Field-free case --                  -------------- */
-            for (k = 0;  k < atmos.Nspace;  k++) {
-	      for (n = 0;  n < line->Ncomponent;  n++) {
-		vk = v[k][n] + sign * v_los[mu][k];
-	    
-		phi[k] += Voigt(adamp[k], vk, NULL, ARMSTRONG) *
-		  line->c_fraction[n] / (SQRTPI * atom->vbroad[k]);
+	    if(input.fast_isotopic_split){
+	      /* --- Field-free case --                  -------------- */
+	      for (k = 0;  k < atmos.Nspace;  k++) {
+		dum = (line->lambda[la] - line->lambda0 ) * CLIGHT / (vbroad[k] * line->lambda0);
+		vk = dum + sign * v_los[mu][k];	
+		phi[k] += Voigt(adamp[k], vk, NULL, ARMSTRONG) / (SQRTPI * atom->vbroad[k]);
+		line->wphi[k] += phi[k] * wlamu;
 	      }
-	      line->wphi[k] += phi[k] * wlamu;
+	    }else{
+
+	      /* --- Field-free case --                  -------------- */
+	      for (k = 0;  k < atmos.Nspace;  k++) {
+		for (n = 0;  n < line->Ncomponent;  n++) {
+
+		  vk = v[k][n] + sign * v_los[mu][k];
+		  
+		  phi[k] += Voigt(adamp[k], vk, NULL, ARMSTRONG) *
+		    line->c_fraction[n] / (SQRTPI * atom->vbroad[k]);
+		}
+		line->wphi[k] += phi[k] * wlamu;
+	      }
 	    }
 	  }
 	  if (input.limit_memory) writeProfile(line, lamu, phi);
@@ -343,7 +356,7 @@ void Profile(AtomicLine *line)
       }
     }
   } else {
-
+    
     /* --- Angle-independent case --                   -------------- */   
 
     for (la = 0;  la < line->Nlambda;  la++) {

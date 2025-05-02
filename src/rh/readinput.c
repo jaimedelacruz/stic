@@ -164,6 +164,8 @@ void readInput()
      &input.StokesMode, setStokesMode},
     {"MAGNETO_OPTICAL", "TRUE", FALSE, KEYWORD_DEFAULT,
      &input.magneto_optical, setboolValue},
+    {"FAST_ISOTOPIC_SPLITTING", "TRUE", FALSE, KEYWORD_DEFAULT,
+     &input.fast_isotopic_split, setboolValue},
     {"BACKGROUND_POLARIZATION", "FALSE", FALSE, KEYWORD_DEFAULT,
      &input.backgr_pol, setboolValue},
     {"RLK_EXPLICIT", "FALSE", FALSE, KEYWORD_DEFAULT,
