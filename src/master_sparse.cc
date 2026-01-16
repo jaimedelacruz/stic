@@ -56,11 +56,11 @@ void slaveInversion(iput_t &iput, mdepthall_t &m, mat<double> &obs, mat<double> 
 
   /* --- Looking for checkpoints --- */
   if ( (unsigned long)iput.restart_pixel >= ntot) {
-    if (iput.verbose) {
+    // if (iput.verbose) {
       fprintf(stdout,
-              "slaveInversion: restart_pixel=%ld >= ntot=%lu, nothing to do.\n",
+              "Nothing to do. The stored checkpoint already contains the results. slaveInversion: restart_pixel=%ld >= ntot=%lu\n",
               iput.restart_pixel, ntot);
-    }
+    // }
     return;
   }
 
@@ -106,33 +106,58 @@ void slaveInversion(iput_t &iput, mdepthall_t &m, mat<double> &obs, mat<double> 
     /* --- manage packages as long as needed --- */
     while(irec < ntot){
 
-      // Receive processed data from any slave (iproc)
-      fprintf(stdout, "\nAAAAProcessed -> %d -> sent=%lu, received=%lu, ntot=%lu, tocom=%d\n", per, ipix, irec, ntot, tocom);
       comm_master_unpack_data(iproc, iput, obs, x, chi2, irec, dsyn, compute_gradient, m);
-   
 
       double t0, t1;
 
       if (iput.is_checkpointing != 0) {
 
-        /* ---- atmos write checkpoint ---- */
-        t0 = MPI_Wtime();
-        m.write_model2(iput, iput.oatmos, tt);
-        t1 = MPI_Wtime();
-        printf("[timing] atmos write   : %.6f s\n", t1 - t0);
+        // is_checkpointing:
+          //   <= 0 : disabled
+          //   >  0 : checkpoint every N iterations reaching this point
+        static int chk_counter = 0;
+        const int chk_every = (int)iput.is_checkpointing;
 
-        /* ---- profiles write checkpoint ---- */
-        t0 = MPI_Wtime();
-        opfile.write_Tstep("profiles", obs, tt);
-        opfile.sync();
-        t1 = MPI_Wtime();
-        printf("[timing] profiles write: %.6f s\n", t1 - t0);
+        chk_counter++;
 
-        // if (iput.mode == 4) opfile.write_Tstep("derivatives", dsyn, tt);
-        
-        fprintf(stdout, "\nCHECKPOINT DONE !!!!!!!!!!!!!!!!! CHECKPOINT DONE !!!!!!!!!!!!!!!!!\n");
-        fprintf(stdout, "\n[chk] wrote: tt=%d  obs(0,0,0,0)=%.6e  obs(%d,%d,0,0)=%.6e\n", tt, obs(0,0,0,0), (int)(iput.ny-1), (int)(iput.nx-1), obs(iput.ny-1, iput.nx-1, 0, 0));
+        if (chk_counter >= chk_every) {
+
+            chk_counter = 0;  // reset counter
+
+            /* ---- atmos write checkpoint ---- */
+            t0 = MPI_Wtime();
+            m.write_model2(iput, iput.oatmos, tt);
+            t1 = MPI_Wtime();
+            // printf("[timing] atmos write   : %.6f s\n", t1 - t0);
+
+            /* ---- profiles write checkpoint ---- */
+            t0 = MPI_Wtime();
+            opfile.write_Tstep("profiles", obs, tt);
+            opfile.sync();
+            t1 = MPI_Wtime();
+            printf("[timing] profiles write: %.6f s\n", t1 - t0);
+
+            // if (iput.mode == 4) opfile.write_Tstep("derivatives", dsyn, tt);
+
+            long last_seq = (long)irec - 1;
+            long iy = last_seq / (long)iput.nx;
+            long ix = last_seq % (long)iput.nx;
+
+            fprintf(stdout,
+                    "\n------------------------------------------------------------\n"
+                    "[CHECKPOINT] Checkpoint written successfully\n"
+                    "[CHECKPOINT] last_pixel: seq=%ld  (iy=%ld, ix=%ld)\n"
+                    "[CHECKPOINT] progress  : %lu / %lu (%.1f%%)\n"
+                    "------------------------------------------------------------\n",
+                    last_seq,
+                    iy, ix,
+                    irec, ntot, 100.0 * (double)irec / (double)ntot);
+
+            fflush(stdout);
+
+        }
       }
+
 
 
       per = (int)((irec - (unsigned long)iput.restart_pixel) * pno);
@@ -334,21 +359,72 @@ void do_master_sparse(int myrank, int nprocs,  char hostname[]){
   input.ndep = im.ndep;
   
   
-  bool have_checkpoint = false;
   // Cheking if a checkpoint restart is requested and if the partial output file exists.
-  if (input.is_restarting != 0) {
-      if (bfile_exists(input.oprof) && bfile_exists(input.oatmos)) {
-        have_checkpoint = true;
-      } else {
-        std::cerr << "master_sparse: WARNING, is_restarting != 0 but checkpoint files missing:\n"
-              << "  profiles=" << input.oprof << "\n"
-              << "  atmos   =" << input.oatmos << "\n"
-              << "  -> starting from scratch\n";
-        input.is_restarting = 0;
-        have_checkpoint = false;
-        input.restart_pixel = 0;
-      }
+  bool have_checkpoint = false;
+
+// Checking restart/checkpoint consistency
+if (input.is_restarting != 0) {
+
+  if (bfile_exists(input.oprof) && bfile_exists(input.oatmos)) {
+    have_checkpoint = true;
+  } else {
+
+    std::cerr << "\n"
+              << "============================================================\n"
+              << " FATAL ERROR: INVALID CHECKPOINT / RESTART CONFIGURATION\n"
+              << "============================================================\n"
+              << "\n"
+              << "You requested a RESTART (is_restarting != 0), but one or more\n"
+              << "checkpoint files are MISSING.\n"
+              << "\n"
+              << "Expected files:\n"
+              << "  profiles : " << input.oprof << "\n"
+              << "  atmos    : " << input.oatmos << "\n"
+              << "\n"
+              << "How to fix this:\n"
+              << "  - Set is_restarting = 0 to start from scratch\n"
+              << "    OR\n"
+              << "  - Provide BOTH checkpoint files listed above\n"
+              << "\n"
+              << "STiC will now abort execution.\n"
+              << "============================================================\n"
+              << std::endl;
+
+    std::cerr.flush();
+    MPI_Abort(MPI_COMM_WORLD, EXIT_FAILURE);
   }
+
+} else {
+
+  if (bfile_exists(input.oprof) || bfile_exists(input.oatmos)) {
+
+    std::cerr << "\n"
+              << "============================================================\n"
+              << " FATAL ERROR: CHECKPOINT FILES FOUND BUT RESTART DISABLED\n"
+              << "============================================================\n"
+              << "\n"
+              << "You did NOT request a restart (is_restarting == 0), but\n"
+              << "checkpoint files already exist on disk.\n"
+              << "\n"
+              << "Found files:\n"
+              << "  profiles : " << input.oprof << "\n"
+              << "  atmos    : " << input.oatmos << "\n"
+              << "\n"
+              << "How to fix this:\n"
+              << "  - Delete these files to start from scratch\n"
+              << "    OR\n"
+              << "  - Set is_restarting = 1 to resume from checkpoint\n"
+              << "\n"
+              << "STiC will now abort execution.\n"
+              << "============================================================\n"
+              << std::endl;
+
+    std::cerr.flush();
+    MPI_Abort(MPI_COMM_WORLD, EXIT_FAILURE);
+  }
+}
+
+
 
   /* ---
      Open output files and init vars to store results 
@@ -509,41 +585,40 @@ if(input.mode == 4){
     // --- If resuming from checkpoint, pre-fill obs with existing synthetic output
     if (inversion && have_checkpoint && input.is_restarting != 0) {
 
-  mat<double> prev_profiles;
-  opfile.read_Tstep<double>("profiles", prev_profiles, tt, input.verbose);
+      mat<double> prev_profiles;
+      opfile.read_Tstep<double>("profiles", prev_profiles, tt, input.verbose);
 
-  long restart_pix = (long)input.ny * (long)input.nx; // default: all done
-  bool found = false;
+      long restart_pix = (long)input.ny * (long)input.nx; // default: all done
+      bool found = false;
 
-  for (int yy = 0; yy < input.ny && !found; ++yy) {
-    for (int xx = 0; xx < input.nx; ++xx) {
+      for (int yy = 0; yy < input.ny && !found; ++yy) {
+        for (int xx = 0; xx < input.nx; ++xx) {
 
-      bool pixel_matches = true;
+          bool pixel_matches = true;
 
-      // check full pixel: all wavelengths, all Stokes
-      for (int iw = 0; iw < input.nw_tot && pixel_matches; ++iw) {
-        for (int is = 0; is < input.ns; ++is) {
-          if (prev_profiles(yy, xx, iw, is) != obs(yy, xx, iw, is)) {
-            pixel_matches = false;
+          for (int iw = 0; iw < input.nw_tot && pixel_matches; ++iw) {
+            for (int is = 0; is < input.ns; ++is) {
+              if (prev_profiles(yy, xx, iw, is) != obs(yy, xx, iw, is)) {
+                pixel_matches = false;
+                break;
+              }
+            }
+          }
+
+          if (pixel_matches) {
+            restart_pix = (long)yy * (long)input.nx + (long)xx;
+            found = true;
             break;
           }
+
+
+          for (int iw = 0; iw < input.nw_tot; ++iw)
+            for (int is = 0; is < input.ns; ++is)
+              obs(yy, xx, iw, is) = prev_profiles(yy, xx, iw, is);
         }
       }
 
-      if (pixel_matches) {
-        restart_pix = (long)yy * (long)input.nx + (long)xx;
-        found = true;
-        break;
-      }
-
-      // pixel computed -> copy synthetic result into obs so later write_Tstep doesn't wipe it
-      for (int iw = 0; iw < input.nw_tot; ++iw)
-        for (int is = 0; is < input.ns; ++is)
-          obs(yy, xx, iw, is) = prev_profiles(yy, xx, iw, is);
-    }
-  }
-
-  input.restart_pixel = restart_pix;
+      input.restart_pixel = restart_pix;
 
           std::cerr << "master_sparse: restart enabled -> restart_pixel=" << input.restart_pixel << " (tt=" << tt << ")\n";
 
