@@ -438,11 +438,11 @@ if (input.is_restarting != 0) {
   io opfile;
   if (have_checkpoint) {
     // Resume: open existing file for writing, DO NOT recreate dims/vars
-    if (input.verbose) {
-      std::cerr << "master_sparse: checkpoint restart enabled, using existing outputs:\n"
-          << "  profiles=" << input.oprof << "\n"
-          << "  atmos   =" << input.oatmos << "\n";
-    }
+    // if (input.verbose) {
+    //   std::cerr << "master_sparse: checkpoint restart enabled, using existing outputs:\n"
+    //       << "  profiles=" << input.oprof << "\n"
+    //       << "  atmos   =" << input.oatmos << "\n";
+    // }
     opfile.initRead(input.oprof, NcFile::write, input.verbose);
   }
   else {
@@ -619,8 +619,38 @@ if(input.mode == 4){
       }
 
       input.restart_pixel = restart_pix;
+      
+      // PRINTING RESTART INFORMATION
+        const long nx = (long)input.nx;
+        const long ny = (long)input.ny;
+        const long ntot = nx * ny;
 
-          std::cerr << "master_sparse: restart enabled -> restart_pixel=" << input.restart_pixel << " (tt=" << tt << ")\n";
+        const long restart_seq = (long)input.restart_pixel; // next pixel to compute (0-based)
+        const long restart_yy  = (nx > 0) ? (restart_seq / nx) : 0;
+        const long restart_xx  = (nx > 0) ? (restart_seq % nx) : 0;
+
+        std::cerr
+          << "\n------------------------------------------------------------\n"
+          << "[RESTART] Checkpoint restart enabled\n"
+          << "------------------------------------------------------------\n"
+          << "[RESTART] profiles file : " << input.oprof  << "\n"
+          << "[RESTART] atmos file    : " << input.oatmos << "\n"
+          << "[RESTART] tt            : " << tt << "\n";
+
+        if (restart_seq >= ntot) {
+          std::cerr
+            << "[RESTART] resume        : nothing left to do (restart_pixel=" << restart_seq
+            << " >= ntot=" << ntot << ")\n";
+        } else {
+          std::cerr
+            << "[RESTART] resume        : restart_pixel=" << restart_seq
+            << "  (yy=" << restart_yy << ", xx=" << restart_xx << ")\n"
+            << "[RESTART] progress      : " << restart_seq << " / " << ntot
+            << " (" << (100.0 * (double)restart_seq / (double)ntot) << "%)\n";
+        }
+
+        std::cerr << "------------------------------------------------------------\n" << std::endl;
+        std::cerr.flush();
 
     im.read_model2(input, input.oatmos, tt, true);
   } else {
