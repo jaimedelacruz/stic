@@ -172,6 +172,54 @@ Once the inversion is completed, you can visualize the result with the plot.py s
 python plot.py
 ```
 
+
+## Checkpointing and Restarting Inversions
+
+STiC now supports **checkpointing and restart of MPI-parallel inversions**, allowing long runs to be safely resumed after interruption (e.g., wall-time limits or system failures).
+
+Checkpointing periodically stores the current **already computed** atmospheric model and synthetic profiles to disk. Restarting allows the inversion to continue from the last completed pixel instead of starting from scratch.
+
+### Enabling checkpointing
+
+Checkpointing is controlled via a new varible that should be added to your **input.cfg**:
+
+- `is_checkpointing = 0`  
+  Checkpointing is disabled (default behavior).
+
+- `is_checkpointing > 0`  
+  A checkpoint is written every **N pixels** computed.
+
+**ATTENTION:** Writing checkpoints too frequently can introduce significant I/O overhead.  
+For example, for a 400 × 400 pixel grid, writing a single checkpoint can take on the order of **2 seconds**.
+
+It is recommended to configure **is_checkpointing** to **no more frequently than every `N_proc × 10`**, where `N_proc` is the number of MPI processes.
+
+Larger values of **is_checkpointing** (i.e., less frequent checkpoints) are generally preferable to avoid excessive overhead.
+
+The checkpoint is written as partial outputs using the same files indicated in your **input.cfg**:
+
+- `output_profiles =`
+- `output_atmos =` 
+
+
+### Restarting from a checkpoint
+
+Restarting an inversion from previously written checkpoint files is controlled via another variable in your **input.cfg**:
+
+- `is_restarting = 0`  
+  Start a new inversion from scratch (default behavior).  
+  **Files indicated by `output_profiles =` and `output_atmos =` must not already exist**.
+
+- `is_restarting = 1`  
+  Resume an inversion from existing checkpoint files.  
+  **Files indicated by `output_profiles =` and `output_atmos =` must exist and they contain the checkpoint stored previously**.
+
+STiC performs strict consistency checks at startup:
+
+- If `is_restarting != 0` and `output_profiles =` or `output_atmos =` files are missing, the code aborts with a clear error message.
+- If `is_restarting == 0` and `output_profiles =` or `output_atmos =` files already exist, the code aborts to prevent accidental overwriting.
+
+
 ## Acknowledgements
 
 We are gratefull to N. Piskunov for allowing us to use his excellent EOS in our code.
