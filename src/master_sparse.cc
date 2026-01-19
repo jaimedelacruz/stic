@@ -55,14 +55,31 @@ void slaveInversion(iput_t &iput, mdepthall_t &m, mat<double> &obs, mat<double> 
   unsigned long ntot = (unsigned long)(x.size(0) * x.size(1));
 
   /* --- Looking for checkpoints --- */
-  if ( (unsigned long)iput.restart_pixel >= ntot) {
-    // if (iput.verbose) {
-      fprintf(stdout,
-              "Nothing to do. The stored checkpoint already contains the results. slaveInversion: restart_pixel=%ld >= ntot=%lu\n",
-              iput.restart_pixel, ntot);
-    // }
-    return;
-  }
+  if ((unsigned long)iput.restart_pixel >= ntot) {
+
+  std::cerr << "\n"
+            << "============================================================\n"
+            << " STiC: INVERSION ALREADY COMPLETED (CHECKPOINT RESTART)\n"
+            << "============================================================\n"
+            << "\n"
+            << "The checkpoint indicates that all pixels have already\n"
+            << "been processed.\n"
+            << "\n"
+            << "Restart information:\n"
+            << "  restart_pixel = " << iput.restart_pixel << "\n"
+            << "  total pixels  = " << ntot << "\n"
+            << "\n"
+            << "There is no remaining work to perform. The inversion\n"
+            << "will now terminate normally.\n"
+            << "\n"
+            << "============================================================\n"
+            << std::endl;
+
+  std::cerr.flush();
+
+  MPI_Abort(MPI_COMM_WORLD, EXIT_SUCCESS);
+}
+
 
   // Number of pixels we still need to process
   unsigned long remaining = ntot - (unsigned long)iput.restart_pixel;
@@ -619,7 +636,7 @@ if(input.mode == 4){
       }
 
       input.restart_pixel = restart_pix;
-      
+
       // PRINTING RESTART INFORMATION
         const long nx = (long)input.nx;
         const long ny = (long)input.ny;
