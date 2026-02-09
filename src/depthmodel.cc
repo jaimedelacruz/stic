@@ -1380,28 +1380,38 @@ void mdepthall::write_model(string &filename, int tstep){
   ofile.write_Tstep(string("pgas"),    pgas,  tstep);
 }
 
-
-
-void mdepthall::write_model2(iput_t const& input, string &filename, int tstep){
-
-  static bool firsttime = true;
+static io* get_atmos_io(const iput_t& input, std::string &filename, bool &need_init) {
   static io *ofile = nullptr;
-  static bool need_init = false;
+  static std::string opened_file;
 
-  if (ofile == nullptr) {
-    // If restarting and file exists -> open in write mode (do not delete)
-    // Otherwise -> create fresh file (replace)
+  if (ofile == nullptr || opened_file != filename) {
+
+    if (ofile != nullptr) {
+      delete ofile;
+      ofile = nullptr;
+    }
+
     netCDF::NcFile::FileMode mode = netCDF::NcFile::replace;
+    need_init = true;
 
     if (input.is_restarting != 0 && bfile_exists(filename)) {
       mode = netCDF::NcFile::write;
-    } else {
-      mode = netCDF::NcFile::replace;
-      need_init = true;  // new file -> must create dims/vars
+      need_init = false;
     }
 
     ofile = new io(filename, mode);
+    opened_file = filename;
   }
+
+  return ofile;
+}
+
+
+void mdepthall::write_model2(iput_t const& input, string &filename, int tstep){
+  
+  bool need_init = false;
+  io *ofile = get_atmos_io(input, filename, need_init);
+  
 
   
   /* --- Dims --- */
@@ -1411,7 +1421,7 @@ void mdepthall::write_model2(iput_t const& input, string &filename, int tstep){
 
   
   /* --- Init vars & dims if firsttime --- */
-  if (firsttime && need_init){
+  if (need_init){
 
     ofile->initDim({"time","y", "x", "ndep"}, dims);
 
@@ -1438,7 +1448,6 @@ void mdepthall::write_model2(iput_t const& input, string &filename, int tstep){
     
   }
 
-  firsttime = false;
   
   {
   mat<double> tmp((vector<int>){dims[1], dims[2], dims[3]});
@@ -1521,6 +1530,103 @@ void mdepthall::write_model2(iput_t const& input, string &filename, int tstep){
 
   
 }
+
+void mdepthall::write_model2_pixels(iput_t const& input, std::string &filename,
+                                   int tstep, long seq0, long seq1)
+{
+  std::string inam = "mdepthall::write_model2_pixels: ";
+
+  bool need_init = false;
+  io *ofile = get_atmos_io(input, filename, need_init);
+
+
+  /* --- Dims (same as write_model2) --- */
+  std::vector<int> cdims = cub.getdims();
+  std::vector<int> dims = {0, cdims[0], cdims[1], cdims[3]}; // time,y,x,ndep
+
+  const long ny   = (long)dims[1];
+  const long nx   = (long)dims[2];
+  const long ndep = (long)dims[3];
+  const long ntot = ny * nx;
+
+  // Clamp and validate range
+  if (seq1 < seq0) return;
+  if (seq0 < 0) seq0 = 0;
+  if (seq1 >= ntot) seq1 = ntot - 1;
+  if (seq1 < seq0) return;
+
+  /* --- Init vars & dims if firsttime --- */
+  if (need_init) {
+
+    ofile->initDim({"time","y", "x", "ndep"}, dims);
+
+    ofile->initVar<float>(std::string("vlos"),    {"time","y", "x", "ndep"});
+    ofile->initVar<float>(std::string("temp"),    {"time","y", "x", "ndep"});
+    ofile->initVar<float>(std::string("vturb"),   {"time","y", "x", "ndep"});
+    ofile->initVar<float>(std::string("blong"),   {"time","y", "x", "ndep"});
+    ofile->initVar<float>(std::string("bhor"),    {"time","y", "x", "ndep"});
+    ofile->initVar<float>(std::string("azi"),     {"time","y", "x", "ndep"});
+    ofile->initVar<float>(std::string("ltau500"), {"time","y", "x", "ndep"});
+    ofile->initVar<float>(std::string("z"),       {"time","y", "x", "ndep"});
+    ofile->initVar<float>(std::string("pgas"),    {"time","y", "x", "ndep"});
+    ofile->initVar<float>(std::string("rho"),     {"time","y", "x", "ndep"});
+    ofile->initVar<float>(std::string("nne"),     {"time","y", "x", "ndep"});
+    ofile->initVar<float>(std::string("cmass"),   {"time","y", "x", "ndep"});
+
+    ofile->initVar<float>(std::string("transition_region_loc"),   {"time","y", "x"});
+    ofile->initVar<float>(std::string("transition_region_scale"), {"time","y", "x"});
+    ofile->initVar<int>(  std::string("transition_region_nGrid"), {"time","y", "x"});
+  }
+
+
+  // Convert sequential range to y/x bounds
+  const long y0 = seq0 / nx;
+  const long x0 = seq0 % nx;
+  const long y1 = seq1 / nx;
+  const long x1 = seq1 % nx;
+
+  // Helper: fill tmp only for pixels in [seq0..seq1] from cub(:,:,ip,:)
+  auto fill_tmp_ip = [&](mat<double> &tmp, int ip){
+    for(long yy = y0; yy <= y1; ++yy){
+      long seg_x0 = (yy == y0) ? x0 : 0;
+      long seg_x1 = (yy == y1) ? x1 : (nx - 1);
+      for(long xx = seg_x0; xx <= seg_x1; ++xx){
+        memcpy(&tmp((int)yy,(int)xx,0), &cub((int)yy,(int)xx,ip,0), (size_t)ndep * sizeof(double));
+      }
+    }
+  };
+
+  /* --- 4D vars (time,y,x,ndep) via tmp --- */
+  {
+    mat<double> tmp((std::vector<int>){(int)ny, (int)nx, (int)ndep});
+
+    fill_tmp_ip(tmp, 0);  ofile->write_Tstep_pixels<double>(std::string("temp"),    tmp, tstep, seq0, seq1, (int)nx);
+    fill_tmp_ip(tmp, 1);  ofile->write_Tstep_pixels<double>(std::string("vlos"),    tmp, tstep, seq0, seq1, (int)nx);
+    fill_tmp_ip(tmp, 2);  ofile->write_Tstep_pixels<double>(std::string("vturb"),   tmp, tstep, seq0, seq1, (int)nx);
+    fill_tmp_ip(tmp, 3);  ofile->write_Tstep_pixels<double>(std::string("blong"),   tmp, tstep, seq0, seq1, (int)nx);
+    fill_tmp_ip(tmp, 4);  ofile->write_Tstep_pixels<double>(std::string("bhor"),    tmp, tstep, seq0, seq1, (int)nx);
+    fill_tmp_ip(tmp, 5);  ofile->write_Tstep_pixels<double>(std::string("azi"),     tmp, tstep, seq0, seq1, (int)nx);
+
+    fill_tmp_ip(tmp, 9);  ofile->write_Tstep_pixels<double>(std::string("ltau500"), tmp, tstep, seq0, seq1, (int)nx);
+    fill_tmp_ip(tmp,10);  ofile->write_Tstep_pixels<double>(std::string("z"),       tmp, tstep, seq0, seq1, (int)nx);
+
+    fill_tmp_ip(tmp, 6);  ofile->write_Tstep_pixels<double>(std::string("pgas"),    tmp, tstep, seq0, seq1, (int)nx);
+    fill_tmp_ip(tmp, 7);  ofile->write_Tstep_pixels<double>(std::string("rho"),     tmp, tstep, seq0, seq1, (int)nx);
+    fill_tmp_ip(tmp, 8);  ofile->write_Tstep_pixels<double>(std::string("nne"),     tmp, tstep, seq0, seq1, (int)nx);
+
+    fill_tmp_ip(tmp,11);  ofile->write_Tstep_pixels<double>(std::string("cmass"),   tmp, tstep, seq0, seq1, (int)nx);
+  }
+
+  /* --- 3D vars (time,y,x) --- */
+  {
+    ofile->write_Tstep_pixels<double>(std::string("transition_region_loc"),   tr_loc, tstep, seq0, seq1, (int)nx);
+    ofile->write_Tstep_pixels<double>(std::string("transition_region_scale"), tr_amp, tstep, seq0, seq1, (int)nx);
+    ofile->write_Tstep_pixels<int>(   std::string("transition_region_nGrid"), tr_N,   tstep, seq0, seq1, (int)nx);
+  }
+
+  ofile->sync();
+}
+
 
 
 void Ncompress(int const n,  double*  x,  double*  y, int const nn,  double*  xx, double*  yy)

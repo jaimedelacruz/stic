@@ -80,6 +80,19 @@ void slaveInversion(iput_t &iput, mdepthall_t &m, mat<double> &obs, mat<double> 
   MPI_Abort(MPI_COMM_WORLD, EXIT_SUCCESS);
 }
 
+// Seed checkpoint files once per time step so unwritten pixels are not NetCDF _FillValue.
+// IMPORTANT: do not overwrite when restarting from an existing checkpoint (tt==0).
+if (iput.is_checkpointing > 0) {
+  if (!(iput.is_restarting != 0 && tt == 0)) {
+    // Full write ONCE to initialize the file content
+    m.write_model2(iput, iput.oatmos, tt);
+
+    opfile.write_Tstep("profiles", obs, tt);
+    opfile.sync();
+  }
+}
+
+
 
   // Number of pixels we still need to process
   unsigned long remaining = ntot - (unsigned long)iput.restart_pixel;
@@ -118,7 +131,13 @@ void slaveInversion(iput_t &iput, mdepthall_t &m, mat<double> &obs, mat<double> 
             "\nProcessed -> %d%s -> sent=%lu, received=%lu (restart_pixel=%ld, remaining=%lu)\n",
             per, "%", ipix, irec, iput.restart_pixel, remaining);
 
+    
+    // Here we record how many pixels are already stored in the checkpoint.
+    // irec is "pixels completed so far" (next pixel to compute).
+    unsigned long last_chk_irec = 0;
 
+    // On restart we assume pixels [0 .. restart_pixel-1] are already in the checkpoint.
+    if (last_chk_irec == 0) last_chk_irec = (unsigned long)iput.restart_pixel;
 
     /* --- manage packages as long as needed --- */
     while(irec < ntot){
@@ -143,14 +162,26 @@ void slaveInversion(iput_t &iput, mdepthall_t &m, mat<double> &obs, mat<double> 
 
             /* ---- atmos write checkpoint ---- */
             t0 = MPI_Wtime();
-            m.write_model2(iput, iput.oatmos, tt);
+            // m.write_model2(iput, iput.oatmos, tt);
+            // Now we write only the pixels that have been completed since the last checkpoint, to avoid rewriting the full grid at every checkpoint.
+             m.write_model2_pixels(iput, iput.oatmos, tt,
+                            (long)last_chk_irec,
+                            (long)irec - 1);
             t1 = MPI_Wtime();
-            // printf("[timing] atmos write   : %.6f s\n", t1 - t0);
+            printf("[timing] atmos write   : %.6f s\n", t1 - t0);
 
             /* ---- profiles write checkpoint ---- */
             t0 = MPI_Wtime();
-            opfile.write_Tstep("profiles", obs, tt);
+            // opfile.write_Tstep("profiles", obs, tt);
+            // opfile.sync();
+            // Now we write only the pixels that have been completed since the last checkpoint, to avoid rewriting the full grid at every checkpoint.
+            opfile.write_Tstep_pixels("profiles", obs, tt,
+                            (long)last_chk_irec,
+                            (long)irec - 1,
+                            (int)iput.nx);
+
             opfile.sync();
+            last_chk_irec = irec;
             t1 = MPI_Wtime();
             printf("[timing] profiles write: %.6f s\n", t1 - t0);
 

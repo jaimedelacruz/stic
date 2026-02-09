@@ -102,6 +102,8 @@ class mdepthall{
   void expand(int n, double *x, double *y, int nn, double *xx, double *yy, int interpolation = 0);
   void write_model(std::string &filename, int tstep = 0);
   void write_model2(iput_t const& input, std::string &filename, int tstep = 0);
+  void write_model2_pixels(iput_t const& input, std::string &filename, int tstep, long seq0, long seq1);
+
 
 };
 typedef mdepthall mdepthall_t;
