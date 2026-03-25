@@ -117,3 +117,7 @@ void io::varAttr(std::string vname, std::string attr_n, std::string attr_v)
   if(!exists)
     std::cout<<"io::varAttr: Warning, ["<<vname<<"] does not exist. Cannot set attribute ["<<attr_n<<"]"<<std::endl;
 }
+
+void io::sync() {
+  if (ifile) ifile->sync();
+}

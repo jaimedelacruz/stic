@@ -105,6 +105,11 @@ struct iput{
   std::vector<region_t> regions;
   std::vector<line_t> lines;
   nodes_t nodes;
+
+  int is_checkpointing;
+  int is_restarting;
+  long restart_pixel; 
+
   
 
   iput(){};
